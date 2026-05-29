@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --background: #e6e3e2;
+  --foreground: #1f1f1f;
+  --surface: #ffffff;
+  --surface-2: #f3f1f1;
+  --border: rgba(0, 0, 0, 0.14);
+  --brand: #e10600;
+  --brand-2: #3b0a16;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #2b2b2b;
+    --foreground: #f5f5f5;
+    --surface: rgba(255, 255, 255, 0.06);
+    --surface-2: rgba(255, 255, 255, 0.04);
+    --border: rgba(255, 255, 255, 0.14);
+    --brand: #e10600;
+    --brand-2: #b10300;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* This app uses internal scroll areas (lists/modals). Avoid page scroll + scrollbar flicker on transitions. */
+body {
+  overflow-y: hidden;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+  scrollbar-color: transparent transparent; /* Firefox (when shown) */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+.font-hand {
+  font-family: var(--font-hand), ui-sans-serif, system-ui, sans-serif;
+}
+
+.bg-paper {
+  background-color: #fffdfb;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(0, 0, 0, 0.08) 0 0.6px, transparent 0.7px),
+    radial-gradient(circle at 78% 44%, rgba(0, 0, 0, 0.06) 0 0.7px, transparent 0.8px),
+    radial-gradient(circle at 34% 72%, rgba(0, 0, 0, 0.06) 0 0.55px, transparent 0.65px),
+    linear-gradient(0deg, rgba(0, 0, 0, 0.085) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(225, 6, 0, 0.06), rgba(255, 255, 255, 0));
+  background-size: 18px 18px, 22px 22px, 26px 26px, 26px 26px, 26px 26px, 100% 100%;
+  background-blend-mode: multiply, multiply, multiply, normal, normal, normal;
+}
