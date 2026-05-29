@@ -112,10 +112,47 @@ function defaultCatalogJsonPath() {
   return path.resolve(process.cwd(), "..", "..", "catalogo", "productos.json");
 }
 
-let cached: { mtimeMs: number; items: Product[] } | null = null;
-let inflight: Promise<{ mtimeMs: number; items: Product[] }> | null = null;
+let cached: { version: number; cacheKey: string; items: Product[] } | null = null;
+let inflight: Promise<{ version: number; cacheKey: string; items: Product[] }> | null = null;
+
+function buildCacheKey(headers: Headers) {
+  const etag = headers.get("etag");
+  const lastModified = headers.get("last-modified");
+  return etag || lastModified || "no-cache-key";
+}
 
 export async function GET() {
+  const sourceUrl = process.env.CATALOGO_SOURCE_URL?.trim() || "";
+  if (sourceUrl) {
+    if (cached && cached.cacheKey !== "no-cache-key") {
+      // Best-effort revalidation using the last seen key.
+      // If the origin provides ETag/Last-Modified, we can avoid re-parsing unchanged payloads.
+    }
+
+    if (!inflight) {
+      inflight = (async () => {
+        const res = await fetch(sourceUrl, { cache: "no-store" });
+        if (!res.ok) {
+          return { version: Date.now(), cacheKey: "error", items: [] as Product[] };
+        }
+        const cacheKey = buildCacheKey(res.headers);
+        if (cached && cached.cacheKey === cacheKey) {
+          return cached;
+        }
+        const rows = (await res.json()) as SourceRow[];
+        const items = rows.map(mapRowToProduct).filter(Boolean) as Product[];
+        const next = { version: Date.now(), cacheKey, items };
+        cached = next;
+        return next;
+      })().finally(() => {
+        inflight = null;
+      });
+    }
+
+    const result = await inflight;
+    return NextResponse.json({ version: result.version, items: result.items });
+  }
+
   const catalogPath =
     process.env.CATALOGO_JSON_PATH?.trim() || defaultCatalogJsonPath();
 
@@ -129,8 +166,8 @@ export async function GET() {
     );
   }
 
-  if (cached && cached.mtimeMs === stat.mtimeMs) {
-    return NextResponse.json({ version: stat.mtimeMs, items: cached.items });
+  if (cached && cached.cacheKey === String(stat.mtimeMs)) {
+    return NextResponse.json({ version: cached.version, items: cached.items });
   }
 
   if (!inflight) {
@@ -138,13 +175,14 @@ export async function GET() {
       const txt = await fs.readFile(catalogPath, "utf8");
       const rows = JSON.parse(txt) as SourceRow[];
       const items = rows.map(mapRowToProduct).filter(Boolean) as Product[];
-      cached = { mtimeMs: stat.mtimeMs, items };
-      return { mtimeMs: stat.mtimeMs, items };
+      const next = { version: Date.now(), cacheKey: String(stat.mtimeMs), items };
+      cached = next;
+      return next;
     })().finally(() => {
       inflight = null;
     });
   }
 
   const res = await inflight;
-  return NextResponse.json({ version: res.mtimeMs, items: res.items });
+  return NextResponse.json({ version: res.version, items: res.items });
 }
