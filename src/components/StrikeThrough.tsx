@@ -25,7 +25,7 @@ export function StrikeThrough({
     <motion.svg
       aria-hidden="true"
       className={[
-        "pointer-events-none absolute inset-x-0 top-1/2 h-3 w-full -translate-y-1/2",
+        "pointer-events-none absolute inset-x-0 h-3 w-full",
         offsetYClassName ?? "",
         className ?? "",
       ].join(" ")}

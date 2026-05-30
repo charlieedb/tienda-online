@@ -463,14 +463,14 @@ function SuperListRow({
                   />
                 ) : null}
                 <span className={item.added ? "opacity-45" : ""}>{show}</span>
+                <StrikeThrough
+                  active={Boolean(item.noResults)}
+                  from={0}
+                  to={100}
+                  className={item.noResults ? "text-red-600" : undefined}
+                  offsetYClassName={item.noResults ? "top-[0.62em] -translate-y-1/2" : undefined}
+                />
               </span>
-              <StrikeThrough
-                active={Boolean(item.noResults)}
-                from={range.from}
-                to={range.to}
-                className={item.noResults ? "text-red-600" : undefined}
-                offsetYClassName={item.noResults ? "-translate-y-[0.95rem]" : undefined}
-              />
             </div>
           </div>
 
