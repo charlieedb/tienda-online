@@ -130,7 +130,13 @@ export function SuperList({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-full flex-col rounded-3xl border border-border bg-paper p-4 shadow-sm">
+      <div
+        className="flex h-full flex-col rounded-3xl border border-border paper-bloc shadow-sm"
+        style={{
+          padding: "var(--paper-pad)",
+          paddingLeft: "calc(var(--paper-pad) + var(--paper-gutter))",
+        }}
+      >
         <div className="relative pb-3">
           <div className="text-center text-base font-semibold tracking-tight text-black/85 sm:text-lg">
             Mi lista
@@ -291,7 +297,7 @@ export function SuperList({
                   transition={{ duration: 0.18, ease: "easeOut" }}
                   style={{
                     background:
-                      "linear-gradient(to bottom, color-mix(in srgb, #fffdfb 92%, transparent), transparent)",
+                      "linear-gradient(to bottom, color-mix(in srgb, var(--paper-bg) 92%, transparent), transparent)",
                   }}
                 />
                 <motion.div
@@ -302,7 +308,7 @@ export function SuperList({
                   transition={{ duration: 0.18, ease: "easeOut" }}
                   style={{
                     background:
-                      "linear-gradient(to top, color-mix(in srgb, #fffdfb 92%, transparent), transparent)",
+                      "linear-gradient(to top, color-mix(in srgb, var(--paper-bg) 92%, transparent), transparent)",
                   }}
                 />
               </div>
