@@ -183,6 +183,12 @@ function createItem(raw: string): SuperItem {
   };
 }
 
+function createItemWithOpts(raw: string, opts?: { noResults?: boolean }): SuperItem {
+  const base = createItem(raw);
+  if (opts?.noResults) return { ...base, noResults: true };
+  return base;
+}
+
 export default function Home() {
   const { user, loading: authLoading, signOut } = useAuth();
   const [stage, setStage] = useState<Stage>("landing");
@@ -659,8 +665,8 @@ export default function Home() {
                 <SuperList
                   items={items}
                   activeId={activeId}
-                  onAddItem={(raw) => {
-                    const it = createItem(raw);
+                  onAddItem={(raw, opts) => {
+                    const it = createItemWithOpts(raw, opts);
                     setItems((prev) => [it, ...prev]);
                     setActiveId(it.id);
                     setShowOptions(false);

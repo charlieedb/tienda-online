@@ -21,7 +21,7 @@ export type SuperItem = {
 type Props = {
   items: SuperItem[];
   activeId: string | null;
-  onAddItem: (raw: string) => void;
+  onAddItem: (raw: string, opts?: { noResults?: boolean }) => void;
   onSelect: (id: string) => void;
   onMarkAdded: (id: string) => void;
   onClear: () => void;
@@ -174,7 +174,10 @@ export function SuperList({
               }
 
               setPending(null);
-              onAddItem(raw);
+              onAddItem(raw, { noResults: true });
+              setNotice(
+                "Todavía no vendemos este tipo de producto, pero ya avisamos para agregarlo al catálogo :)",
+              );
               setValue("");
               queueMicrotask(() => inputRef.current?.focus());
             } finally {
