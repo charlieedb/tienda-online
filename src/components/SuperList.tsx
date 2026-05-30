@@ -108,7 +108,7 @@ export function SuperList({
   const [notice, setNotice] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestedText, setRequestedText] = useState<string | null>(null);
-  const [labelsBySelection, setLabelsBySelection] = useState<Record<string, string>>(
+  const [unitsPerSelection, setUnitsPerSelection] = useState<Record<string, number>>(
     {},
   );
   const total = useCartStore((s) =>
@@ -144,7 +144,7 @@ export function SuperList({
     for (const it of items) {
       for (const s of it.selections ?? []) {
         if (!s?.id || !s.productId) continue;
-        if (!labelsBySelection[s.id]) {
+        if (unitsPerSelection[s.id] === undefined) {
           needed.set(s.id, { productId: s.productId, variant: s.variant });
         }
       }
@@ -153,21 +153,22 @@ export function SuperList({
 
     (async () => {
       const entries = Array.from(needed.entries());
-      const updates: Record<string, string> = {};
+      const unitUpdates: Record<string, number> = {};
       for (const [id, meta] of entries) {
         const p = await getProductById(meta.productId);
         if (!p) continue;
-        updates[id] = `${p.name}${p.brand ? ` · ${p.brand}` : ""}`;
+        unitUpdates[id] =
+          meta.variant === "pack" ? Math.max(1, p.pack?.qty ?? 1) : 1;
       }
       if (cancelled) return;
-      if (Object.keys(updates).length === 0) return;
-      setLabelsBySelection((prev) => ({ ...prev, ...updates }));
+      if (Object.keys(unitUpdates).length === 0) return;
+      setUnitsPerSelection((prev) => ({ ...prev, ...unitUpdates }));
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [items, labelsBySelection]);
+  }, [items, unitsPerSelection]);
 
   return (
     <div className="flex flex-col">
@@ -333,7 +334,7 @@ export function SuperList({
                         onEditSelection={onEditSelection}
                         onMarkAdded={onMarkAdded}
                         onRemoveItem={onRemoveItem}
-                        selectionLabels={labelsBySelection}
+                        unitsPerSelection={unitsPerSelection}
                       />
                     ))}
                   </motion.ul>
@@ -384,7 +385,7 @@ function SuperListRow({
   onEditSelection,
   onMarkAdded,
   onRemoveItem,
-  selectionLabels,
+  unitsPerSelection,
 }: {
   item: SuperItem;
   active: boolean;
@@ -393,7 +394,7 @@ function SuperListRow({
   onEditSelection: (itemId: string, selectionId: string) => void;
   onMarkAdded: (id: string) => void;
   onRemoveItem: (id: string) => void;
-  selectionLabels: Record<string, string>;
+  unitsPerSelection: Record<string, number>;
 }) {
   const rot = jitter(item.id);
   const markRot = (rot * 0.4).toFixed(2);
@@ -406,6 +407,11 @@ function SuperListRow({
   const reveal = useTransform(x, [0, swipeLeftPx], [0, 1]);
   const selections = item.selections ?? [];
   const hasSelections = selections.length > 0;
+  const brandsCount = selections.length;
+  const totalUnits = selections.reduce((acc, s) => {
+    const per = unitsPerSelection[s.id] ?? (s.variant === "pack" ? 1 : 1);
+    return acc + Math.max(0, s.qty) * Math.max(1, per);
+  }, 0);
 
   return (
     <motion.li layout className="relative overflow-hidden rounded-2xl">
@@ -530,27 +536,9 @@ function SuperListRow({
               </span>
             </div>
 
-            {hasSelections ? (
-              <div className="mt-2 space-y-1">
-                {selections.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onEditSelection(item.id, s.id);
-                    }}
-                    className="block w-full rounded-xl bg-white/55 px-3 py-2 text-left text-[12px] leading-4 text-black/80 hover:bg-white/65"
-                  >
-                    <span className="font-semibold">
-                      {selectionLabels[s.id] ?? "…"}
-                    </span>
-                    <span className="ml-2 text-black/60">
-                      x{s.qty} {s.variant === "unit" ? "unid" : "cajas"}
-                    </span>
-                  </button>
-                ))}
+            {brandsCount > 1 ? (
+              <div className="mt-2 text-[11px] font-semibold text-black/55">
+                {brandsCount} marcas
               </div>
             ) : null}
           </div>
@@ -571,7 +559,7 @@ function SuperListRow({
           {item.added ? (
             <span className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2 text-green-600">
               <span className="text-[11px] font-semibold uppercase text-black/55">
-                {hasSelections ? `${selections.length} marca(s)` : ""}
+                {hasSelections ? `x${totalUnits} unid` : ""}
               </span>
             </span>
           ) : null}

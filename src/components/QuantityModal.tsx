@@ -138,7 +138,7 @@ export function QuantityModal({
                   className={[
                     "rounded-2xl border px-3 py-3 text-left transition-colors",
                     variant === "unit"
-                      ? "border-brand/30 bg-surface-2"
+                      ? "border-[#2b3bb8]/40 bg-[#2b3bb8]/12 ring-2 ring-[#2b3bb8]/20"
                       : "border-border bg-surface hover:bg-surface-2",
                   ].join(" ")}
                 >
@@ -170,7 +170,7 @@ export function QuantityModal({
                     "rounded-2xl border px-3 py-3 text-left transition-colors",
                     !hasPack ? "cursor-not-allowed opacity-45" : "",
                     variant === "pack"
-                      ? "border-brand/30 bg-surface-2"
+                      ? "border-[#2b3bb8]/40 bg-[#2b3bb8]/12 ring-2 ring-[#2b3bb8]/20"
                       : "border-border bg-surface hover:bg-surface-2",
                   ].join(" ")}
                 >

@@ -104,6 +104,13 @@ export function SuggestionsPanel({
   }, [token]);
 
   const addItem = useCartStore((s) => s.addItem);
+  const setItemQty = useCartStore((s) => s.setItemQty);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const cartItems = useCartStore((s) => s.items);
+  const cartById = useMemo(
+    () => new Map(cartItems.map((c) => [c.id, c.qty] as const)),
+    [cartItems],
+  );
 
   const sortedProducts = useMemo(() => {
     const list = [...products];
@@ -128,6 +135,14 @@ export function SuggestionsPanel({
   const visibleProducts = useMemo(() => sortedProducts.slice(0, 4), [sortedProducts]);
   const [selected, setSelected] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<"add" | "edit">("add");
+  const [selectedInitialVariant, setSelectedInitialVariant] = useState<
+    "unit" | "pack" | undefined
+  >(undefined);
+  const [selectedInitialQty, setSelectedInitialQty] = useState<number | undefined>(
+    undefined,
+  );
+  const [selectedExistingId, setSelectedExistingId] = useState<string | null>(null);
 
   useEffect(() => {
     // Preload thumbnails for the first items to improve perceived speed.
@@ -141,6 +156,27 @@ export function SuggestionsPanel({
     }
   }, [sortedProducts]);
 
+  const openProduct = (p: Product) => {
+    const unitId = `${p.id}:unit`;
+    const packId = `${p.id}:pack`;
+    const unitQty = cartById.get(unitId);
+    const packQty = cartById.get(packId);
+    const existingId = unitQty ? unitId : packQty ? packId : null;
+
+    setSelectedExistingId(existingId);
+    if (existingId) {
+      setSelectedMode("edit");
+      setSelectedInitialVariant(unitQty ? "unit" : "pack");
+      setSelectedInitialQty(unitQty ?? packQty);
+    } else {
+      setSelectedMode("add");
+      setSelectedInitialVariant(undefined);
+      setSelectedInitialQty(undefined);
+    }
+    setSelected(p);
+    setModalOpen(true);
+  };
+
   return (
     <motion.div
       className="flex h-full flex-col"
@@ -151,20 +187,50 @@ export function SuggestionsPanel({
       <QuantityModal
         open={modalOpen}
         product={selected}
-        mode="add"
+        mode={selectedMode}
+        initialVariant={selectedInitialVariant}
+        initialQty={selectedInitialQty}
         onClose={() => setModalOpen(false)}
+        onDeleteSelection={
+          selectedMode === "edit" && selectedExistingId
+            ? () => {
+                removeItem(selectedExistingId);
+                setModalOpen(false);
+              }
+            : undefined
+        }
         onConfirm={({ product, variant, qty, label, price }) => {
-          addItem(
-            {
-              id: `${product.id}:${variant}`,
-              productId: product.id,
-              name: `${product.name}${product.brand ? ` · ${product.brand}` : ""}`,
-              variant,
-              label,
-              price,
-            },
-            qty,
-          );
+          const newId = `${product.id}:${variant}`;
+          if (selectedMode === "edit" && selectedExistingId) {
+            if (selectedExistingId === newId) {
+              setItemQty(newId, qty);
+            } else {
+              removeItem(selectedExistingId);
+              addItem(
+                {
+                  id: newId,
+                  productId: product.id,
+                  name: `${product.name}${product.brand ? ` · ${product.brand}` : ""}`,
+                  variant,
+                  label,
+                  price,
+                },
+                qty,
+              );
+            }
+          } else {
+            addItem(
+              {
+                id: newId,
+                productId: product.id,
+                name: `${product.name}${product.brand ? ` · ${product.brand}` : ""}`,
+                variant,
+                label,
+                price,
+              },
+              qty,
+            );
+          }
           setModalOpen(false);
           onAdded({ productId: product.id, variant, qty, label });
         }}
@@ -181,6 +247,16 @@ export function SuggestionsPanel({
               "Elegí un ítem de la lista."
             )}
           </div>
+          {token ? (
+            <div className="mt-2 md:hidden">
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-1 text-[11px] font-semibold text-foreground/70">
+                <span aria-hidden="true" className="text-[12px] leading-none">
+                  ⇆
+                </span>
+                Deslizá para ver más
+              </div>
+            </div>
+          ) : null}
         </div>
         <motion.div
           className="hidden md:block"
@@ -229,10 +305,8 @@ export function SuggestionsPanel({
                         <ProductCard
                           product={p}
                           tag={p.offer ? "OFERTA" : undefined}
-                          onSelect={() => {
-                            setSelected(p);
-                            setModalOpen(true);
-                          }}
+                          addedQty={cartById.get(`${p.id}:unit`) ?? cartById.get(`${p.id}:pack`) ?? null}
+                          onSelect={() => openProduct(p)}
                         />
                       </div>
                     ))}
@@ -253,10 +327,8 @@ export function SuggestionsPanel({
                       key={p.id}
                       product={p}
                       tag={p.offer ? "OFERTA" : undefined}
-                      onSelect={() => {
-                        setSelected(p);
-                        setModalOpen(true);
-                      }}
+                      addedQty={cartById.get(`${p.id}:unit`) ?? cartById.get(`${p.id}:pack`) ?? null}
+                      onSelect={() => openProduct(p)}
                     />
                   ))}
                 </motion.div>

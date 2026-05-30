@@ -10,9 +10,10 @@ type Props = {
   product: Product;
   onSelect: () => void;
   tag?: "OFERTA";
+  addedQty?: number | null;
 };
 
-export function ProductCard({ product, onSelect, tag }: Props) {
+export function ProductCard({ product, onSelect, tag, addedQty = null }: Props) {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const isOut = product.active === false;
@@ -61,6 +62,11 @@ export function ProductCard({ product, onSelect, tag }: Props) {
     >
       <div className="relative overflow-hidden rounded-2xl border border-border bg-white">
         <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
+          {typeof addedQty === "number" && addedQty > 0 ? (
+            <div className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm">
+              Agregado · x{addedQty}
+            </div>
+          ) : null}
           {isOut ? (
             <div className="rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm">
               Sin stock
@@ -143,7 +149,7 @@ export function ProductCard({ product, onSelect, tag }: Props) {
             </div>
           </div>
           <MotionButton className="h-9 px-3" onClick={onSelect} disabled={isOut}>
-            {isOut ? "Sin stock" : "Elegir"}
+            {isOut ? "Sin stock" : typeof addedQty === "number" && addedQty > 0 ? "Editar" : "Elegir"}
           </MotionButton>
         </div>
       </div>
