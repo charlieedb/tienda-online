@@ -380,7 +380,7 @@ export default function Home() {
           >
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 z-0 opacity-[0.18] motion-safe:animate-[fondo-pan_26s_linear_infinite]"
+              className="pointer-events-none absolute inset-0 z-0 opacity-[0.35] motion-safe:animate-[fondo-pan_26s_linear_infinite]"
               style={{
                 backgroundImage: "url(/fondo.png)",
                 backgroundRepeat: "repeat",
