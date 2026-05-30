@@ -88,10 +88,9 @@ function saveCatalogToLocalStorage(payload: CatalogApiPayload) {
 async function fetchCatalogFromApi(): Promise<CatalogApiPayload | null> {
   if (typeof window === "undefined") return null;
   try {
-    // Prefer the local Next API (does the mapping from the legacy catalog JSON shape).
-    // In production (Vercel), the API route fetches the catalog from a public HTTPS URL.
-    const url = process.env.NEXT_PUBLIC_CATALOG_URL || "/api/catalog";
-    const res = await fetch(url, { cache: "no-store" });
+    // Always use the local Next API route.
+    // In production (Vercel), the API route reads `CATALOGO_SOURCE_URL` server-side (no browser CORS).
+    const res = await fetch("/api/catalog", { cache: "no-store" });
     if (!res.ok) return null;
     const json = (await res.json()) as CatalogApiPayload;
     if (!json || !Array.isArray(json.items)) return null;
