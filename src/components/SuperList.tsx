@@ -3,11 +3,18 @@
 import { AnimatePresence, motion, useMotionValue, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { normalizeToken } from "@/lib/normalize";
-import { searchProductsByToken } from "@/lib/products";
+import { getProductById, searchProductsByToken } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
 import { formatArs } from "@/lib/format";
 import { StrikeThrough } from "@/components/StrikeThrough";
 import { RequestLoggedModal } from "@/components/RequestLoggedModal";
+
+export type Selection = {
+  id: string; // `${productId}:${variant}`
+  productId: string;
+  variant: "unit" | "pack";
+  qty: number;
+};
 
 export type SuperItem = {
   id: string;
@@ -15,7 +22,7 @@ export type SuperItem = {
   token: string;
   added: boolean;
   noResults?: boolean;
-  purchased?: { productId: string; variant: "unit" | "pack"; qty: number };
+  selections?: Selection[];
   offer?: boolean;
 };
 
@@ -27,7 +34,7 @@ type Props = {
   onMarkAdded: (id: string) => void;
   onClear: () => void;
   onFocusOptions: () => void;
-  onEditPurchased: (id: string) => void;
+  onEditSelection: (itemId: string, selectionId: string) => void;
   onOpenOffers: () => void;
   onRemoveItem: (id: string) => void;
 };
@@ -85,7 +92,7 @@ export function SuperList({
   onMarkAdded,
   onClear,
   onFocusOptions,
-  onEditPurchased,
+  onEditSelection,
   onOpenOffers,
   onRemoveItem,
 }: Props) {
@@ -101,6 +108,9 @@ export function SuperList({
   const [notice, setNotice] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestedText, setRequestedText] = useState<string | null>(null);
+  const [labelsBySelection, setLabelsBySelection] = useState<Record<string, string>>(
+    {},
+  );
   const total = useCartStore((s) =>
     s.items.reduce((acc, i) => acc + i.price * i.qty, 0),
   );
@@ -127,6 +137,37 @@ export function SuperList({
     const t = setTimeout(() => setNotice(null), 2200);
     return () => clearTimeout(t);
   }, [notice]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const needed = new Map<string, { productId: string; variant: "unit" | "pack" }>();
+    for (const it of items) {
+      for (const s of it.selections ?? []) {
+        if (!s?.id || !s.productId) continue;
+        if (!labelsBySelection[s.id]) {
+          needed.set(s.id, { productId: s.productId, variant: s.variant });
+        }
+      }
+    }
+    if (needed.size === 0) return;
+
+    (async () => {
+      const entries = Array.from(needed.entries());
+      const updates: Record<string, string> = {};
+      for (const [id, meta] of entries) {
+        const p = await getProductById(meta.productId);
+        if (!p) continue;
+        updates[id] = `${p.name}${p.brand ? ` · ${p.brand}` : ""}`;
+      }
+      if (cancelled) return;
+      if (Object.keys(updates).length === 0) return;
+      setLabelsBySelection((prev) => ({ ...prev, ...updates }));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [items, labelsBySelection]);
 
   return (
     <div className="flex flex-col">
@@ -289,9 +330,10 @@ export function SuperList({
                         active={it.id === activeId}
                         onSelect={onSelect}
                         onFocusOptions={onFocusOptions}
-                        onEditPurchased={onEditPurchased}
+                        onEditSelection={onEditSelection}
                         onMarkAdded={onMarkAdded}
                         onRemoveItem={onRemoveItem}
+                        selectionLabels={labelsBySelection}
                       />
                     ))}
                   </motion.ul>
@@ -339,27 +381,31 @@ function SuperListRow({
   active,
   onSelect,
   onFocusOptions,
-  onEditPurchased,
+  onEditSelection,
   onMarkAdded,
   onRemoveItem,
+  selectionLabels,
 }: {
   item: SuperItem;
   active: boolean;
   onSelect: (id: string) => void;
   onFocusOptions: () => void;
-  onEditPurchased: (id: string) => void;
+  onEditSelection: (itemId: string, selectionId: string) => void;
   onMarkAdded: (id: string) => void;
   onRemoveItem: (id: string) => void;
+  selectionLabels: Record<string, string>;
 }) {
   const rot = jitter(item.id);
   const markRot = (rot * 0.4).toFixed(2);
   const base = normalizeToken(item.raw);
   const show = base || item.raw;
-  const { containerRef, textRef, range } = useStrikeRange(item.added);
+  const { containerRef, textRef, range } = useStrikeRange(Boolean(item.noResults));
   const x = useMotionValue(0);
   const swipeLeftPx = -86;
   const isDraggingRef = useRef(false);
   const reveal = useTransform(x, [0, swipeLeftPx], [0, 1]);
+  const selections = item.selections ?? [];
+  const hasSelections = selections.length > 0;
 
   return (
     <motion.li layout className="relative overflow-hidden rounded-2xl">
@@ -426,11 +472,11 @@ function SuperListRow({
           onClick={() => {
             if (isDraggingRef.current) return;
             onSelect(item.id);
-            if (item.added && item.purchased) {
-              onEditPurchased(item.id);
+            if (!item.added && !item.noResults) {
+              onFocusOptions();
               return;
             }
-            if (!item.added && !item.noResults) {
+            if (hasSelections && !item.noResults) {
               onFocusOptions();
             }
           }}
@@ -443,7 +489,7 @@ function SuperListRow({
             className={[
               "absolute left-3 top-1/2 -translate-y-1/2",
               "inline-flex h-6 w-6 items-center justify-center rounded-md border",
-              item.purchased
+              hasSelections
                 ? "border-green-600 bg-green-600 text-white"
                 : item.noResults
                   ? "hidden"
@@ -483,6 +529,30 @@ function SuperListRow({
                 />
               </span>
             </div>
+
+            {hasSelections ? (
+              <div className="mt-2 space-y-1">
+                {selections.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onEditSelection(item.id, s.id);
+                    }}
+                    className="block w-full rounded-xl bg-white/55 px-3 py-2 text-left text-[12px] leading-4 text-black/80 hover:bg-white/65"
+                  >
+                    <span className="font-semibold">
+                      {selectionLabels[s.id] ?? "…"}
+                    </span>
+                    <span className="ml-2 text-black/60">
+                      x{s.qty} {s.variant === "unit" ? "unid" : "cajas"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {!item.added ? (
@@ -500,12 +570,9 @@ function SuperListRow({
 
           {item.added ? (
             <span className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2 text-green-600">
-              {item.purchased ? (
-                <span className="text-[11px] font-semibold uppercase text-black/55">
-                  x{item.purchased.qty}{" "}
-                  {item.purchased.variant === "unit" ? "unid" : "cajas"}
-                </span>
-              ) : null}
+              <span className="text-[11px] font-semibold uppercase text-black/55">
+                {hasSelections ? `${selections.length} marca(s)` : ""}
+              </span>
             </span>
           ) : null}
 

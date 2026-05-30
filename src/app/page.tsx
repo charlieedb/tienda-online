@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CartPanel } from "@/components/CartPanel";
 import { MotionButton } from "@/components/MotionButton";
 import { OptionsModal } from "@/components/OptionsModal";
-import { SuperList, type SuperItem } from "@/components/SuperList";
+import { SuperList, type Selection, type SuperItem } from "@/components/SuperList";
 import { QuantityModal } from "@/components/QuantityModal";
 import { OffersModal } from "@/components/OffersModal";
 import { AuthModal } from "@/components/AuthModal";
@@ -180,6 +180,7 @@ function createItem(raw: string): SuperItem {
     raw,
     token,
     added: false,
+    selections: [],
   };
 }
 
@@ -199,6 +200,7 @@ export default function Home() {
   const [showOffers, setShowOffers] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [editSelectionId, setEditSelectionId] = useState<string | null>(null);
   const [editProduct, setEditProduct] = useState<Awaited<ReturnType<typeof getProductById>>>(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const cartItems = useCartStore((s) => s.items);
@@ -216,13 +218,26 @@ export default function Home() {
 
   const markAdded = (
     id: string,
-    purchased?: { productId: string; variant: "unit" | "pack"; qty: number },
   ) => {
     setItems((prev) =>
       prev.map((i) =>
-        i.id === id ? { ...i, added: true, noResults: false, purchased } : i,
+        i.id === id ? { ...i, added: true, noResults: false } : i,
       ),
     );
+  };
+
+  const upsertSelection = (it: SuperItem, sel: Selection): SuperItem => {
+    const prev = it.selections ?? [];
+    const existing = prev.find((s) => s.id === sel.id);
+    const nextSelections = existing
+      ? prev.map((s) => (s.id === sel.id ? { ...s, qty: s.qty + sel.qty } : s))
+      : [...prev, sel];
+    return {
+      ...it,
+      added: nextSelections.length > 0,
+      noResults: false,
+      selections: nextSelections,
+    };
   };
 
   const onAddedFromSuggestions = (info: {
@@ -232,13 +247,19 @@ export default function Home() {
     label: string;
   }) => {
     if (!activeItem) return;
-    markAdded(activeItem.id, {
-      productId: info.productId,
-      variant: info.variant,
-      qty: info.qty,
-    });
-    const next = items.find((i) => !i.added && i.id !== activeItem.id);
-    if (next) setActiveId(next.id);
+    const id = `${info.productId}:${info.variant}`;
+    setItems((prev) =>
+      prev.map((it) =>
+        it.id === activeItem.id
+          ? upsertSelection(it, {
+              id,
+              productId: info.productId,
+              variant: info.variant,
+              qty: info.qty,
+            })
+          : it,
+      ),
+    );
   };
 
   const onAddedFromOffer = (info: {
@@ -247,44 +268,29 @@ export default function Home() {
     variant: "unit" | "pack";
     qty: number;
   }) => {
-    const token = normalizeToken(info.name);
+    const token = normalizeToken("Ofertas");
     if (!token) return;
     setItems((prev) => {
-      // Offers always create their own list row (separate from what the user typed).
-      // If the same offer-product was added before, just accumulate qty on that offer row.
-      const existingOffer = prev.find(
-        (i) =>
-          i.offer &&
-          i.purchased?.productId === info.productId &&
-          i.purchased?.variant === info.variant,
-      );
-      if (existingOffer) {
+      const offerId = `${info.productId}:${info.variant}`;
+      const existing = prev.find((i) => i.token === token);
+      if (existing) {
         return prev.map((i) =>
-          i.id === existingOffer.id
-            ? {
-                ...i,
-                raw: info.name,
-                token,
-                offer: true,
-                added: true,
-                noResults: false,
-                purchased: {
-                  productId: info.productId,
-                  variant: info.variant,
-                  qty: (i.purchased?.qty ?? 0) + info.qty,
-                },
-              }
+          i.id === existing.id
+            ? upsertSelection(i, {
+                id: offerId,
+                productId: info.productId,
+                variant: info.variant,
+                qty: info.qty,
+              })
             : i,
         );
       }
+
       const it: SuperItem = {
-        ...createItem(info.name),
+        ...createItem("Ofertas"),
         offer: true,
-        added: true,
-        noResults: false,
-        purchased: { productId: info.productId, variant: info.variant, qty: info.qty },
       };
-      return [it, ...prev];
+      return [upsertSelection(it, { id: offerId, productId: info.productId, variant: info.variant, qty: info.qty }), ...prev];
     });
   };
 
@@ -343,32 +349,31 @@ export default function Home() {
     setItems((prev) => {
       let changed = false;
       const next = prev.map((it) => {
-        if (!it.purchased) return it;
-        const key = `${it.purchased.productId}:${it.purchased.variant}`;
-        const qty = cartById.get(key);
-        if (!qty) {
-          changed = true;
-          return {
-            ...it,
-            added: false,
-            purchased: undefined,
-            offer: false,
-            noResults: false,
-          };
+        const selections = it.selections ?? [];
+        if (selections.length === 0) return it;
+        let localChanged = false;
+        const nextSelections: Selection[] = [];
+        for (const s of selections) {
+          const qty = cartById.get(s.id);
+          if (!qty) {
+            localChanged = true;
+            continue;
+          }
+          if (qty !== s.qty) localChanged = true;
+          nextSelections.push({ ...s, qty });
         }
-        if (qty !== it.purchased.qty) {
-          changed = true;
-          return { ...it, purchased: { ...it.purchased, qty } };
-        }
-        return it;
+        if (!localChanged) return it;
+        changed = true;
+        return {
+          ...it,
+          selections: nextSelections,
+          added: nextSelections.length > 0,
+          noResults: false,
+        };
       });
       return changed ? next : prev;
     });
   }, [cartItems, stage]);
-
-  const setItemPurchased = (id: string, purchased: SuperItem["purchased"]) => {
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, purchased } : i)));
-  };
 
   return (
     <div className="min-h-dvh bg-background">
@@ -554,36 +559,57 @@ export default function Home() {
               mode="edit"
               initialVariant={
                 editItemId
-                  ? items.find((i) => i.id === editItemId)?.purchased?.variant
+                  ? items
+                      .find((i) => i.id === editItemId)
+                      ?.selections?.find((s) => s.id === editSelectionId)
+                      ?.variant
                   : undefined
               }
               initialQty={
                 editItemId
-                  ? items.find((i) => i.id === editItemId)?.purchased?.qty
+                  ? items
+                      .find((i) => i.id === editItemId)
+                      ?.selections?.find((s) => s.id === editSelectionId)
+                      ?.qty
                   : undefined
               }
-              onClose={() => setEditOpen(false)}
+              onClose={() => {
+                setEditOpen(false);
+                setEditSelectionId(null);
+              }}
               onDeleteSelection={() => {
                 if (!editItemId) return;
-                const prev = items.find((i) => i.id === editItemId)?.purchased;
+                const prev = items
+                  .find((i) => i.id === editItemId)
+                  ?.selections?.find((s) => s.id === editSelectionId);
                 if (!prev) return;
                 const cart = useCartStore.getState();
-                cart.removeItem(`${prev.productId}:${prev.variant}`);
+                cart.removeItem(prev.id);
                 setItems((p) =>
-                  p.map((i) =>
-                    i.id === editItemId
-                      ? { ...i, added: false, purchased: undefined, offer: false, noResults: false }
-                      : i,
-                  ),
+                  p.map((i) => {
+                    if (i.id !== editItemId) return i;
+                    const nextSelections = (i.selections ?? []).filter(
+                      (s) => s.id !== prev.id,
+                    );
+                    return {
+                      ...i,
+                      selections: nextSelections,
+                      added: nextSelections.length > 0,
+                      noResults: false,
+                    };
+                  }),
                 );
                 setEditOpen(false);
+                setEditSelectionId(null);
               }}
               onConfirm={({ product, variant, qty, label, price }) => {
                 if (!editItemId) return;
-                const prev = items.find((i) => i.id === editItemId)?.purchased;
+                const prev = items
+                  .find((i) => i.id === editItemId)
+                  ?.selections?.find((s) => s.id === editSelectionId);
                 if (!prev) return;
 
-                const oldId = `${prev.productId}:${prev.variant}`;
+                const oldId = prev.id;
                 const newId = `${product.id}:${variant}`;
                 const cart = useCartStore.getState();
                 if (oldId === newId) {
@@ -603,8 +629,24 @@ export default function Home() {
                   );
                 }
 
-                setItemPurchased(editItemId, { productId: product.id, variant, qty });
+                setItems((p) =>
+                  p.map((i) => {
+                    if (i.id !== editItemId) return i;
+                    const withoutOld = (i.selections ?? []).filter((s) => s.id !== oldId);
+                    const existing = withoutOld.find((s) => s.id === newId);
+                    const nextSelections = existing
+                      ? withoutOld.map((s) => (s.id === newId ? { ...s, qty } : s))
+                      : [...withoutOld, { id: newId, productId: product.id, variant, qty }];
+                    return {
+                      ...i,
+                      selections: nextSelections,
+                      added: nextSelections.length > 0,
+                      noResults: false,
+                    };
+                  }),
+                );
                 setEditOpen(false);
+                setEditSelectionId(null);
               }}
             />
 
@@ -621,7 +663,6 @@ export default function Home() {
               onClose={() => setShowOptions(false)}
               onAdded={(info) => {
                 onAddedFromSuggestions(info);
-                setShowOptions(false);
               }}
               onSearchState={({ token, hasResults }) => {
                 if (!activeItem || activeItem.token !== token) return;
@@ -679,13 +720,15 @@ export default function Home() {
                     setShowOptions(false);
                   }}
                   onFocusOptions={focusOptions}
-                  onEditPurchased={async (id) => {
-                    const it = items.find((i) => i.id === id);
-                    if (!it?.purchased) return;
-                    const p = await getProductById(it.purchased.productId);
+                  onEditSelection={async (itemId, selectionId) => {
+                    const it = items.find((i) => i.id === itemId);
+                    const sel = it?.selections?.find((s) => s.id === selectionId);
+                    if (!sel) return;
+                    const p = await getProductById(sel.productId);
                     if (!p) return;
-                    setActiveId(id);
-                    setEditItemId(id);
+                    setActiveId(itemId);
+                    setEditItemId(itemId);
+                    setEditSelectionId(selectionId);
                     setEditProduct(p);
                     setEditOpen(true);
                   }}
@@ -693,12 +736,8 @@ export default function Home() {
                   onRemoveItem={(id) => {
                     setItems((prev) => {
                       const removed = prev.find((i) => i.id === id);
-                      if (removed?.purchased) {
-                        useCartStore
-                          .getState()
-                          .removeItem(
-                            `${removed.purchased.productId}:${removed.purchased.variant}`,
-                          );
+                      for (const s of removed?.selections ?? []) {
+                        useCartStore.getState().removeItem(s.id);
                       }
                       const next = prev.filter((i) => i.id !== id);
                       setActiveId((a) => (a === id ? next[0]?.id ?? null : a));

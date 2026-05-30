@@ -60,7 +60,12 @@ export function OptionsModal({
             aria-modal="true"
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div className="text-sm font-semibold text-foreground">Opciones</div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">Opciones</div>
+                <div className="text-[11px] font-medium text-foreground/65">
+                  Podés agregar varias marcas.
+                </div>
+              </div>
               <MotionButton tone="ghost" className="h-9 px-3" onClick={onClose}>
                 Cerrar
               </MotionButton>
@@ -87,7 +92,12 @@ export function OptionsModal({
           >
             <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-black/15 dark:bg-white/15" />
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div className="text-sm font-semibold text-foreground">Opciones</div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">Opciones</div>
+                <div className="text-[11px] font-medium text-foreground/65">
+                  Podés agregar varias marcas.
+                </div>
+              </div>
               <MotionButton tone="ghost" className="h-9 px-3" onClick={onClose}>
                 Cerrar
               </MotionButton>
