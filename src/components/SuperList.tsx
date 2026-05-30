@@ -7,6 +7,7 @@ import { searchProductsByToken } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
 import { formatArs } from "@/lib/format";
 import { StrikeThrough } from "@/components/StrikeThrough";
+import { RequestLoggedModal } from "@/components/RequestLoggedModal";
 
 export type SuperItem = {
   id: string;
@@ -98,6 +99,8 @@ export function SuperList({
   );
   const [checking, setChecking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestedText, setRequestedText] = useState<string | null>(null);
   const total = useCartStore((s) =>
     s.items.reduce((acc, i) => acc + i.price * i.qty, 0),
   );
@@ -175,9 +178,8 @@ export function SuperList({
 
               setPending(null);
               onAddItem(raw, { noResults: true });
-              setNotice(
-                "Todavía no vendemos este tipo de producto, pero ya avisamos para agregarlo al catálogo :)",
-              );
+              setRequestedText(raw);
+              setRequestOpen(true);
               setValue("");
               queueMicrotask(() => inputRef.current?.focus());
             } finally {
@@ -244,6 +246,12 @@ export function SuperList({
         {notice ? (
           <div className="mt-2 text-xs font-semibold text-red-700">{notice}</div>
         ) : null}
+
+        <RequestLoggedModal
+          open={requestOpen}
+          productText={requestedText ?? undefined}
+          onClose={() => setRequestOpen(false)}
+        />
 
         <div className="relative mt-4 flex-1">
           {items.length === 0 ? (
