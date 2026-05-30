@@ -131,7 +131,7 @@ export function CartPanel() {
     <>
       <motion.button
         whileTap={{ scale: 0.98 }}
-        className="fixed bottom-4 right-4 z-40 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-black/15"
+        className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-black/15"
         onClick={() => useCartStore.getState().toggleCart()}
       >
         Carrito · {itemsCount}

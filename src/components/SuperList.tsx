@@ -316,25 +316,27 @@ export function SuperList({
           )}
         </div>
 
-        <div className="mt-4 rounded-2xl border border-border bg-white/70 px-4 py-3 text-center font-hand text-[22px] leading-6 text-black">
-          TOTAL: <span className="font-semibold">{formatArs(total)}</span>
-        </div>
+        <div className="mt-3 grid grid-cols-1 gap-3 md:mt-4 md:grid-cols-2 md:gap-4">
+          <div className="rounded-2xl border border-border bg-white/70 px-4 py-3 text-center font-hand text-[22px] leading-6 text-black">
+            TOTAL: <span className="font-semibold">{formatArs(total)}</span>
+          </div>
 
-        <button
-          type="button"
-          onClick={onOpenOffers}
-          className="mt-4 w-full rounded-2xl border border-black/10 bg-[#F4B61E] px-4 py-3 text-center text-sm font-black tracking-tight text-black shadow-[0_10px_18px_rgba(0,0,0,0.10)] hover:brightness-[0.98] active:brightness-[0.96]"
-        >
-          <span className="inline-flex items-center justify-center gap-2">
-            <span aria-hidden="true" className="text-[14px] leading-none">
-              ✦
+          <button
+            type="button"
+            onClick={onOpenOffers}
+            className="w-full rounded-2xl border border-black/10 bg-[#F4B61E] px-4 py-3 text-center text-sm font-black tracking-tight text-black shadow-[0_10px_18px_rgba(0,0,0,0.10)] hover:brightness-[0.98] active:brightness-[0.96]"
+          >
+            <span className="inline-flex items-center justify-center gap-2">
+              <span aria-hidden="true" className="text-[14px] leading-none">
+                ✦
+              </span>
+              <span>Ofertas del Dia!</span>
+              <span aria-hidden="true" className="text-[14px] leading-none">
+                ✦
+              </span>
             </span>
-            <span>Ofertas del Dia!</span>
-            <span aria-hidden="true" className="text-[14px] leading-none">
-              ✦
-            </span>
-          </span>
-        </button>
+          </button>
+        </div>
       </div>
     </div>
   );
