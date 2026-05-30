@@ -14,6 +14,7 @@ type Props = {
 
 export function ProductCard({ product, onSelect, tag }: Props) {
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const isOut = product.active === false;
 
   const fullImageUrl = useMemo(() => {
@@ -28,6 +29,7 @@ export function ProductCard({ product, onSelect, tag }: Props) {
   useEffect(() => {
     setImgError(false);
     setImgSrc(product.imageUrl ?? null);
+    setImgLoaded(false);
   }, [product.imageUrl]);
 
   useEffect(() => {
@@ -71,17 +73,34 @@ export function ProductCard({ product, onSelect, tag }: Props) {
           ) : null}
         </div>
         <div className="relative aspect-square w-full p-4">
+          <div
+            aria-hidden="true"
+            className={[
+              "absolute inset-0",
+              "bg-gradient-to-br from-black/5 via-black/0 to-black/10",
+              "transition-opacity duration-300",
+              imgLoaded ? "opacity-0" : "opacity-100",
+            ].join(" ")}
+          />
           {showImage ? (
             // Using a plain <img> here for faster first paint and predictable error fallback.
             // (The catalog already points to a resized thumb in Firebase Storage.)
             <img
               src={imgSrc ?? undefined}
               alt={product.name}
-              className="absolute inset-0 h-full w-full object-contain"
+              className={[
+                "absolute inset-0 h-full w-full object-contain",
+                "transition-opacity duration-300",
+                imgLoaded ? "opacity-100" : "opacity-0",
+              ].join(" ")}
               loading="eager"
               decoding="async"
               fetchPriority="high"
-              onError={() => setImgError(true)}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => {
+                setImgError(true);
+                setImgLoaded(false);
+              }}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-2xl font-black tracking-tight text-foreground/50">

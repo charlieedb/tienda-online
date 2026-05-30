@@ -129,6 +129,18 @@ export function SuggestionsPanel({
   const [selected, setSelected] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
+  useEffect(() => {
+    // Preload thumbnails for the first items to improve perceived speed.
+    const top = sortedProducts.slice(0, 10);
+    for (const p of top) {
+      const src = String(p.imageUrl ?? "").trim();
+      if (!src) continue;
+      const img = new Image();
+      img.decoding = "async";
+      img.src = src;
+    }
+  }, [sortedProducts]);
+
   return (
     <motion.div
       className="flex h-full flex-col"
