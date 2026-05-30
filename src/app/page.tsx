@@ -11,7 +11,7 @@ import { QuantityModal } from "@/components/QuantityModal";
 import { OffersModal } from "@/components/OffersModal";
 import { AuthModal } from "@/components/AuthModal";
 import { normalizeToken } from "@/lib/normalize";
-import { getProductById } from "@/lib/products";
+import { getProductById, startCatalogAutoRefresh } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
 import { useAuth } from "@/auth/AuthProvider";
 
@@ -198,6 +198,10 @@ export default function Home() {
   const cartItems = useCartStore((s) => s.items);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+
+  useEffect(() => {
+    return startCatalogAutoRefresh();
+  }, []);
 
   const activeItem = useMemo(
     () => items.find((i) => i.id === activeId) ?? null,

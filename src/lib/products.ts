@@ -24,7 +24,7 @@ export type Product = {
 const MAX_RESULTS = 30;
 const CATALOG_LIMIT = 400;
 const LS_KEY = "listita.catalog.v1";
-const VERSION_CHECK_TTL_MS = 30_000;
+const VERSION_CHECK_TTL_MS = 7_000;
 
 function normalizeForSearch(value: string) {
   return value
@@ -124,6 +124,49 @@ async function fetchCatalogVersion(): Promise<number | null> {
 }
 
 let lastVersionCheckAt = 0;
+let refreshTimer: number | null = null;
+
+async function refreshCatalogIfStale() {
+  const fromLs = loadCatalogFromLocalStorage();
+  if (!fromLs?.items?.length) return;
+  const latest = await fetchCatalogVersion();
+  if (latest === null) return;
+  if (latest === fromLs.version) return;
+  const refreshed = await fetchCatalogFromApi();
+  if (!refreshed?.items?.length) return;
+  saveCatalogToLocalStorage(refreshed);
+  cachedCatalog = { at: Date.now(), items: refreshed.items };
+  catalogOrigin = "api";
+}
+
+export function startCatalogAutoRefresh() {
+  if (typeof window === "undefined") return () => {};
+  if (refreshTimer) return () => stopCatalogAutoRefresh();
+
+  const tick = async () => {
+    if (document.visibilityState !== "visible") return;
+    const now = Date.now();
+    if (now - lastVersionCheckAt < VERSION_CHECK_TTL_MS) return;
+    lastVersionCheckAt = now;
+    await refreshCatalogIfStale();
+  };
+
+  refreshTimer = window.setInterval(() => {
+    tick();
+  }, 2000);
+
+  // Run once immediately.
+  tick();
+
+  return () => stopCatalogAutoRefresh();
+}
+
+export function stopCatalogAutoRefresh() {
+  if (typeof window === "undefined") return;
+  if (!refreshTimer) return;
+  window.clearInterval(refreshTimer);
+  refreshTimer = null;
+}
 
 export async function getActiveCatalog(): Promise<Product[]> {
   // Prefer the local catalog exposed via Next API (backed by the existing `catalogo/productos.json`).
@@ -140,15 +183,8 @@ export async function getActiveCatalog(): Promise<Product[]> {
       // Best-effort freshness: check version occasionally, and refresh the cache if it changed.
       if (now - lastVersionCheckAt > VERSION_CHECK_TTL_MS) {
         lastVersionCheckAt = now;
-        queueMicrotask(async () => {
-          const latest = await fetchCatalogVersion();
-          if (latest === null) return;
-          if (latest === fromLs.version) return;
-          const refreshed = await fetchCatalogFromApi();
-          if (!refreshed?.items?.length) return;
-          saveCatalogToLocalStorage(refreshed);
-          cachedCatalog = { at: Date.now(), items: refreshed.items };
-          catalogOrigin = "api";
+        queueMicrotask(() => {
+          refreshCatalogIfStale();
         });
       }
 

@@ -141,6 +141,15 @@ function buildCacheKey(headers: Headers) {
   return etag || lastModified || "no-cache-key";
 }
 
+function stableHash(input: string) {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
 export async function GET(request: Request) {
   const sourceUrl = process.env.CATALOGO_SOURCE_URL?.trim() || "";
   const versionUrl =
@@ -159,11 +168,17 @@ export async function GET(request: Request) {
         const verRes = await fetch(versionUrl, { cache: "no-store" });
         if (verRes.ok) {
           const json = (await verRes.json()) as { version?: number };
-          const v = typeof json?.version === "number" ? json.version : Date.now();
-          return NextResponse.json({ version: v });
+          if (typeof json?.version === "number") {
+            return NextResponse.json({ version: json.version });
+          }
         }
       } catch {
         // Fall through to a best-effort response.
+      }
+      // Fallback: use the last catalog fetch cache key (ETag/Last-Modified) if we have one.
+      // This lets clients detect changes even if `version.json` isn't updated.
+      if (cached?.cacheKey && cached.cacheKey !== "no-cache-key" && cached.cacheKey !== "error") {
+        return NextResponse.json({ version: stableHash(cached.cacheKey) });
       }
       return NextResponse.json({ version: cached?.version ?? Date.now() });
     }
@@ -191,6 +206,10 @@ export async function GET(request: Request) {
           } catch {
             // ignore
           }
+        }
+        // If version endpoint isn't updated, fall back to cacheKey so clients still refresh.
+        if (!versionUrl || version === Date.now()) {
+          if (cacheKey && cacheKey !== "no-cache-key") version = stableHash(cacheKey);
         }
         const next = { version, cacheKey, items };
         cached = next;
