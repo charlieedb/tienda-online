@@ -184,7 +184,7 @@ function createItem(raw: string): SuperItem {
 }
 
 export default function Home() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const [stage, setStage] = useState<Stage>("landing");
   const [items, setItems] = useState<SuperItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -198,14 +198,6 @@ export default function Home() {
   const cartItems = useCartStore((s) => s.items);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-
-  // If the user is authenticated, skip landing and go straight to the builder.
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) return;
-    setAuthOpen(false);
-    setStage("builder");
-  }, [authLoading, user]);
 
   const activeItem = useMemo(
     () => items.find((i) => i.id === activeId) ?? null,
@@ -368,37 +360,6 @@ export default function Home() {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, purchased } : i)));
   };
 
-  if (authLoading) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-background px-5">
-        <div className="text-sm font-semibold text-foreground/70">Cargando…</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-dvh bg-background">
-        <div className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col justify-center px-5 pb-10 pt-10">
-          <div className="mx-auto w-full max-w-md rounded-3xl border border-border bg-surface/60 p-5 text-center backdrop-blur-sm">
-            <div className="text-base font-semibold text-foreground">Iniciá sesión para continuar</div>
-            <div className="mt-1 text-sm text-foreground/70">
-              Necesitás una cuenta para usar la tienda.
-            </div>
-          </div>
-        </div>
-
-        <AuthModal
-          open
-          forced
-          mode={authMode}
-          onClose={() => {}}
-          onModeChange={setAuthMode}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-dvh bg-background">
       {stage === "builder" && user ? <CartPanel /> : null}
@@ -469,28 +430,54 @@ export default function Home() {
                 </motion.button>
 
                 <div className="flex w-full max-w-3xl items-center justify-center gap-3">
-                  <MotionButton
-                    tone="ghost"
-                    className="h-10 px-4 !text-foreground/80 hover:!bg-foreground/5"
-                    onClick={() => {
-                      setAuthMode("login");
-                      setAuthOpen(true);
-                    }}
-                    disabled={authLoading}
-                  >
-                    Iniciar sesión
-                  </MotionButton>
-                  <MotionButton
-                    tone="soft"
-                    className="h-10 px-4"
-                    onClick={() => {
-                      setAuthMode("signup");
-                      setAuthOpen(true);
-                    }}
-                    disabled={authLoading}
-                  >
-                    Crear cuenta
-                  </MotionButton>
+                  {user ? (
+                    <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between">
+                      <div className="min-w-0 text-center text-sm text-foreground/70 sm:text-left">
+                        <div className="truncate font-semibold text-foreground">
+                          {user.displayName || user.email || "Cuenta"}
+                        </div>
+                        <div className="truncate text-xs text-foreground/60">
+                          {user.email || ""}
+                        </div>
+                      </div>
+                      <MotionButton
+                        tone="ghost"
+                        className="h-10 w-full px-4 !text-foreground/80 hover:!bg-foreground/5 sm:w-auto"
+                        onClick={async () => {
+                          await signOut();
+                          setStage("landing");
+                        }}
+                        disabled={authLoading}
+                      >
+                        Cerrar sesión
+                      </MotionButton>
+                    </div>
+                  ) : (
+                    <>
+                      <MotionButton
+                        tone="ghost"
+                        className="h-10 px-4 !text-foreground/80 hover:!bg-foreground/5"
+                        onClick={() => {
+                          setAuthMode("login");
+                          setAuthOpen(true);
+                        }}
+                        disabled={authLoading}
+                      >
+                        Iniciar sesión
+                      </MotionButton>
+                      <MotionButton
+                        tone="soft"
+                        className="h-10 px-4"
+                        onClick={() => {
+                          setAuthMode("signup");
+                          setAuthOpen(true);
+                        }}
+                        disabled={authLoading}
+                      >
+                        Crear cuenta
+                      </MotionButton>
+                    </>
+                  )}
                 </div>
 
                 <div className="text-xs text-foreground/60">

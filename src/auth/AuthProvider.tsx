@@ -9,17 +9,19 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
+  type UserCredential,
   type User,
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getAuthClient } from "@/lib/firebase";
+import { reserveUsername, upsertUserProfile } from "@/lib/userProfile";
 
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
   firebaseReady: boolean;
-  signInEmail: (email: string, password: string) => Promise<void>;
-  signUpEmail: (email: string, password: string) => Promise<void>;
+  signInEmail: (email: string, password: string) => Promise<UserCredential>;
+  signUpEmail: (email: string, password: string) => Promise<UserCredential>;
   signInGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -50,6 +52,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, [auth]);
 
+  useEffect(() => {
+    if (!auth) return;
+    if (loading) return;
+    if (!user) return;
+
+    const providerIds = new Set(user.providerData.map((p) => p.providerId));
+    if (!providerIds.has("google.com")) return;
+
+    // Best-effort: ensure a profile exists for Google sign-ins.
+    (async () => {
+      const email = user.email ?? null;
+      const displayName = user.displayName ?? null;
+      const base =
+        (email ? email.split("@")[0] : "") ||
+        (displayName ? displayName.split(" ")[0] : "") ||
+        "usuario";
+
+      let username = base;
+      for (let i = 0; i < 5; i++) {
+        try {
+          const reserved = await reserveUsername({
+            uid: user.uid,
+            email,
+            username,
+          });
+          await upsertUserProfile({
+            uid: user.uid,
+            email,
+            username: reserved,
+            dni: "",
+            displayName,
+          });
+          return;
+        } catch {
+          username = `${base}${Math.floor(Math.random() * 900 + 100)}`;
+        }
+      }
+    })();
+  }, [auth, user, loading]);
+
   const value = useMemo<AuthContextValue>(() => {
     return {
       user,
@@ -57,11 +99,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       firebaseReady: Boolean(auth),
       signInEmail: async (email, password) => {
         if (!auth) throw new Error("Firebase no está configurado.");
-        await signInWithEmailAndPassword(auth, email, password);
+        return signInWithEmailAndPassword(auth, email, password);
       },
       signUpEmail: async (email, password) => {
         if (!auth) throw new Error("Firebase no está configurado.");
-        await createUserWithEmailAndPassword(auth, email, password);
+        return createUserWithEmailAndPassword(auth, email, password);
       },
       signInGoogle: async () => {
         if (!auth) throw new Error("Firebase no está configurado.");

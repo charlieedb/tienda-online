@@ -4,6 +4,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { MotionButton } from "@/components/MotionButton";
 import { useAuth } from "@/auth/AuthProvider";
+import {
+  reserveUsername,
+  resolveEmailFromUsername,
+  upsertUserProfile,
+} from "@/lib/userProfile";
+import { updateProfile } from "firebase/auth";
 
 type Mode = "login" | "signup";
 
@@ -17,6 +23,7 @@ type Props = {
 
 function friendlyAuthError(message: string) {
   const m = message.toLowerCase();
+  if (m.includes("usuario ya está en uso")) return "Ese usuario ya está en uso.";
   if (m.includes("invalid-credential") || m.includes("wrong-password")) {
     return "Email o contraseña incorrectos.";
   }
@@ -43,6 +50,8 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [dni, setDni] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +59,11 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
     if (!open) return;
     setError(null);
     setBusy(false);
+    setPassword("");
+    if (mode === "signup") {
+      setUsername("");
+      setDni("");
+    }
   }, [open, mode]);
 
   useEffect(() => {
@@ -70,13 +84,48 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
     setBusy(true);
     setError(null);
     try {
-      const e = email.trim();
-      if (!e || !password) {
-        setError("Completá email y contraseña.");
+      const eOrUser = email.trim();
+      if (!eOrUser || !password) {
+        setError("Completá usuario/email y contraseña.");
         return;
       }
-      if (mode === "login") await signInEmail(e, password);
-      else await signUpEmail(e, password);
+
+      if (mode === "login") {
+        const emailToUse = eOrUser.includes("@")
+          ? eOrUser
+          : await resolveEmailFromUsername(eOrUser);
+        if (!emailToUse) {
+          setError("No existe una cuenta con ese usuario.");
+          return;
+        }
+        await signInEmail(emailToUse, password);
+        onClose();
+        return;
+      }
+
+      const emailValue = eOrUser;
+      const usernameValue = username.trim();
+      const dniValue = dni.trim();
+      if (!usernameValue || !dniValue) {
+        setError("Completá usuario y DNI.");
+        return;
+      }
+
+      const cred = await signUpEmail(emailValue, password);
+      const reserved = await reserveUsername({
+        uid: cred.user.uid,
+        email: cred.user.email ?? null,
+        username: usernameValue,
+      });
+      await updateProfile(cred.user, { displayName: reserved });
+      await upsertUserProfile({
+        uid: cred.user.uid,
+        email: cred.user.email ?? null,
+        username: reserved,
+        dni: dniValue,
+        displayName: cred.user.displayName ?? null,
+      });
+
       onClose();
     } catch (err) {
       setError(friendlyAuthError(err instanceof Error ? err.message : String(err)));
@@ -123,14 +172,16 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
             <div className="p-5">
               <div className="space-y-3">
                 <label className="block">
-                  <div className="mb-1 text-xs font-semibold text-black/70">Email</div>
+                  <div className="mb-1 text-xs font-semibold text-black/70">
+                    {mode === "login" ? "Email o usuario" : "Email"}
+                  </div>
                   <input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     inputMode="email"
                     autoComplete="email"
                     className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-base text-black outline-none placeholder:text-black/35 focus:border-black/25"
-                    placeholder="tu@email.com"
+                    placeholder={mode === "login" ? "tu@email.com o usuario" : "tu@email.com"}
                   />
                 </label>
                 <label className="block">
@@ -144,6 +195,32 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
                     placeholder="••••••"
                   />
                 </label>
+
+                {mode === "signup" ? (
+                  <>
+                    <label className="block">
+                      <div className="mb-1 text-xs font-semibold text-black/70">Usuario</div>
+                      <input
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        autoComplete="username"
+                        className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-base text-black outline-none placeholder:text-black/35 focus:border-black/25"
+                        placeholder="tuusuario"
+                      />
+                    </label>
+                    <label className="block">
+                      <div className="mb-1 text-xs font-semibold text-black/70">DNI</div>
+                      <input
+                        value={dni}
+                        onChange={(e) => setDni(e.target.value)}
+                        inputMode="numeric"
+                        autoComplete="off"
+                        className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-base text-black outline-none placeholder:text-black/35 focus:border-black/25"
+                        placeholder="12345678"
+                      />
+                    </label>
+                  </>
+                ) : null}
 
                 {error ? (
                   <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
