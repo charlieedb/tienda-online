@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
+import { useState } from "react";
 import { formatArs } from "@/lib/format";
 import type { Product } from "@/lib/products";
 import { MotionButton } from "@/components/MotionButton";
@@ -13,6 +13,9 @@ type Props = {
 };
 
 export function ProductCard({ product, onSelect, tag }: Props) {
+  const [imgError, setImgError] = useState(false);
+  const showImage = Boolean(product.imageUrl) && !imgError;
+
   return (
     <motion.div
       layout
@@ -29,15 +32,17 @@ export function ProductCard({ product, onSelect, tag }: Props) {
           </div>
         ) : null}
         <div className="relative aspect-square w-full p-4">
-          {product.imageUrl ? (
-            <Image
+          {showImage ? (
+            // Using a plain <img> here for faster first paint and predictable error fallback.
+            // (The catalog already points to a resized thumb in Firebase Storage.)
+            <img
               src={product.imageUrl}
               alt={product.name}
-              fill
-              sizes="(max-width: 768px) 90vw, 520px"
-              className="object-contain"
-              unoptimized
+              className="absolute inset-0 h-full w-full object-contain"
               loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              onError={() => setImgError(true)}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-2xl font-black tracking-tight text-foreground/50">
