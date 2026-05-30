@@ -14,6 +14,7 @@ import { normalizeToken } from "@/lib/normalize";
 import { getProductById, startCatalogAutoRefresh } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
 import { useAuth } from "@/auth/AuthProvider";
+import { APP_VERSION } from "@/lib/appVersion";
 
 type Stage = "landing" | "builder";
 
@@ -417,9 +418,6 @@ export default function Home() {
               <h1 className="text-pretty text-3xl font-semibold tracking-tight text-foreground md:text-5xl">
                 Hacelo simple: escribí lo que necesitás, y elegí la mejor opción.
               </h1>
-              <p className="max-w-2xl text-pretty text-base leading-7 text-foreground/70 md:text-lg">
-                Armá tu lista en segundos y elegí productos por cada ítem.
-              </p>
             </div>
 
             <div className="relative z-10 mt-6 flex items-center justify-center">
@@ -519,7 +517,9 @@ export default function Home() {
                 </div>
 
                 <div className="text-xs text-foreground/60">
-                  Si no configurás Firebase todavía, las sugerencias usan placeholder.
+                  <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-1 text-[11px] font-semibold text-foreground/70">
+                    Versión Beta {APP_VERSION}
+                  </span>
                 </div>
               </div>
             </div>
