@@ -235,9 +235,8 @@ export function SuggestionsPanel({
           onAdded({ productId: product.id, variant, qty, label });
         }}
       />
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-sm font-semibold text-foreground">Opciones</div>
           <div className="text-xs text-foreground/70">
             {token ? (
               <>
@@ -248,7 +247,7 @@ export function SuggestionsPanel({
             )}
           </div>
           {token ? (
-            <div className="mt-2 md:hidden">
+            <div className="mt-2 flex justify-center md:hidden">
               <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-1 text-[11px] font-semibold text-foreground/70">
                 <span aria-hidden="true" className="text-[12px] leading-none">
                   ⇆
