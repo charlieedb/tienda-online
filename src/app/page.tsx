@@ -345,6 +345,13 @@ export default function Home() {
   // Keep list selection in sync with cart (remove selection if removed from cart, update qty if changed).
   useEffect(() => {
     if (stage !== "builder") return;
+    if (cartItems.length === 0) {
+      // If the cart is emptied, clear the list too (user expects both to stay in sync).
+      setItems((prev) => (prev.length ? [] : prev));
+      setActiveId(null);
+      setShowOptions(false);
+      return;
+    }
     const cartById = new Map(cartItems.map((c) => [c.id, c.qty] as const));
     setItems((prev) => {
       let changed = false;
@@ -715,6 +722,7 @@ export default function Home() {
                   onSelect={(id) => setActiveId(id)}
                   onMarkAdded={(id) => markAdded(id)}
                   onClear={() => {
+                    useCartStore.getState().clear();
                     setItems([]);
                     setActiveId(null);
                     setShowOptions(false);
