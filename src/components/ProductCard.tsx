@@ -60,7 +60,7 @@ export function ProductCard({ product, onSelect, tag, addedQty = null }: Props) 
       exit={{ opacity: 0, y: 6 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
     >
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-white">
+      <div className="relative overflow-hidden rounded-2xl">
         <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
           {typeof addedQty === "number" && addedQty > 0 ? (
             <div className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm">

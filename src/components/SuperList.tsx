@@ -331,6 +331,7 @@ export function SuperList({
                         active={it.id === activeId}
                         onSelect={onSelect}
                         onFocusOptions={onFocusOptions}
+                        onOpenOffers={onOpenOffers}
                         onEditSelection={onEditSelection}
                         onMarkAdded={onMarkAdded}
                         onRemoveItem={onRemoveItem}
@@ -382,6 +383,7 @@ function SuperListRow({
   active,
   onSelect,
   onFocusOptions,
+  onOpenOffers,
   onEditSelection,
   onMarkAdded,
   onRemoveItem,
@@ -391,6 +393,7 @@ function SuperListRow({
   active: boolean;
   onSelect: (id: string) => void;
   onFocusOptions: () => void;
+  onOpenOffers: () => void;
   onEditSelection: (itemId: string, selectionId: string) => void;
   onMarkAdded: (id: string) => void;
   onRemoveItem: (id: string) => void;
@@ -478,6 +481,10 @@ function SuperListRow({
           onClick={() => {
             if (isDraggingRef.current) return;
             onSelect(item.id);
+            if (item.offer) {
+              onOpenOffers();
+              return;
+            }
             if (!item.added && !item.noResults) {
               onFocusOptions();
               return;

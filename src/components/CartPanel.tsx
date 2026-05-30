@@ -1,12 +1,13 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { useState } from "react";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { formatArs } from "@/lib/format";
 import { MotionButton } from "@/components/MotionButton";
 import { useCartStore } from "@/store/cart";
 
-function CartContent() {
+function CartContent({ onContinue }: { onContinue: () => void }) {
   const items = useCartStore((s) => s.items);
   const decItem = useCartStore((s) => s.decItem);
   const addItem = useCartStore((s) => s.addItem);
@@ -113,6 +114,7 @@ function CartContent() {
         <MotionButton
           className="mt-4 h-11 w-full"
           disabled={items.length === 0}
+          onClick={onContinue}
         >
           Continuar
         </MotionButton>
@@ -126,6 +128,7 @@ export function CartPanel() {
   const closeCart = useCartStore((s) => s.closeCart);
   const itemsCount = useCartStore((s) => s.items.reduce((a, i) => a + i.qty, 0));
   const isMobile = useMediaQuery("(max-width: 767px)");
+  const [constructionOpen, setConstructionOpen] = useState(false);
 
   return (
     <>
@@ -158,7 +161,7 @@ export function CartPanel() {
                 transition={{ type: "spring", stiffness: 500, damping: 45 }}
               >
                 <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-zinc-300" />
-                <CartContent />
+                <CartContent onContinue={() => setConstructionOpen(true)} />
               </motion.aside>
             ) : (
               <motion.aside
@@ -168,11 +171,47 @@ export function CartPanel() {
                 exit={{ x: 30, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 500, damping: 45 }}
               >
-                <CartContent />
+                <CartContent onContinue={() => setConstructionOpen(true)} />
               </motion.aside>
             )}
           </>
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {constructionOpen ? (
+          <>
+            <motion.button
+              aria-label="Cerrar"
+              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConstructionOpen(false)}
+            />
+            <motion.div
+              className="fixed left-1/2 top-1/2 z-[70] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-white shadow-2xl"
+              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 520, damping: 40 }}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="border-b border-border px-5 py-4">
+                <div className="text-sm font-semibold text-foreground">En construcción</div>
+                <div className="mt-1 text-xs text-foreground/70">
+                  Todavía estamos armando el checkout. Muy pronto vas a poder finalizar tu pedido.
+                </div>
+              </div>
+              <div className="px-5 py-4">
+                <MotionButton className="h-11 w-full" onClick={() => setConstructionOpen(false)}>
+                  Entendido
+                </MotionButton>
+              </div>
+            </motion.div>
+          </>
+        ) : null}
       </AnimatePresence>
     </>
   );
