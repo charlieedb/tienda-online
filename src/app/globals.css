@@ -88,10 +88,8 @@ body {
 
   background-color: var(--paper-bg);
   background-image:
-    /* subtle paper grain */
-    radial-gradient(circle at 18% 22%, rgba(0, 0, 0, 0.035) 0 0.6px, transparent 0.7px),
-    radial-gradient(circle at 76% 48%, rgba(0, 0, 0, 0.03) 0 0.7px, transparent 0.8px),
-    radial-gradient(circle at 38% 78%, rgba(0, 0, 0, 0.03) 0 0.55px, transparent 0.65px),
+    /* very subtle grain (avoid vertical banding) */
+    radial-gradient(circle at 30% 20%, rgba(0, 0, 0, 0.03), transparent 55%),
     /* horizontal lines */
     repeating-linear-gradient(
       to bottom,
@@ -108,27 +106,24 @@ body {
       transparent var(--paper-gutter)
     ),
     /* punched holes */
-    repeating-radial-gradient(
+    radial-gradient(
       circle at var(--paper-hole-x) 18px,
       rgba(0, 0, 0, 0.22) 0 calc(var(--paper-hole-r) - 1px),
       rgba(0, 0, 0, 0.05) var(--paper-hole-r) calc(var(--paper-hole-r) + 1px),
-      transparent calc(var(--paper-hole-r) + 2px) calc(var(--paper-hole-gap))
+      transparent calc(var(--paper-hole-r) + 2px)
     );
   background-size:
-    22px 22px,
-    26px 26px,
-    30px 30px,
+    100% 100%,
     100% var(--paper-line-gap),
     100% 100%,
     100% var(--paper-hole-gap);
   background-position:
     0 0,
-    0 0,
-    0 0,
     0 10px,
     0 0,
     0 0;
-  background-blend-mode: multiply, multiply, multiply, normal, normal, normal;
+  background-repeat: no-repeat, repeat, no-repeat, repeat;
+  background-blend-mode: normal, normal, normal, normal;
 }
 
 @keyframes fondo-pan {
