@@ -82,6 +82,11 @@ export function ProductCard({ product, onSelect, tag }: Props) {
               imgLoaded ? "opacity-0" : "opacity-100",
             ].join(" ")}
           />
+          {!imgLoaded && showImage ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-7 w-7 animate-spin rounded-full border-2 border-black/15 border-t-black/45" />
+            </div>
+          ) : null}
           {showImage ? (
             // Using a plain <img> here for faster first paint and predictable error fallback.
             // (The catalog already points to a resized thumb in Firebase Storage.)
