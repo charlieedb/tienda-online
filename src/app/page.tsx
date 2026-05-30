@@ -372,13 +372,24 @@ export default function Home() {
         {stage === "landing" ? (
           <motion.main
             key="landing"
-            className="mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 pb-10 pt-10"
+            className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 pb-10 pt-10"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            <div className="flex flex-col gap-4">
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-0 opacity-[0.10]"
+              style={{
+                backgroundImage: "url(/fondo.png)",
+                backgroundRepeat: "repeat",
+                backgroundSize: "360px auto",
+                backgroundPosition: "center top",
+              }}
+            />
+
+            <div className="relative z-10 flex flex-col gap-4">
               <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs">
                 <span className="font-black italic tracking-tight text-foreground">
                   JONICO
@@ -393,7 +404,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="mt-6 flex items-center justify-center">
+            <div className="relative z-10 mt-6 flex items-center justify-center">
               <div className="flex w-full max-w-3xl flex-col items-center justify-center gap-3 md:gap-4">
                 <motion.button
                   type="button"
@@ -495,7 +506,7 @@ export default function Home() {
               </div>
             </div>
 
-            <footer className="mt-auto pt-10 text-center text-sm font-semibold text-foreground/80">
+            <footer className="relative z-10 mt-auto pt-10 text-center text-sm font-semibold text-foreground/80">
               <div className="mx-auto flex w-full max-w-md items-center justify-center gap-3 rounded-3xl border border-border bg-surface/55 px-4 py-3 backdrop-blur-sm">
                 <Image
                   src="/jonico-logo.png"
