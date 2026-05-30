@@ -706,6 +706,25 @@ export default function Home() {
                     });
                   }}
                 />
+
+                <div className="mt-3">
+                  <motion.button
+                    type="button"
+                    onClick={() => setShowOffers(true)}
+                    whileTap={{ scale: 0.99 }}
+                    className="w-full rounded-2xl border border-black/10 bg-[#F4B61E] px-4 py-3 text-center text-sm font-black tracking-tight text-black shadow-[0_10px_18px_rgba(0,0,0,0.10)] hover:brightness-[0.98] active:brightness-[0.96]"
+                  >
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <span aria-hidden="true" className="text-[14px] leading-none">
+                        ✦
+                      </span>
+                      <span>Ofertas del Dia!</span>
+                      <span aria-hidden="true" className="text-[14px] leading-none">
+                        ✦
+                      </span>
+                    </span>
+                  </motion.button>
+                </div>
               </div>
             </div>
           </motion.main>
