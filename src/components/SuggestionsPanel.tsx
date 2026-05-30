@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeToken } from "@/lib/normalize";
 import { searchProductsByToken, type Product } from "@/lib/products";
-import { getOffersOfDay } from "@/lib/offers";
 import { ProductCard } from "@/components/ProductCard";
 import { QuantityModal } from "@/components/QuantityModal";
 import { useCartStore } from "@/store/cart";
@@ -36,7 +35,6 @@ export function SuggestionsPanel({
   const [fadeBottom, setFadeBottom] = useState(false);
   const [fadeLeft, setFadeLeft] = useState(false);
   const [fadeRight, setFadeRight] = useState(false);
-  const [offerIds, setOfferIds] = useState<string[]>([]);
 
   const token = useMemo(
     () => {
@@ -106,35 +104,17 @@ export function SuggestionsPanel({
   }, [token]);
 
   const addItem = useCartStore((s) => s.addItem);
-  useEffect(() => {
-    let cancelled = false;
-    async function run() {
-      try {
-        const offers = await getOffersOfDay(16);
-        if (cancelled) return;
-        setOfferIds(offers.map((p) => p.id));
-      } catch {
-        if (!cancelled) setOfferIds([]);
-      }
-    }
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const offerSet = useMemo(() => new Set(offerIds), [offerIds]);
 
   const sortedProducts = useMemo(() => {
     const list = [...products];
     list.sort((a, b) => {
-      const ao = offerSet.has(a.id) ? 1 : 0;
-      const bo = offerSet.has(b.id) ? 1 : 0;
+      const ao = a.offer ? 1 : 0;
+      const bo = b.offer ? 1 : 0;
       if (ao !== bo) return bo - ao; // offers first
       return a.name.localeCompare(b.name);
     });
     return list;
-  }, [products, offerSet]);
+  }, [products]);
 
   const visibleProducts = useMemo(() => sortedProducts.slice(0, 4), [sortedProducts]);
   const [selected, setSelected] = useState<Product | null>(null);
@@ -227,7 +207,7 @@ export function SuggestionsPanel({
                       <div key={p.id} className="w-[82%] shrink-0 snap-center">
                         <ProductCard
                           product={p}
-                          tag={offerSet.has(p.id) ? "OFERTA" : undefined}
+                          tag={p.offer ? "OFERTA" : undefined}
                           onSelect={() => {
                             setSelected(p);
                             setModalOpen(true);
@@ -251,7 +231,7 @@ export function SuggestionsPanel({
                     <ProductCard
                       key={p.id}
                       product={p}
-                      tag={offerSet.has(p.id) ? "OFERTA" : undefined}
+                      tag={p.offer ? "OFERTA" : undefined}
                       onSelect={() => {
                         setSelected(p);
                         setModalOpen(true);

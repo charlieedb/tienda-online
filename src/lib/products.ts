@@ -17,6 +17,8 @@ export type Product = {
   pack?: { qty: number; label: string; price: number };
   keywords: string[];
   active: boolean;
+  offer?: boolean;
+  offerDiscount?: number;
 };
 
 const MAX_RESULTS = 30;

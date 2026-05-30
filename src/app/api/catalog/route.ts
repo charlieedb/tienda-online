@@ -7,6 +7,8 @@ type SourceRow = {
   PrecioMostrador?: number | null;
   Presentacion?: string | number | null;
   Promo?: boolean;
+  oferta?: boolean;
+  descOferta?: number | null;
   sinStock?: boolean;
   Linea?: string | null;
   Nombre?: string | null;
@@ -25,6 +27,8 @@ type Product = {
   pack?: { qty: number; label: string; price: number };
   keywords: string[];
   active: boolean;
+  offer?: boolean;
+  offerDiscount?: number;
 };
 
 function normalizeForSearch(value: string) {
@@ -64,18 +68,17 @@ function mapRowToProduct(row: SourceRow): Product | null {
   if (!codigo || !nombre) return null;
 
   const packQty = toInt(row.Presentacion);
-  const packPrice = toNumber(row.Precio);
-  const unitPriceExplicit = toNumber(row.PrecioMostrador);
+  const unitPrice = toNumber(row.Precio) ?? 0;
+  const packPrice =
+    packQty && unitPrice ? Math.round(unitPrice * packQty * 100) / 100 : null;
 
-  const unitPrice =
-    unitPriceExplicit ??
-    (packQty && packPrice ? Math.round((packPrice / packQty) * 100) / 100 : null) ??
-    0;
-
-  const pack =
-    packQty && packPrice
-      ? { qty: packQty, label: `caja x${packQty}`, price: packPrice }
-      : undefined;
+  const pack = packQty
+    ? {
+        qty: packQty,
+        label: `caja x${packQty}`,
+        price: packPrice ?? 0,
+      }
+    : undefined;
 
   const brand = String(row.Linea ?? "").trim() || undefined;
   const keywordsBase = [
@@ -95,14 +98,29 @@ function mapRowToProduct(row: SourceRow): Product | null {
 
   const active = row.sinStock === true ? false : true;
 
+  const bucket =
+    process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ||
+    process.env.FIREBASE_STORAGE_BUCKET?.trim() ||
+    "";
+
+  const imageUrl = bucket
+    ? `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(`fotosProductosThumb/${codigo}.jpg`)}?alt=media`
+    : undefined;
+
+  const offer = row.oferta === true || row.Promo === true;
+  const offerDiscount = toNumber(row.descOferta);
+
   return {
     id: codigo,
     name: nombre,
     brand,
+    imageUrl,
     unit: { label: "unidad", price: unitPrice },
     pack,
     keywords,
     active,
+    offer,
+    offerDiscount: offerDiscount ?? undefined,
   };
 }
 

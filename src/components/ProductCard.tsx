@@ -36,6 +36,8 @@ export function ProductCard({ product, onSelect, tag }: Props) {
               fill
               sizes="(max-width: 768px) 90vw, 520px"
               className="object-contain"
+              unoptimized
+              loading="eager"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-2xl font-black tracking-tight text-foreground/50">
