@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { NextResponse } from "next/server";
 
 type SourceRow = {
   Precio?: number;
@@ -9,6 +9,7 @@ type SourceRow = {
   Promo?: boolean;
   oferta?: boolean;
   descOferta?: number | null;
+  imagenURL?: string | null;
   sinStock?: boolean;
   Linea?: string | null;
   Nombre?: string | null;
@@ -103,9 +104,10 @@ function mapRowToProduct(row: SourceRow): Product | null {
     process.env.FIREBASE_STORAGE_BUCKET?.trim() ||
     "";
 
-  const imageUrl = bucket
+  const fallbackThumbUrl = bucket
     ? `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(`fotosProductosThumb/${codigo}.jpg`)}?alt=media`
     : undefined;
+  const imageUrl = String(row.imagenURL ?? "").trim() || fallbackThumbUrl;
 
   const offer = row.oferta === true || row.Promo === true;
   const offerDiscount = toNumber(row.descOferta);
@@ -139,12 +141,31 @@ function buildCacheKey(headers: Headers) {
   return etag || lastModified || "no-cache-key";
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const sourceUrl = process.env.CATALOGO_SOURCE_URL?.trim() || "";
+  const versionUrl =
+    process.env.CATALOGO_VERSION_URL?.trim() ||
+    (sourceUrl ? sourceUrl.replace(/productos\.json(\?.*)?$/i, "version.json$1") : "");
   if (sourceUrl) {
-    if (cached && cached.cacheKey !== "no-cache-key") {
-      // Best-effort revalidation using the last seen key.
-      // If the origin provides ETag/Last-Modified, we can avoid re-parsing unchanged payloads.
+    // If we have a version endpoint, allow cheap version checks without downloading the whole catalog.
+    // Controlled by query param: `/api/catalog?onlyVersion=1`
+    // (fallback env `CATALOGO_ONLY_VERSION=1` is useful for debugging).
+    const sp = new URL(request.url).searchParams;
+    const onlyVersion =
+      sp.get("onlyVersion") === "1" || process.env.CATALOGO_ONLY_VERSION === "1";
+
+    if (onlyVersion && versionUrl) {
+      try {
+        const verRes = await fetch(versionUrl, { cache: "no-store" });
+        if (verRes.ok) {
+          const json = (await verRes.json()) as { version?: number };
+          const v = typeof json?.version === "number" ? json.version : Date.now();
+          return NextResponse.json({ version: v });
+        }
+      } catch {
+        // Fall through to a best-effort response.
+      }
+      return NextResponse.json({ version: cached?.version ?? Date.now() });
     }
 
     if (!inflight) {
@@ -159,7 +180,19 @@ export async function GET() {
         }
         const rows = (await res.json()) as SourceRow[];
         const items = rows.map(mapRowToProduct).filter(Boolean) as Product[];
-        const next = { version: Date.now(), cacheKey, items };
+        let version = Date.now();
+        if (versionUrl) {
+          try {
+            const verRes = await fetch(versionUrl, { cache: "no-store" });
+            if (verRes.ok) {
+              const json = (await verRes.json()) as { version?: number };
+              if (typeof json?.version === "number") version = json.version;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        const next = { version, cacheKey, items };
         cached = next;
         return next;
       })().finally(() => {

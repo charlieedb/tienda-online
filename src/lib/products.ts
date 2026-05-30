@@ -24,6 +24,7 @@ export type Product = {
 const MAX_RESULTS = 30;
 const CATALOG_LIMIT = 400;
 const LS_KEY = "listita.catalog.v1";
+const VERSION_CHECK_TTL_MS = 30_000;
 
 function normalizeForSearch(value: string) {
   return value
@@ -60,6 +61,7 @@ let inFlightCatalog: Promise<Product[]> | null = null;
 let catalogOrigin: "api" | "firestore" | "seed" | null = null;
 
 type CatalogApiPayload = { version: number; items: Product[] };
+type StoredCatalog = { v: 1; version: number; savedAt: number; items: Product[] };
 
 function safeParseJson<T>(value: string): T | null {
   try {
@@ -73,15 +75,21 @@ function loadCatalogFromLocalStorage(): CatalogApiPayload | null {
   if (typeof window === "undefined") return null;
   const raw = window.localStorage.getItem(LS_KEY);
   if (!raw) return null;
-  const parsed = safeParseJson<CatalogApiPayload>(raw);
-  if (!parsed || !Array.isArray(parsed.items)) return null;
-  return parsed;
+  const parsed = safeParseJson<StoredCatalog>(raw);
+  if (!parsed || parsed.v !== 1 || !Array.isArray(parsed.items)) return null;
+  return { version: parsed.version, items: parsed.items };
 }
 
 function saveCatalogToLocalStorage(payload: CatalogApiPayload) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(LS_KEY, JSON.stringify(payload));
+    const stored: StoredCatalog = {
+      v: 1,
+      version: payload.version,
+      savedAt: Date.now(),
+      items: payload.items,
+    };
+    window.localStorage.setItem(LS_KEY, JSON.stringify(stored));
   } catch {
     // Ignore quota / privacy mode.
   }
@@ -102,6 +110,21 @@ async function fetchCatalogFromApi(): Promise<CatalogApiPayload | null> {
   }
 }
 
+async function fetchCatalogVersion(): Promise<number | null> {
+  if (typeof window === "undefined") return null;
+  try {
+    const res = await fetch("/api/catalog?onlyVersion=1", { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { version?: number };
+    if (typeof json?.version !== "number") return null;
+    return json.version;
+  } catch {
+    return null;
+  }
+}
+
+let lastVersionCheckAt = 0;
+
 export async function getActiveCatalog(): Promise<Product[]> {
   // Prefer the local catalog exposed via Next API (backed by the existing `catalogo/productos.json`).
   if (typeof window !== "undefined") {
@@ -113,6 +136,22 @@ export async function getActiveCatalog(): Promise<Product[]> {
     if (fromLs?.items?.length) {
       cachedCatalog = { at: Date.now(), items: fromLs.items };
       catalogOrigin = "api";
+
+      // Best-effort freshness: check version occasionally, and refresh the cache if it changed.
+      if (now - lastVersionCheckAt > VERSION_CHECK_TTL_MS) {
+        lastVersionCheckAt = now;
+        queueMicrotask(async () => {
+          const latest = await fetchCatalogVersion();
+          if (latest === null) return;
+          if (latest === fromLs.version) return;
+          const refreshed = await fetchCatalogFromApi();
+          if (!refreshed?.items?.length) return;
+          saveCatalogToLocalStorage(refreshed);
+          cachedCatalog = { at: Date.now(), items: refreshed.items };
+          catalogOrigin = "api";
+        });
+      }
+
       return fromLs.items;
     }
 
@@ -247,23 +286,7 @@ export async function searchProductsByToken(token: string): Promise<{
     }
   }
 
-  const db = getDb();
-
-  // Fast path: exact keyword match via Firestore only when the catalog is backed by Firestore.
-  if (db && catalogOrigin !== "api") {
-    const q = query(
-      collection(db, "products"),
-      where("active", "==", true),
-      where("keywords", "array-contains", t),
-      limit(MAX_RESULTS),
-    );
-    const snap = await getDocs(q);
-    const products = snap.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as Omit<Product, "id">),
-    }));
-    if (products.length > 0) return { products, suggestions: [] };
-  }
+  // NOTE: We intentionally avoid querying Firestore here to prevent extra reads and permission issues.
 
   // Fallback/augment: local filtering from catalog (covers seed + partial matches).
   const catalog = await getActiveCatalog();

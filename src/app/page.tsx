@@ -419,10 +419,15 @@ export default function Home() {
 
                     <div className="flex min-w-0 flex-col items-center gap-3 text-center sm:items-start sm:text-left">
                       <div className="flex flex-col items-center gap-1 sm:flex-row sm:gap-5">
-                        <div className="text-center font-hand text-[32px] leading-none text-foreground sm:text-left sm:text-[40px]">
-                          Arma tu listita,
-                          <br />
-                          con un click
+                        <div className="flex items-center justify-center sm:justify-start">
+                          <Image
+                            src="/arma.png"
+                            alt="Arma tu listita"
+                            width={520}
+                            height={180}
+                            priority
+                            className="h-auto w-[min(340px,100%)] select-none object-contain sm:w-[380px]"
+                          />
                         </div>
                       </div>
                     </div>
