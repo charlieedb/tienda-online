@@ -76,3 +76,12 @@ body {
   background-size: 18px 18px, 22px 22px, 26px 26px, 26px 26px, 26px 26px, 100% 100%;
   background-blend-mode: multiply, multiply, multiply, normal, normal, normal;
 }
+
+@keyframes fondo-pan {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 360px 240px;
+  }
+}
