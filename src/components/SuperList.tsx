@@ -427,7 +427,30 @@ function SuperListRow({
           style={{ transform: `rotate(${rot}deg)` }}
           whileTap={{ scale: 0.99 }}
         >
-          <div ref={containerRef} className="relative pr-28">
+          <span
+            aria-hidden="true"
+            className={[
+              "absolute left-3 top-1/2 -translate-y-1/2",
+              "inline-flex h-6 w-6 items-center justify-center rounded-md border",
+              item.purchased
+                ? "border-green-600 bg-green-600 text-white"
+                : "border-black/25 bg-white/70 text-transparent",
+            ].join(" ")}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </span>
+
+          <div ref={containerRef} className="relative pl-10 pr-28">
             <div className="min-w-0 font-hand text-[22px] leading-6 text-black uppercase">
               <span ref={textRef} className="relative z-0 inline-block">
                 {item.offer ? (
@@ -458,18 +481,6 @@ function SuperListRow({
 
           {item.added ? (
             <span className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2 text-green-600">
-              <svg
-                aria-label="Agregado"
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M20 6L9 17l-5-5" />
-              </svg>
               {item.purchased ? (
                 <span className="text-[11px] font-semibold uppercase text-black/55">
                   x{item.purchased.qty}{" "}
