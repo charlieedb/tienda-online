@@ -190,7 +190,7 @@ export function CartPanel() {
               onClick={() => setConstructionOpen(false)}
             />
             <motion.div
-              className="fixed left-1/2 top-1/2 z-[70] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-white shadow-2xl"
+              className="fixed left-1/2 top-1/2 z-[70] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f7f4f4] shadow-2xl"
               initial={{ opacity: 0, y: 10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -199,8 +199,8 @@ export function CartPanel() {
               aria-modal="true"
             >
               <div className="border-b border-border px-5 py-4">
-                <div className="text-sm font-semibold text-foreground">En construcción</div>
-                <div className="mt-1 text-xs text-foreground/70">
+                <div className="text-sm font-semibold text-black">En construcción</div>
+                <div className="mt-1 text-xs text-black/70">
                   Todavía estamos armando el checkout. Muy pronto vas a poder finalizar tu pedido.
                 </div>
               </div>
