@@ -80,11 +80,11 @@ body {
 .paper-bloc {
   --paper-bg: #fff6ea;
   --paper-pad: 16px;
-  --paper-gutter: 44px;
+  --paper-gutter: 28px;
   --paper-line-gap: 26px;
   --paper-hole-gap: 34px;
   --paper-hole-r: 5px;
-  --paper-hole-x: 22px;
+  --paper-hole-x: 14px;
 
   background-color: var(--paper-bg);
   background-image:
@@ -102,7 +102,7 @@ body {
     linear-gradient(
       to right,
       rgba(0, 0, 0, 0.07) 0,
-      rgba(0, 0, 0, 0.02) 24px,
+      rgba(0, 0, 0, 0.02) 18px,
       transparent var(--paper-gutter)
     ),
     /* punched holes */

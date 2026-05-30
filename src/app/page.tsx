@@ -661,7 +661,7 @@ export default function Home() {
             </div>
 
             <div className="grid flex-1 grid-cols-1 gap-4 md:gap-6">
-              <div className="min-h-[40vh] rounded-3xl border border-border bg-surface p-4 shadow-sm md:min-h-0">
+              <div className="flex min-h-[40vh] flex-col rounded-3xl border border-border bg-surface p-4 shadow-sm md:min-h-0">
                 <SuperList
                   items={items}
                   activeId={activeId}
@@ -707,7 +707,7 @@ export default function Home() {
                   }}
                 />
 
-                <div className="mt-3">
+                <div className="mt-2">
                   <motion.button
                     type="button"
                     onClick={() => setShowOffers(true)}

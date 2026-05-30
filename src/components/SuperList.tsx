@@ -129,12 +129,11 @@ export function SuperList({
   }, [notice]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex flex-col">
       <div
-        className="flex max-h-[78vh] flex-col rounded-3xl border border-border paper-bloc shadow-sm md:max-h-[72vh]"
+        className="flex min-h-[50vh] max-h-[78vh] flex-col rounded-3xl border border-border paper-bloc shadow-sm md:max-h-[72vh]"
         style={{
           padding: "var(--paper-pad)",
-          paddingLeft: "calc(var(--paper-pad) + var(--paper-gutter))",
         }}
       >
         <div className="relative pb-3">
@@ -193,16 +192,25 @@ export function SuperList({
             }
           }}
         >
-          <input
-            ref={inputRef}
-            value={value}
-            onChange={(e) => {
-              setValue(e.target.value);
-              if (pending) setPending(null);
-            }}
-            placeholder="que necesitas?"
-            className="w-full rounded-2xl border border-border bg-white/85 px-4 py-3 text-base text-black shadow-[0_10px_18px_rgba(0,0,0,0.08)] outline-none ring-0 placeholder:text-black/40 focus:border-black/25"
-          />
+          <div className="flex items-stretch gap-2">
+            <input
+              ref={inputRef}
+              value={value}
+              onChange={(e) => {
+                setValue(e.target.value);
+                if (pending) setPending(null);
+              }}
+              placeholder="que necesitas?"
+              className="w-full rounded-2xl border border-border bg-white/85 px-4 py-3 text-base text-black shadow-[0_10px_18px_rgba(0,0,0,0.08)] outline-none ring-0 placeholder:text-black/40 focus:border-black/25"
+            />
+            <button
+              type="submit"
+              aria-label="Agregar"
+              className="inline-flex w-12 items-center justify-center rounded-2xl bg-[#2b3bb8] text-white shadow-[0_10px_18px_rgba(0,0,0,0.10)] hover:brightness-[0.98] active:brightness-[0.96]"
+            >
+              <span className="text-xl leading-none">+</span>
+            </button>
+          </div>
         </form>
 
         {pending ? (
@@ -317,10 +325,10 @@ export function SuperList({
         </div>
 
         <div className="mt-3">
-          <div className="rounded-2xl border border-border bg-white/70 px-4 py-3 text-center font-hand text-[22px] leading-6 text-black">
-            TOTAL: <span className="font-semibold">{formatArs(total)}</span>
+            <div className="rounded-2xl border border-border bg-white/70 px-4 py-3 text-center font-hand text-[20px] leading-5 text-black">
+              TOTAL: <span className="font-semibold">{formatArs(total)}</span>
+            </div>
           </div>
-        </div>
       </div>
     </div>
   );
@@ -456,7 +464,7 @@ function SuperListRow({
           </span>
 
           <div ref={containerRef} className="relative pl-10 pr-28">
-            <div className="min-w-0 font-hand text-[22px] leading-6 text-black uppercase">
+            <div className="min-w-0 font-hand text-[20px] leading-5 text-black uppercase">
               <span ref={textRef} className="relative z-0 inline-block">
                 {item.offer ? (
                   <span
