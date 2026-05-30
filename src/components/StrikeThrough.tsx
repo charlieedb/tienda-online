@@ -8,11 +8,13 @@ export function StrikeThrough({
   from = 0,
   to = 100,
   className,
+  offsetYClassName,
 }: {
   active: boolean;
   from?: number;
   to?: number;
   className?: string;
+  offsetYClassName?: string;
 }) {
   const clampedFrom = Math.max(0, Math.min(100, from));
   const clampedTo = Math.max(clampedFrom, Math.min(100, to));
@@ -24,6 +26,7 @@ export function StrikeThrough({
       aria-hidden="true"
       className={[
         "pointer-events-none absolute inset-x-0 top-1/2 h-3 w-full -translate-y-1/2",
+        offsetYClassName ?? "",
         className ?? "",
       ].join(" ")}
       viewBox="0 0 100 10"

@@ -435,7 +435,7 @@ function SuperListRow({
               item.purchased
                 ? "border-green-600 bg-green-600 text-white"
                 : item.noResults
-                  ? "border-red-600/55 bg-red-50 text-transparent"
+                  ? "hidden"
                   : "border-black/25 bg-white/70 text-transparent",
             ].join(" ")}
           >
@@ -469,6 +469,7 @@ function SuperListRow({
                 from={range.from}
                 to={range.to}
                 className={item.noResults ? "text-red-600" : undefined}
+                offsetYClassName={item.noResults ? "-translate-y-[0.95rem]" : undefined}
               />
             </div>
           </div>
