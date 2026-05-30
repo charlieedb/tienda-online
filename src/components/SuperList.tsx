@@ -434,7 +434,9 @@ function SuperListRow({
               "inline-flex h-6 w-6 items-center justify-center rounded-md border",
               item.purchased
                 ? "border-green-600 bg-green-600 text-white"
-                : "border-black/25 bg-white/70 text-transparent",
+                : item.noResults
+                  ? "border-red-600/55 bg-red-50 text-transparent"
+                  : "border-black/25 bg-white/70 text-transparent",
             ].join(" ")}
           >
             <svg
@@ -462,7 +464,12 @@ function SuperListRow({
                 ) : null}
                 <span className={item.added ? "opacity-45" : ""}>{show}</span>
               </span>
-              <StrikeThrough active={item.added} from={range.from} to={range.to} />
+              <StrikeThrough
+                active={Boolean(item.noResults)}
+                from={range.from}
+                to={range.to}
+                className={item.noResults ? "text-red-600" : undefined}
+              />
             </div>
           </div>
 
@@ -471,7 +478,7 @@ function SuperListRow({
               className={[
                 "absolute top-1/2 -translate-y-1/2 text-[11px] font-semibold",
                 item.noResults
-                  ? "right-10 cursor-default text-black/25"
+                  ? "right-3 cursor-default text-red-600/70"
                   : "right-3 text-black/35 hover:text-black/65",
               ].join(" ")}
             >
@@ -487,22 +494,6 @@ function SuperListRow({
                   {item.purchased.variant === "unit" ? "unid" : "cajas"}
                 </span>
               ) : null}
-            </span>
-          ) : item.noResults ? (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-600">
-              <svg
-                aria-label="Sin resultados"
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6L6 18" />
-                <path d="M6 6l12 12" />
-              </svg>
             </span>
           ) : null}
 
