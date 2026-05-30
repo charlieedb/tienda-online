@@ -107,10 +107,19 @@ export function SuggestionsPanel({
 
   const sortedProducts = useMemo(() => {
     const list = [...products];
+    const priceForSort = (p: Product) => {
+      const base = p.unit.price;
+      const disc = p.offer ? p.offerDiscount ?? 0 : 0;
+      if (disc > 0) return Math.max(0, Math.round(base * (1 - disc / 100)));
+      return base;
+    };
     list.sort((a, b) => {
-      const ao = a.offer ? 1 : 0;
-      const bo = b.offer ? 1 : 0;
-      if (ao !== bo) return bo - ao; // offers first
+      const as = a.active === false ? 0 : 1;
+      const bs = b.active === false ? 0 : 1;
+      if (as !== bs) return bs - as; // in-stock first
+      const ap = priceForSort(a);
+      const bp = priceForSort(b);
+      if (ap !== bp) return ap - bp; // cheaper first
       return a.name.localeCompare(b.name);
     });
     return list;

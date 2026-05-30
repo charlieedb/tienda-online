@@ -36,8 +36,14 @@ export function QuantityModal({
   onConfirm,
 }: Props) {
   const hasPack = Boolean(product?.pack);
+  const isOut = product?.active === false;
   const [variant, setVariant] = useState<Variant>("unit");
   const [qty, setQty] = useState(1);
+
+  const discountPct = product?.offer ? product.offerDiscount ?? 0 : 0;
+  const hasDiscount = discountPct > 0;
+  const applyDiscount = (price: number) =>
+    hasDiscount ? Math.max(0, Math.round(price * (1 - discountPct / 100))) : price;
 
   useEffect(() => {
     if (!open) return;
@@ -61,10 +67,18 @@ export function QuantityModal({
   const variantInfo = useMemo(() => {
     if (!product) return null;
     if (variant === "pack" && product.pack) {
-      return { label: product.pack.label, price: product.pack.price };
+      return {
+        label: product.pack.label,
+        price: applyDiscount(product.pack.price),
+        originalPrice: product.pack.price,
+      };
     }
-    return { label: product.unit.label, price: product.unit.price };
-  }, [product, variant]);
+    return {
+      label: product.unit.label,
+      price: applyDiscount(product.unit.price),
+      originalPrice: product.unit.price,
+    };
+  }, [product, variant, discountPct]);
 
   if (!product) return null;
 
@@ -132,7 +146,16 @@ export function QuantityModal({
                     Unidades
                   </div>
                   <div className="text-sm font-semibold text-foreground">
-                    {formatArs(product.unit.price)}{" "}
+                    {hasDiscount ? (
+                      <span className="inline-flex items-baseline gap-2">
+                        <span>{formatArs(applyDiscount(product.unit.price))}</span>
+                        <span className="text-xs font-semibold text-foreground/45 line-through">
+                          {formatArs(product.unit.price)}
+                        </span>
+                      </span>
+                    ) : (
+                      formatArs(product.unit.price)
+                    )}{" "}
                     <span className="text-xs font-medium text-foreground/65">
                       · {product.unit.label}
                     </span>
@@ -157,7 +180,16 @@ export function QuantityModal({
                   <div className="text-sm font-semibold text-foreground">
                     {product.pack ? (
                       <>
-                        {formatArs(product.pack.price)}{" "}
+                        {hasDiscount ? (
+                          <span className="inline-flex items-baseline gap-2">
+                            <span>{formatArs(applyDiscount(product.pack.price))}</span>
+                            <span className="text-xs font-semibold text-foreground/45 line-through">
+                              {formatArs(product.pack.price)}
+                            </span>
+                          </span>
+                        ) : (
+                          formatArs(product.pack.price)
+                        )}{" "}
                         <span className="text-xs font-medium text-foreground/65">
                           · {product.pack.label}
                         </span>
@@ -235,6 +267,7 @@ export function QuantityModal({
                         price: variantInfo.price,
                       });
                     }}
+                    disabled={isOut}
                   >
                     Confirmar
                   </MotionButton>
