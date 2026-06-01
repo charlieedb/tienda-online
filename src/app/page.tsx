@@ -12,11 +12,11 @@ import { OffersModal } from "@/components/OffersModal";
 import { AuthModal } from "@/components/AuthModal";
 import { TopBar } from "@/components/TopBar";
 import { normalizeToken } from "@/lib/normalize";
-import { getProductById, startCatalogAutoRefresh } from "@/lib/products";
+import { getActiveCatalog, getProductById, startCatalogAutoRefresh } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
 import { useAuth } from "@/auth/AuthProvider";
 import { APP_VERSION } from "@/lib/appVersion";
-import { CATEGORIES, type Category } from "@/lib/categories";
+import type { Category } from "@/components/TopBar";
 
 type Stage = "landing" | "builder";
 
@@ -210,9 +210,56 @@ export default function Home() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuCategories, setMenuCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     return startCatalogAutoRefresh();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const catalog = await getActiveCatalog();
+      if (cancelled) return;
+
+      const map = new Map<string, string>();
+      for (const p of catalog) {
+        const b = String(p.brand ?? "").trim();
+        if (!b) continue;
+        const token = normalizeToken(b);
+        if (!token) continue;
+        if (!map.has(token)) map.set(token, b);
+      }
+
+      const iconFor = (token: string): Category["icon"] => {
+        if (token === "aa") return "sparkles";
+        if (token.includes("vino")) return "wine";
+        if (token.includes("cerve")) return "beer";
+        if (token.includes("lact") || token.includes("leche")) return "milk";
+        if (token.includes("pan")) return "bread";
+        if (token.includes("limp")) return "clean";
+        if (token.includes("gase") || token.includes("beb")) return "drink";
+        if (token.includes("fiamb") || token.includes("carne")) return "meat";
+        return "tag";
+      };
+
+      const cats: Category[] = [];
+      cats.push({ token: "__offers__", label: "Ofertas", icon: "sparkles" });
+
+      const sorted = Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+      for (const [token, label] of sorted) {
+        let display = label;
+        if (token === "aa") display = "Exclusivos";
+        if (token === "promo") display = "Combos";
+        cats.push({ token, label: display, icon: iconFor(token) });
+      }
+
+      setMenuCategories(cats);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const activeItem = useMemo(
@@ -314,6 +361,10 @@ export default function Home() {
 
   const onSelectCategory = (cat: Category) => {
     setMenuOpen(false);
+    if (cat.token === "__offers__") {
+      setShowOffers(true);
+      return;
+    }
     const raw = cat.label;
     const token = normalizeToken(cat.token || raw);
     if (!token) return;
@@ -604,7 +655,7 @@ export default function Home() {
                 setShowOptions(false);
                 setMenuOpen(false);
               }}
-              categories={CATEGORIES}
+              categories={menuCategories}
               onSelectCategory={onSelectCategory}
               onCloseMenu={() => setMenuOpen(false)}
             />

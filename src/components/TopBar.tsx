@@ -1,9 +1,24 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import type { Category } from "@/lib/categories";
+import { AnimatePresence, motion } from "framer-motion";
 
-function Icon({ name }: { name: Category["icon"] | "hamburger" }) {
+export type Category = {
+  token: string;
+  label: string;
+  icon:
+    | "hamburger"
+    | "sparkles"
+    | "tag"
+    | "wine"
+    | "beer"
+    | "milk"
+    | "bread"
+    | "drink"
+    | "clean"
+    | "meat";
+};
+
+function Icon({ name }: { name: Category["icon"] }) {
   const common = {
     fill: "none",
     stroke: "currentColor",
@@ -12,17 +27,22 @@ function Icon({ name }: { name: Category["icon"] | "hamburger" }) {
     strokeLinejoin: "round" as const,
   };
 
-  if (name === "hamburger") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" {...common}>
-        <path d="M4 7h16" />
-        <path d="M4 12h16" />
-        <path d="M4 17h16" />
-      </svg>
-    );
-  }
-
   switch (name) {
+    case "hamburger":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" {...common}>
+          <path d="M4 7h16" />
+          <path d="M4 12h16" />
+          <path d="M4 17h16" />
+        </svg>
+      );
+    case "sparkles":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" {...common}>
+          <path d="M12 2l1.2 4.4L18 8l-4.4 1.2L12 14l-1.2-4.8L6 8l4.8-1.6L12 2z" />
+          <path d="M19 11l.7 2.7L22 15l-2.3.6L19 18l-.6-2.4L16 15l2.4-.7L19 11z" />
+        </svg>
+      );
     case "wine":
       return (
         <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" {...common}>
@@ -54,13 +74,6 @@ function Icon({ name }: { name: Category["icon"] | "hamburger" }) {
           <path d="M16 11v10" />
         </svg>
       );
-    case "meat":
-      return (
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" {...common}>
-          <path d="M8 16c2 2 6 2 8 0 2-2 2-6 0-8-2-2-6-2-8 0-2 2-2 6 0 8z" />
-          <path d="M7 17l-2 2a2 2 0 0 1-3-3l2-2" />
-        </svg>
-      );
     case "drink":
       return (
         <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" {...common}>
@@ -76,8 +89,21 @@ function Icon({ name }: { name: Category["icon"] | "hamburger" }) {
           <path d="M20 19l-4-4" />
         </svg>
       );
+    case "meat":
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" {...common}>
+          <path d="M8 16c2 2 6 2 8 0 2-2 2-6 0-8-2-2-6-2-8 0-2 2-2 6 0 8z" />
+          <path d="M7 17l-2 2a2 2 0 0 1-3-3l2-2" />
+        </svg>
+      );
+    case "tag":
     default:
-      return null;
+      return (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" {...common}>
+          <path d="M20 13l-7 7-11-11V2h7l11 11z" />
+          <path d="M7.5 7.5h.01" />
+        </svg>
+      );
   }
 }
 
@@ -101,7 +127,7 @@ export function TopBar({
   return (
     <>
       <header className="sticky top-0 z-50 w-full bg-[#E10600] text-white shadow-md">
-        <div className="mx-auto flex h-12 w-full max-w-6xl items-center px-3">
+        <div className="flex h-12 w-full items-center px-3">
           <button
             type="button"
             onClick={onToggleMenu}
@@ -138,7 +164,7 @@ export function TopBar({
             />
 
             <motion.aside
-              className="fixed left-0 top-0 z-[60] h-dvh w-[min(320px,86vw)] bg-white shadow-2xl"
+              className="fixed left-0 top-0 z-[60] h-dvh w-[min(340px,88vw)] bg-white shadow-2xl"
               initial={{ x: -24, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -24, opacity: 0 }}
@@ -148,9 +174,7 @@ export function TopBar({
             >
               <div className="border-b border-black/10 bg-[#E10600] px-4 py-3 text-white">
                 <div className="text-sm font-black italic tracking-tight">JONICO</div>
-                <div className="text-[11px] font-semibold text-white/85">
-                  Categorías
-                </div>
+                <div className="text-[11px] font-semibold text-white/85">Categorías</div>
               </div>
 
               <div className="no-scrollbar h-[calc(100%-56px)] overflow-auto p-3">
@@ -165,9 +189,7 @@ export function TopBar({
                       <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-black/5 text-black/80">
                         <Icon name={c.icon} />
                       </span>
-                      <span className="text-sm font-semibold text-black">
-                        {c.label}
-                      </span>
+                      <span className="text-sm font-semibold text-black">{c.label}</span>
                     </button>
                   ))}
                 </div>
