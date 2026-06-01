@@ -36,7 +36,7 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
       setLoading(true);
       setError(null);
       try {
-        const result = await getOffersOfDay(8);
+        const result = await getOffersOfDay(0);
         if (cancelled) return;
         setProducts(result);
       } catch (e) {
@@ -53,7 +53,7 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
     };
   }, [open]);
 
-  const visible = useMemo(() => products.slice(0, 8), [products]);
+  const visible = useMemo(() => products, [products]);
 
   return (
     <div className="flex h-full flex-col">
