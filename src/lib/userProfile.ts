@@ -1,6 +1,15 @@
 import { getDb } from "@/lib/firebase";
 import { doc, getDoc, runTransaction, serverTimestamp, setDoc } from "firebase/firestore";
 
+export type LatLng = { lat: number; lng: number };
+
+export type UserAddress = {
+  id: string;
+  localidad: string;
+  direccion: string;
+  ubicacion: LatLng | null;
+};
+
 export type UserProfile = {
   uid: string;
   email: string | null;
@@ -10,9 +19,7 @@ export type UserProfile = {
   nombre?: string;
   apellido?: string;
   telefono?: string;
-  localidad?: string;
-  direccion?: string;
-  ubicacion?: { lat: number; lng: number } | null;
+  direcciones?: UserAddress[];
 };
 
 export function normalizeUsername(value: string) {
@@ -40,6 +47,26 @@ export async function reserveUsername(params: { uid: string; email: string | nul
   return username;
 }
 
+function normalizeAddress(raw: any, fallbackId: string): UserAddress {
+  const id = typeof raw?.id === "string" && raw.id.trim() ? raw.id : fallbackId;
+  const localidad = typeof raw?.localidad === "string" ? raw.localidad : "";
+  const direccion = typeof raw?.direccion === "string" ? raw.direccion : "";
+  const ubicacion =
+    raw?.ubicacion && typeof raw.ubicacion === "object"
+      ? {
+          lat: Number((raw.ubicacion as any).lat),
+          lng: Number((raw.ubicacion as any).lng),
+        }
+      : null;
+  return {
+    id,
+    localidad: localidad.trim(),
+    direccion: direccion.trim(),
+    ubicacion:
+      ubicacion && Number.isFinite(ubicacion.lat) && Number.isFinite(ubicacion.lng) ? ubicacion : null,
+  };
+}
+
 export async function getUserProfile(uid: string) {
   const db = getDb();
   if (!db) throw new Error("Firebase no está configurado.");
@@ -47,7 +74,19 @@ export async function getUserProfile(uid: string) {
   const ref = doc(db, "users", uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
-  const data = snap.data() as Partial<UserProfile>;
+  const data = snap.data() as any;
+
+  let direcciones: UserAddress[] | undefined;
+  if (Array.isArray(data.direcciones)) {
+    direcciones = data.direcciones.map((a: any, idx: number) => normalizeAddress(a, `addr_${idx + 1}`));
+  } else {
+    // Backward-compat: older schema stored a single address.
+    const legacy = normalizeAddress(
+      { localidad: data.localidad ?? "", direccion: data.direccion ?? "", ubicacion: data.ubicacion ?? null },
+      "principal",
+    );
+    if (legacy.localidad || legacy.direccion || legacy.ubicacion) direcciones = [legacy];
+  }
 
   return {
     uid,
@@ -58,13 +97,8 @@ export async function getUserProfile(uid: string) {
     nombre: typeof data.nombre === "string" ? data.nombre : "",
     apellido: typeof data.apellido === "string" ? data.apellido : "",
     telefono: typeof data.telefono === "string" ? data.telefono : "",
-    localidad: typeof data.localidad === "string" ? data.localidad : "",
-    direccion: typeof data.direccion === "string" ? data.direccion : "",
-    ubicacion:
-      data.ubicacion && typeof data.ubicacion === "object"
-        ? (data.ubicacion as { lat: number; lng: number })
-        : null,
-  };
+    direcciones,
+  } satisfies UserProfile;
 }
 
 export async function upsertUserProfile(profile: UserProfile) {
@@ -73,6 +107,13 @@ export async function upsertUserProfile(profile: UserProfile) {
 
   const ref = doc(db, "users", profile.uid);
   const existing = await getDoc(ref);
+
+  const direcciones = (profile.direcciones ?? [])
+    .map((a, idx) => normalizeAddress(a, `addr_${idx + 1}`))
+    .filter((a) => a.localidad || a.direccion || a.ubicacion);
+
+  const first = direcciones[0] ?? null;
+
   await setDoc(
     ref,
     {
@@ -83,9 +124,11 @@ export async function upsertUserProfile(profile: UserProfile) {
       nombre: String(profile.nombre ?? "").trim(),
       apellido: String(profile.apellido ?? "").trim(),
       telefono: String(profile.telefono ?? "").trim(),
-      localidad: String(profile.localidad ?? "").trim(),
-      direccion: String(profile.direccion ?? "").trim(),
-      ubicacion: profile.ubicacion ?? null,
+      direcciones: direcciones.length ? direcciones : [],
+      // Backward-compat fields
+      localidad: first?.localidad ?? "",
+      direccion: first?.direccion ?? "",
+      ubicacion: first?.ubicacion ?? null,
       updatedAt: serverTimestamp(),
       ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
     },

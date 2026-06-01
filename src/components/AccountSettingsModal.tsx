@@ -3,27 +3,34 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
-import { getUserProfile, upsertUserProfile, type UserProfile } from "@/lib/userProfile";
+import {
+  getUserProfile,
+  upsertUserProfile,
+  type LatLng,
+  type UserAddress,
+  type UserProfile,
+} from "@/lib/userProfile";
 import { MapPickerModal } from "@/components/MapPickerModal";
+
+type AddressForm = UserAddress;
 
 type FormState = {
   nombre: string;
   apellido: string;
   dni: string;
   telefono: string;
-  localidad: string;
-  direccion: string;
-  ubicacion: { lat: number; lng: number } | null;
+  direcciones: AddressForm[];
 };
+
+function newId() {
+  return `addr_${Math.random().toString(36).slice(2, 9)}${Date.now().toString(36).slice(-4)}`;
+}
 
 export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mapOpen, setMapOpen] = useState(false);
-  const [geoLoading, setGeoLoading] = useState(false);
-  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
 
   const empty: FormState = useMemo(
     () => ({
@@ -31,17 +38,19 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
       apellido: "",
       dni: "",
       telefono: "",
-      localidad: "",
-      direccion: "",
-      ubicacion: null,
+      direcciones: [],
     }),
     [],
   );
 
   const [form, setForm] = useState<FormState>(empty);
-  const [baseProfile, setBaseProfile] = useState<Pick<UserProfile, "uid" | "email" | "username" | "displayName"> | null>(
-    null,
-  );
+  const [baseProfile, setBaseProfile] =
+    useState<Pick<UserProfile, "uid" | "email" | "username" | "displayName"> | null>(null);
+
+  const [mapOpen, setMapOpen] = useState(false);
+  const [mapAddressId, setMapAddressId] = useState<string | null>(null);
+  const [mapCenter, setMapCenter] = useState<LatLng | null>(null);
+  const [mapInitialQuery, setMapInitialQuery] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -59,16 +68,25 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
           username,
           displayName: user.displayName ?? p?.displayName ?? null,
         });
+
+        const direcciones = (p?.direcciones ?? []).length
+          ? (p?.direcciones ?? [])
+          : [
+              {
+                id: "principal",
+                localidad: "",
+                direccion: "",
+                ubicacion: null,
+              },
+            ];
+
         setForm({
           nombre: p?.nombre ?? "",
           apellido: p?.apellido ?? "",
           dni: p?.dni ?? "",
           telefono: p?.telefono ?? "",
-          localidad: p?.localidad ?? "",
-          direccion: p?.direccion ?? "",
-          ubicacion: p?.ubicacion ?? null,
+          direcciones,
         });
-        setMapCenter(p?.ubicacion ?? null);
       } catch (e: any) {
         setError(e?.message || "No se pudo cargar tu perfil.");
       } finally {
@@ -82,6 +100,11 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
     if (user) return;
     onClose();
   }, [open, user, onClose]);
+
+  const activeAddress = useMemo(() => {
+    if (!mapAddressId) return null;
+    return form.direcciones.find((d) => d.id === mapAddressId) ?? null;
+  }, [form.direcciones, mapAddressId]);
 
   return (
     <>
@@ -98,7 +121,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
             />
 
             <motion.div
-              className="fixed left-1/2 top-1/2 z-[75] w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f7f4f4] shadow-2xl"
+              className="fixed left-1/2 top-1/2 z-[75] w-[min(620px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f7f4f4] shadow-2xl"
               initial={{ opacity: 0, y: 10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -117,30 +140,31 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                     Cargando…
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-4">
                     {error ? (
                       <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
                         {error}
                       </div>
                     ) : null}
 
-                    <Field label="Nombre">
-                      <input
-                        className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
-                        value={form.nombre}
-                        onChange={(e) => setForm((p) => ({ ...p, nombre: e.target.value }))}
-                        placeholder="Tu nombre"
-                      />
-                    </Field>
-
-                    <Field label="Apellido">
-                      <input
-                        className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
-                        value={form.apellido}
-                        onChange={(e) => setForm((p) => ({ ...p, apellido: e.target.value }))}
-                        placeholder="Tu apellido"
-                      />
-                    </Field>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <Field label="Nombre">
+                        <input
+                          className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                          value={form.nombre}
+                          onChange={(e) => setForm((p) => ({ ...p, nombre: e.target.value }))}
+                          placeholder="Tu nombre"
+                        />
+                      </Field>
+                      <Field label="Apellido">
+                        <input
+                          className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                          value={form.apellido}
+                          onChange={(e) => setForm((p) => ({ ...p, apellido: e.target.value }))}
+                          placeholder="Tu apellido"
+                        />
+                      </Field>
+                    </div>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Field label="DNI">
@@ -163,94 +187,127 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                       </Field>
                     </div>
 
-                    <Field label="Localidad">
-                      <input
-                        className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
-                        value={form.localidad}
-                        onChange={(e) => setForm((p) => ({ ...p, localidad: e.target.value }))}
-                        placeholder="Barrio / ciudad"
-                      />
-                    </Field>
-
-                    <Field label="Dirección">
-                      <div className="flex flex-col gap-2">
-                        <div className="relative">
-                          <input
-                            className="h-11 w-full rounded-2xl border border-border bg-white px-4 pr-12 text-[16px] text-black outline-none focus:border-brand/50"
-                            value={form.direccion}
-                            onChange={(e) =>
-                              setForm((p) => ({ ...p, direccion: e.target.value }))
-                            }
-                            placeholder="Calle y número"
-                          />
-
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (geoLoading) return;
-                              setMapOpen(true);
-                              if (form.ubicacion) {
-                                setMapCenter(form.ubicacion);
-                                return;
-                              }
-                              const q = `${form.direccion}`.trim()
-                                ? `${form.direccion}${form.localidad ? `, ${form.localidad}` : ""}`
-                                : `${form.localidad}`.trim();
-                              if (!q) return;
-                              setGeoLoading(true);
-                              try {
-                                const url =
-                                  "https://nominatim.openstreetmap.org/search?" +
-                                  new URLSearchParams({
-                                    format: "json",
-                                    q,
-                                    limit: "1",
-                                  }).toString();
-                                const res = await fetch(url, {
-                                  headers: { Accept: "application/json" },
-                                });
-                                const data = (await res.json()) as Array<{
-                                  lat: string;
-                                  lon: string;
-                                }>;
-                                const first = data?.[0];
-                                if (!first) return;
-                                const lat = Number(first.lat);
-                                const lng = Number(first.lon);
-                                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-                                setMapCenter({ lat, lng });
-                              } catch {
-                                // ignore: user can still pick manually
-                              } finally {
-                                setGeoLoading(false);
-                              }
-                            }}
-                            className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-xl bg-black/5 text-black/70 hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
-                            aria-label="Marcar ubicación en el mapa"
-                            title="Marcar ubicación en el mapa"
-                          >
-                            {geoLoading ? (
-                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black/70" />
-                            ) : (
-                              <span className="relative">
-                                <PinIcon />
-                                {form.ubicacion ? (
-                                  <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[10px] font-black text-white shadow-sm">
-                                    ✓
-                                  </span>
-                                ) : null}
-                              </span>
-                            )}
-                          </button>
+                    <div className="rounded-3xl border border-border bg-white/60 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-black">Direcciones</div>
+                          <div className="mt-1 text-xs font-semibold text-black/60">
+                            Guardá una o varias direcciones para elegir al pedir.
+                          </div>
                         </div>
-
-                        <div className="text-xs font-semibold text-black/70">
-                          {form.ubicacion
-                            ? `Ubicación: ${form.ubicacion.lat.toFixed(5)}, ${form.ubicacion.lng.toFixed(5)}`
-                            : "Sin ubicación"}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setForm((p) => ({
+                              ...p,
+                              direcciones: [
+                                ...p.direcciones,
+                                { id: newId(), localidad: "", direccion: "", ubicacion: null },
+                              ],
+                            }))
+                          }
+                          className="h-9 rounded-2xl bg-[#1f2a8a] px-3 text-xs font-black text-white"
+                        >
+                          Agregar otra dirección
+                        </button>
                       </div>
-                    </Field>
+
+                      <div className="mt-3 flex flex-col gap-3">
+                        {form.direcciones.map((addr, idx) => (
+                          <div
+                            key={addr.id}
+                            className="rounded-3xl border border-border bg-white/75 p-3"
+                          >
+                            <div className="mb-2 flex items-center justify-between">
+                              <div className="text-xs font-black text-black/70">
+                                Dirección {idx + 1}
+                              </div>
+                              {form.direcciones.length > 1 ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setForm((p) => ({
+                                      ...p,
+                                      direcciones: p.direcciones.filter((d) => d.id !== addr.id),
+                                    }))
+                                  }
+                                  className="rounded-xl px-2 py-1 text-xs font-black text-black/60 hover:bg-black/5"
+                                >
+                                  Quitar
+                                </button>
+                              ) : null}
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              <Field label="Localidad">
+                                <input
+                                  className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                                  value={addr.localidad}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    setForm((p) => ({
+                                      ...p,
+                                      direcciones: p.direcciones.map((d) =>
+                                        d.id === addr.id ? { ...d, localidad: v } : d,
+                                      ),
+                                    }));
+                                  }}
+                                  placeholder="Barrio / ciudad"
+                                />
+                              </Field>
+
+                              <Field label="Dirección">
+                                <div className="relative">
+                                  <input
+                                    className="h-11 w-full rounded-2xl border border-border bg-white px-4 pr-12 text-[16px] text-black outline-none focus:border-brand/50"
+                                    value={addr.direccion}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setForm((p) => ({
+                                        ...p,
+                                        direcciones: p.direcciones.map((d) =>
+                                          d.id === addr.id ? { ...d, direccion: v } : d,
+                                        ),
+                                      }));
+                                    }}
+                                    placeholder="Calle y número"
+                                  />
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setMapAddressId(addr.id);
+                                      setMapOpen(true);
+                                      setMapCenter(addr.ubicacion);
+                                      const q = `${addr.direccion}${addr.localidad ? `, ${addr.localidad}` : ""}`.trim();
+                                      setMapInitialQuery(q);
+                                    }}
+                                    className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-xl bg-black/5 text-black/70 hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
+                                    aria-label="Marcar ubicación en el mapa"
+                                    title="Marcar ubicación en el mapa"
+                                  >
+                                    <span className="relative">
+                                      <PinIcon />
+                                      {addr.ubicacion ? (
+                                        <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[10px] font-black text-white shadow-sm">
+                                          ✓
+                                        </span>
+                                      ) : null}
+                                    </span>
+                                  </button>
+                                </div>
+                              </Field>
+                            </div>
+
+                            <div className="mt-2 text-xs font-semibold text-black/70">
+                              {addr.ubicacion
+                                ? `Ubicación: ${addr.ubicacion.lat.toFixed(5)}, ${addr.ubicacion.lng.toFixed(5)}`
+                                : "Sin ubicación"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -281,9 +338,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                           nombre: form.nombre,
                           apellido: form.apellido,
                           telefono: form.telefono,
-                          localidad: form.localidad,
-                          direccion: form.direccion,
-                          ubicacion: form.ubicacion,
+                          direcciones: form.direcciones,
                         });
                         onClose();
                       } catch (e: any) {
@@ -305,10 +360,17 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
 
       <MapPickerModal
         open={mapOpen}
-        initial={form.ubicacion}
+        initial={activeAddress?.ubicacion ?? null}
         center={mapCenter}
+        initialQuery={mapInitialQuery}
         onClose={() => setMapOpen(false)}
-        onPick={(p) => setForm((prev) => ({ ...prev, ubicacion: p }))}
+        onPick={(p) => {
+          if (!mapAddressId) return;
+          setForm((prev) => ({
+            ...prev,
+            direcciones: prev.direcciones.map((d) => (d.id === mapAddressId ? { ...d, ubicacion: p } : d)),
+          }));
+        }}
       />
     </>
   );
@@ -340,3 +402,4 @@ function PinIcon() {
     </svg>
   );
 }
+
