@@ -754,17 +754,37 @@ export default function Home() {
                   }}
                 />
 
-                <div className="mt-8 flex justify-center pb-3">
+                <div className="mt-8 flex flex-col items-center justify-center gap-3 pb-6 text-center">
+                  <div className="font-hand text-[22px] leading-6 text-black/80">
+                    No te pierdas estas ofertas!!
+                  </div>
                   <motion.button
                     type="button"
                     onClick={() => setShowOffers(true)}
                     whileTap={{ scale: 0.99 }}
-                    className="group relative inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-8 py-3 text-sm font-black tracking-widest text-white shadow-lg shadow-black/15 hover:bg-emerald-600/95 active:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
+                    className="group relative inline-flex items-center justify-center gap-3 rounded-2xl bg-emerald-600 px-9 py-4 text-[15px] font-black tracking-widest text-white shadow-lg shadow-black/15 hover:bg-emerald-600/95 active:bg-emerald-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
                   >
                     <span
                       aria-hidden="true"
                       className="pointer-events-none absolute inset-0 opacity-[0.22] [background:radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.60),transparent_48%)]"
                     />
+                    <span
+                      aria-hidden="true"
+                      className="relative inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/18"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-6 w-6"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M20 12l-8 8-8-8" />
+                        <path d="M4 4h16v6H4z" />
+                      </svg>
+                    </span>
                     <span className="relative">OFERTAS</span>
                   </motion.button>
                 </div>

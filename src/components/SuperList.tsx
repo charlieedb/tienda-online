@@ -234,7 +234,7 @@ export function SuperList({
             }
           }}
         >
-          <div className="flex items-stretch gap-2">
+          <div className="relative">
             <input
               ref={inputRef}
               value={value}
@@ -243,15 +243,17 @@ export function SuperList({
                 if (pending) setPending(null);
               }}
               placeholder="que necesitas?"
-              className="w-full rounded-2xl border border-border bg-white/85 px-4 py-3 text-base text-black shadow-[0_10px_18px_rgba(0,0,0,0.08)] outline-none ring-0 placeholder:text-black/40 focus:border-black/25"
+              className="w-full rounded-2xl border border-border bg-white/85 py-3 pl-4 pr-14 text-base text-black shadow-[0_10px_18px_rgba(0,0,0,0.08)] outline-none ring-0 placeholder:text-black/40 focus:border-black/25"
             />
-            <button
-              type="submit"
-              aria-label="Agregar"
-              className="inline-flex w-12 items-center justify-center rounded-2xl bg-[#2b3bb8] text-white shadow-[0_10px_18px_rgba(0,0,0,0.10)] hover:brightness-[0.98] active:brightness-[0.96]"
-            >
-              <span className="text-xl leading-none">+</span>
-            </button>
+            {value.trim().length > 0 ? (
+              <button
+                type="submit"
+                aria-label="Agregar"
+                className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl bg-[#2b3bb8] text-white shadow-[0_10px_18px_rgba(0,0,0,0.10)] hover:brightness-[0.98] active:brightness-[0.96]"
+              >
+                <span className="text-xl leading-none">+</span>
+              </button>
+            ) : null}
           </div>
         </form>
 
