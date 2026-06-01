@@ -759,8 +759,13 @@ export default function Home() {
                     type="button"
                     onClick={() => setShowOffers(true)}
                     whileTap={{ scale: 0.99 }}
-                    className="w-full rounded-2xl border border-black/10 bg-[#F4B61E] px-4 py-3 text-center text-sm font-black tracking-tight text-black shadow-[0_10px_18px_rgba(0,0,0,0.10)] hover:brightness-[0.98] active:brightness-[0.96]"
+                    className="group relative w-full overflow-hidden rounded-2xl border border-black/10 bg-gradient-to-r from-amber-300 via-amber-400 to-orange-400 px-4 py-3 text-center text-sm font-black tracking-tight text-black shadow-[0_10px_18px_rgba(0,0,0,0.10)] hover:brightness-[0.99] active:brightness-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
                   >
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -right-12 -top-10 h-32 w-32 rotate-12 rounded-full bg-white/35 blur-2xl transition-transform duration-500 group-hover:translate-x-2"
+                    />
+                    <span className="pointer-events-none absolute inset-0 opacity-[0.18] [background:radial-gradient(circle_at_25%_20%,rgba(255,255,255,0.55),transparent_45%)]" />
                     <span className="inline-flex items-center justify-center gap-2">
                       <span aria-hidden="true" className="text-[14px] leading-none">
                         ✦
