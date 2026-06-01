@@ -7,6 +7,24 @@ import { formatArs } from "@/lib/format";
 import { MotionButton } from "@/components/MotionButton";
 import { useCartStore } from "@/store/cart";
 
+function CartIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+      <path
+        d="M6.5 6h15l-1.5 8.5a2 2 0 0 1-2 1.6H9.1a2 2 0 0 1-2-1.6L5.7 2.8A1.6 1.6 0 0 0 4.1 1.5H2.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M10 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM18 21a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 function CartContent({ onContinue }: { onContinue: () => void }) {
   const items = useCartStore((s) => s.items);
   const decItem = useCartStore((s) => s.decItem);
@@ -38,15 +56,10 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
         ) : (
           <div className="flex flex-col gap-2">
             {items.map((i) => (
-              <div
-                key={i.id}
-                className="rounded-2xl border border-border bg-white/70 p-3"
-              >
+              <div key={i.id} className="rounded-2xl border border-border bg-white/70 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-black">
-                      {i.name}
-                    </div>
+                    <div className="truncate text-sm font-semibold text-black">{i.name}</div>
                     <div className="text-xs text-black/70">
                       {i.label} · {formatArs(i.price)}
                     </div>
@@ -63,9 +76,7 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
                 <div className="mt-2 flex items-center justify-between">
                   <div className="text-xs text-black/70">
                     Subtotal:{" "}
-                    <span className="font-semibold text-black">
-                      {formatArs(i.price * i.qty)}
-                    </span>
+                    <span className="font-semibold text-black">{formatArs(i.price * i.qty)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MotionButton
@@ -76,21 +87,22 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
                     >
                       −
                     </MotionButton>
-                    <div className="w-8 text-center text-sm font-semibold text-black">
-                      {i.qty}
-                    </div>
+                    <div className="w-8 text-center text-sm font-semibold text-black">{i.qty}</div>
                     <MotionButton
                       tone="soft"
                       className="h-8 w-8 px-0"
                       onClick={() =>
-                        addItem({
-                          id: i.id,
-                          productId: i.productId,
-                          name: i.name,
-                          variant: i.variant,
-                          label: i.label,
-                          price: i.price,
-                        }, 1)
+                        addItem(
+                          {
+                            id: i.id,
+                            productId: i.productId,
+                            name: i.name,
+                            variant: i.variant,
+                            label: i.label,
+                            price: i.price,
+                          },
+                          1,
+                        )
                       }
                       aria-label="Sumar"
                     >
@@ -107,15 +119,9 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
       <div className="border-t border-border p-4 pb-6">
         <div className="flex items-center justify-between">
           <div className="text-sm text-black/70">Total</div>
-          <div className="text-lg font-semibold text-black">
-            {formatArs(total)}
-          </div>
+          <div className="text-lg font-semibold text-black">{formatArs(total)}</div>
         </div>
-        <MotionButton
-          className="mt-4 h-11 w-full"
-          disabled={items.length === 0}
-          onClick={onContinue}
-        >
+        <MotionButton className="mt-4 h-11 w-full" disabled={items.length === 0} onClick={onContinue}>
           Continuar
         </MotionButton>
       </div>
@@ -132,13 +138,27 @@ export function CartPanel() {
 
   return (
     <>
-      <motion.button
-        whileTap={{ scale: 0.98 }}
-        className="fixed bottom-10 left-1/2 z-40 -translate-x-1/2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-black/15"
-        onClick={() => useCartStore.getState().toggleCart()}
-      >
-        Carrito · {itemsCount}
-      </motion.button>
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/92 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-center px-4 py-3 pb-[max(env(safe-area-inset-bottom),12px)]">
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.985 }}
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#E10600] px-5 py-3 text-sm font-black tracking-wide text-white shadow-lg shadow-black/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
+            onClick={() => useCartStore.getState().toggleCart()}
+            aria-label="Abrir carrito"
+          >
+            <span className="relative inline-flex">
+              <CartIcon />
+              {itemsCount > 0 ? (
+                <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] font-black text-[#E10600] shadow-sm">
+                  {itemsCount}
+                </span>
+              ) : null}
+            </span>
+            <span>CARRITO</span>
+          </motion.button>
+        </div>
+      </div>
 
       <AnimatePresence>
         {open && (
@@ -216,3 +236,4 @@ export function CartPanel() {
     </>
   );
 }
+

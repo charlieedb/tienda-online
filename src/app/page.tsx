@@ -640,7 +640,7 @@ export default function Home() {
         ) : (
           <motion.main
             key="builder"
-            className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-4 px-4 pb-5 md:gap-6 md:px-6 md:pb-6"
+            className="flex min-h-dvh w-full flex-col gap-4 pb-24 md:gap-6"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -660,6 +660,7 @@ export default function Home() {
               onCloseMenu={() => setMenuOpen(false)}
             />
 
+            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-5 md:gap-6 md:px-6 md:pb-6">
             <QuantityModal
               open={editOpen}
               product={editProduct}
@@ -848,6 +849,7 @@ export default function Home() {
                   </motion.button>
                 </div>
               </div>
+            </div>
             </div>
           </motion.main>
         )}

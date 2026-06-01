@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 
 export type Category = {
@@ -127,7 +128,7 @@ export function TopBar({
   return (
     <>
       <header className="sticky top-0 z-50 w-full bg-[#E10600] text-white shadow-md">
-        <div className="flex h-12 w-full items-center px-3">
+        <div className="relative flex h-12 w-full items-center px-3">
           <button
             type="button"
             onClick={onToggleMenu}
@@ -140,12 +141,21 @@ export function TopBar({
           <button
             type="button"
             onClick={onGoHome}
-            className="mx-auto rounded-xl px-3 py-1 font-black italic tracking-tight hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+            aria-label="Ir al inicio"
+            className="absolute left-1/2 -translate-x-1/2 rounded-xl px-2 py-1 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
           >
-            JONICO
+            <Image
+              src="/jonico.png"
+              alt="JONICO"
+              width={220}
+              height={56}
+              priority
+              className="h-7 w-auto max-w-[160px] select-none object-contain sm:h-8 sm:max-w-[200px]"
+              sizes="(max-width: 640px) 160px, 200px"
+            />
           </button>
 
-          <div className="min-w-[72px] text-right text-[11px] font-semibold text-white/90">
+          <div className="ml-auto min-w-[72px] max-w-[120px] truncate text-right text-[10px] font-semibold text-white/90 sm:text-[11px]">
             {userLabel ?? ""}
           </div>
         </div>
