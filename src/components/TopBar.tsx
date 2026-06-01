@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 
 export type Category = {
   token: string;
@@ -116,6 +117,8 @@ export function TopBar({
   categories,
   onSelectCategory,
   onCloseMenu,
+  onOpenSettings,
+  onSignOut,
 }: {
   userLabel: string | null;
   menuOpen: boolean;
@@ -124,10 +127,29 @@ export function TopBar({
   categories: Category[];
   onSelectCategory: (cat: Category) => void;
   onCloseMenu: () => void;
+  onOpenSettings: () => void;
+  onSignOut: () => void;
 }) {
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onDoc = (e: Event) => {
+      const el = userMenuRef.current;
+      if (!el) return;
+      if (e.target instanceof Node && el.contains(e.target)) return;
+      setUserMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onDoc);
+    return () => {
+      document.removeEventListener("pointerdown", onDoc);
+    };
+  }, [userMenuOpen]);
+
   return (
     <>
-      <header className="sticky top-0 z-50 w-full bg-[#E10600] text-white shadow-md">
+      <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#E10600] text-white shadow-md">
         <div className="relative flex h-12 w-full items-center px-3">
           <button
             type="button"
@@ -155,8 +177,58 @@ export function TopBar({
             />
           </button>
 
-          <div className="ml-auto min-w-[72px] max-w-[120px] truncate text-right text-[10px] font-semibold text-white/90 sm:text-[11px]">
-            {userLabel ?? ""}
+          <div className="ml-auto flex min-w-[72px] justify-end">
+            {userLabel ? (
+              <div ref={userMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  className="max-w-[120px] truncate rounded-xl px-2 py-1 text-right text-[10px] font-semibold text-white/90 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 sm:text-[11px]"
+                  aria-label="Abrir menú de usuario"
+                >
+                  {userLabel}
+                </button>
+
+                <AnimatePresence>
+                  {userMenuOpen ? (
+                    <motion.div
+                      className="absolute right-0 top-[calc(100%+10px)] z-[70] w-48 overflow-hidden rounded-2xl border border-white/20 bg-[#1b0b0b]/95 shadow-2xl"
+                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                      transition={{ type: "spring", stiffness: 520, damping: 40 }}
+                      role="menu"
+                    >
+                      <button
+                        type="button"
+                        className="w-full px-4 py-3 text-left text-sm font-semibold text-white hover:bg-white/10"
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          onOpenSettings();
+                        }}
+                        role="menuitem"
+                      >
+                        Configuración
+                      </button>
+                      <div className="h-px bg-white/10" />
+                      <button
+                        type="button"
+                        className="w-full px-4 py-3 text-left text-sm font-semibold text-white hover:bg-white/10"
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          onSignOut();
+                        }}
+                        role="menuitem"
+                      >
+                        Cerrar sesión
+                      </button>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="text-right text-[10px] font-semibold text-white/60 sm:text-[11px]" />
+            )}
           </div>
         </div>
       </header>
@@ -211,4 +283,3 @@ export function TopBar({
     </>
   );
 }
-

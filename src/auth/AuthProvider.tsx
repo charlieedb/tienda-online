@@ -9,8 +9,8 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
-  type UserCredential,
   type User,
+  type UserCredential,
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getAuthClient } from "@/lib/firebase";
@@ -40,7 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Ensure the session persists across refreshes and browser restarts.
     setPersistence(auth, browserLocalPersistence).catch(() => {
       // If persistence cannot be set (privacy mode / blocked storage), fall back silently.
     });
@@ -60,7 +59,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const providerIds = new Set(user.providerData.map((p) => p.providerId));
     if (!providerIds.has("google.com")) return;
 
-    // Best-effort: ensure a profile exists for Google sign-ins.
     (async () => {
       const email = user.email ?? null;
       const displayName = user.displayName ?? null;
@@ -129,3 +127,4 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth debe usarse dentro de <AuthProvider>.");
   return ctx;
 }
+

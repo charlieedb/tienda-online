@@ -11,6 +11,7 @@ import { QuantityModal } from "@/components/QuantityModal";
 import { OffersModal } from "@/components/OffersModal";
 import { AuthModal } from "@/components/AuthModal";
 import { TopBar } from "@/components/TopBar";
+import { AccountSettingsModal } from "@/components/AccountSettingsModal";
 import { normalizeToken } from "@/lib/normalize";
 import { getActiveCatalog, getProductById, startCatalogAutoRefresh } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
@@ -210,6 +211,7 @@ export default function Home() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuCategories, setMenuCategories] = useState<Category[]>([]);
 
   useEffect(() => {
@@ -658,9 +660,20 @@ export default function Home() {
               categories={menuCategories}
               onSelectCategory={onSelectCategory}
               onCloseMenu={() => setMenuOpen(false)}
+              onOpenSettings={() => setSettingsOpen(true)}
+              onSignOut={async () => {
+                await signOut();
+                setStage("landing");
+                setShowOptions(false);
+                setMenuOpen(false);
+              }}
             />
 
-            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-5 md:gap-6 md:px-6 md:pb-6">
+            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-5 pt-12 md:gap-6 md:px-6 md:pb-6">
+              <AccountSettingsModal
+                open={settingsOpen}
+                onClose={() => setSettingsOpen(false)}
+              />
             <QuantityModal
               open={editOpen}
               product={editProduct}
