@@ -22,6 +22,8 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
 
   const empty: FormState = useMemo(
     () => ({
@@ -66,6 +68,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
           direccion: p?.direccion ?? "",
           ubicacion: p?.ubicacion ?? null,
         });
+        setMapCenter(p?.ubicacion ?? null);
       } catch (e: any) {
         setError(e?.message || "No se pudo cargar tu perfil.");
       } finally {
@@ -171,25 +174,80 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
 
                     <Field label="Dirección">
                       <div className="flex flex-col gap-2">
-                        <input
-                          className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
-                          value={form.direccion}
-                          onChange={(e) => setForm((p) => ({ ...p, direccion: e.target.value }))}
-                          placeholder="Calle y número"
-                        />
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="relative">
+                          <input
+                            className="h-11 w-full rounded-2xl border border-border bg-white px-4 pr-12 text-[16px] text-black outline-none focus:border-brand/50"
+                            value={form.direccion}
+                            onChange={(e) =>
+                              setForm((p) => ({ ...p, direccion: e.target.value }))
+                            }
+                            placeholder="Calle y número"
+                          />
+
                           <button
                             type="button"
-                            onClick={() => setMapOpen(true)}
-                            className="h-10 rounded-2xl bg-[#1f2a8a] px-4 text-sm font-black text-white"
+                            onClick={async () => {
+                              if (geoLoading) return;
+                              setMapOpen(true);
+                              if (form.ubicacion) {
+                                setMapCenter(form.ubicacion);
+                                return;
+                              }
+                              const q = `${form.direccion}`.trim()
+                                ? `${form.direccion}${form.localidad ? `, ${form.localidad}` : ""}`
+                                : `${form.localidad}`.trim();
+                              if (!q) return;
+                              setGeoLoading(true);
+                              try {
+                                const url =
+                                  "https://nominatim.openstreetmap.org/search?" +
+                                  new URLSearchParams({
+                                    format: "json",
+                                    q,
+                                    limit: "1",
+                                  }).toString();
+                                const res = await fetch(url, {
+                                  headers: { Accept: "application/json" },
+                                });
+                                const data = (await res.json()) as Array<{
+                                  lat: string;
+                                  lon: string;
+                                }>;
+                                const first = data?.[0];
+                                if (!first) return;
+                                const lat = Number(first.lat);
+                                const lng = Number(first.lon);
+                                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+                                setMapCenter({ lat, lng });
+                              } catch {
+                                // ignore: user can still pick manually
+                              } finally {
+                                setGeoLoading(false);
+                              }
+                            }}
+                            className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-xl bg-black/5 text-black/70 hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
+                            aria-label="Marcar ubicación en el mapa"
+                            title="Marcar ubicación en el mapa"
                           >
-                            Marcar en el mapa
+                            {geoLoading ? (
+                              <span className="h-4 w-4 animate-spin rounded-full border-2 border-black/30 border-t-black/70" />
+                            ) : (
+                              <span className="relative">
+                                <PinIcon />
+                                {form.ubicacion ? (
+                                  <span className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-emerald-500 text-[10px] font-black text-white shadow-sm">
+                                    ✓
+                                  </span>
+                                ) : null}
+                              </span>
+                            )}
                           </button>
-                          <div className="text-xs font-semibold text-black/70">
-                            {form.ubicacion
-                              ? `Ubicación: ${form.ubicacion.lat.toFixed(5)}, ${form.ubicacion.lng.toFixed(5)}`
-                              : "Sin ubicación"}
-                          </div>
+                        </div>
+
+                        <div className="text-xs font-semibold text-black/70">
+                          {form.ubicacion
+                            ? `Ubicación: ${form.ubicacion.lat.toFixed(5)}, ${form.ubicacion.lng.toFixed(5)}`
+                            : "Sin ubicación"}
                         </div>
                       </div>
                     </Field>
@@ -248,6 +306,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
       <MapPickerModal
         open={mapOpen}
         initial={form.ubicacion}
+        center={mapCenter}
         onClose={() => setMapOpen(false)}
         onPick={(p) => setForm((prev) => ({ ...prev, ubicacion: p }))}
       />
@@ -264,3 +323,20 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function PinIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none">
+      <path
+        d="M12 21s7-4.6 7-11a7 7 0 1 0-14 0c0 6.4 7 11 7 11z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 10.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}

@@ -15,11 +15,13 @@ declare global {
 export function MapPickerModal({
   open,
   initial,
+  center,
   onClose,
   onPick,
 }: {
   open: boolean;
   initial: Point | null;
+  center: Point | null;
   onClose: () => void;
   onPick: (p: Point) => void;
 }) {
@@ -34,9 +36,22 @@ export function MapPickerModal({
     setPicked(initial);
   }, [open, initial]);
 
-  const center = useMemo<Point>(() => {
+  const baseCenter = useMemo<Point>(() => {
     return initial ?? picked ?? { lat: -34.6037, lng: -58.3816 };
   }, [initial, picked]);
+
+  const desiredCenter = useMemo<Point>(() => {
+    return center ?? baseCenter;
+  }, [center, baseCenter]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (initial) return;
+    if (picked) return;
+    if (!center) return;
+    // If we have an approximate center and no marker yet, pre-place it (user can adjust).
+    setPicked(center);
+  }, [open, initial, picked, center]);
 
   useEffect(() => {
     if (!open) return;
@@ -50,7 +65,7 @@ export function MapPickerModal({
       const map = L.map(mapDivRef.current, {
         zoomControl: true,
         attributionControl: true,
-      }).setView([center.lat, center.lng], 14);
+      }).setView([desiredCenter.lat, desiredCenter.lng], 14);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -69,7 +84,10 @@ export function MapPickerModal({
 
       leafletMapRef.current = map;
     } else {
-      leafletMapRef.current.setView([center.lat, center.lng], leafletMapRef.current.getZoom() || 14);
+      leafletMapRef.current.setView(
+        [desiredCenter.lat, desiredCenter.lng],
+        leafletMapRef.current.getZoom() || 14,
+      );
     }
 
     if (picked) {
@@ -79,7 +97,7 @@ export function MapPickerModal({
         markerRef.current.setLatLng([picked.lat, picked.lng]);
       }
     }
-  }, [open, leafletReady, center.lat, center.lng, picked]);
+  }, [open, leafletReady, desiredCenter.lat, desiredCenter.lng, picked]);
 
   useEffect(() => {
     if (open) return;
@@ -123,9 +141,7 @@ export function MapPickerModal({
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <div>
                 <div className="text-sm font-semibold text-black">Marcar ubicación</div>
-                <div className="mt-1 text-xs text-black/70">
-                  Tocá el mapa para poner un pin.
-                </div>
+                <div className="mt-1 text-xs text-black/70">Tocá el mapa para poner un pin.</div>
               </div>
               <button
                 type="button"
@@ -137,10 +153,7 @@ export function MapPickerModal({
             </div>
 
             <div className="relative h-[52vh] min-h-[320px] w-full bg-zinc-100">
-              <link
-                rel="stylesheet"
-                href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-              />
+              <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
               <div ref={mapDivRef} className="h-full w-full" />
               {!leafletReady ? (
                 <div className="absolute inset-0 grid place-items-center text-sm font-semibold text-black/70">
