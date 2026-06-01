@@ -112,22 +112,21 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
                   {visible.map((p) => (
                     <div
                       key={p.id}
-                      className="relative w-[82%] shrink-0 snap-center md:w-[360px]"
+                      className="relative w-[82%] shrink-0 snap-center pt-6 md:w-[360px]"
                     >
                       <div
                         aria-hidden="true"
-                        className="pointer-events-none absolute -left-10 top-5 z-20 w-44 -rotate-12 bg-[#2b3bb8] py-2 text-center text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-black/20"
+                        className="pointer-events-none absolute -left-10 top-0 z-20 w-44 -rotate-12 bg-[#2b3bb8] py-2 text-center text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-black/20"
                       >
                         OFERTA
                       </div>
                       <div
                         aria-hidden="true"
-                        className="pointer-events-none absolute -left-10 top-5 z-[19] h-9 w-3 -rotate-12 bg-[#1f2a8a]"
+                        className="pointer-events-none absolute -left-10 top-0 z-[19] h-9 w-3 -rotate-12 bg-[#1f2a8a]"
                         style={{ clipPath: "polygon(0 0, 100% 50%, 0 100%)" }}
                       />
                       <ProductCard
                         product={p}
-                        tag="OFERTA"
                         tone="offers"
                         onSelect={() => {
                           setSelected(p);
