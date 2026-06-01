@@ -97,22 +97,29 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
           </div>
         ) : (
           <AnimatePresence initial={false}>
-            <motion.div layout className="flex flex-col gap-1">
-              {visible.map((p) => (
-                <div key={p.id} className="relative">
-                  <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-full bg-brand px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm">
-                    OFERTA
+              <motion.div layout className="flex flex-col gap-1">
+                {visible.map((p) => (
+                  <div key={p.id} className="relative">
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -left-10 top-5 z-20 w-44 -rotate-12 bg-[#2b3bb8] py-2 text-center text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-black/20"
+                    >
+                      OFERTA
+                    </div>
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -left-10 top-5 z-[19] h-9 w-3 -rotate-12 bg-[#1f2a8a]"
+                      style={{ clipPath: "polygon(0 0, 100% 50%, 0 100%)" }}
+                    />
+                    <ProductCard
+                      product={p}
+                      onSelect={() => {
+                        setSelected(p);
+                        setQtyOpen(true);
+                      }}
+                    />
                   </div>
-                  <ProductCard
-                    product={p}
-                    tag="OFERTA"
-                    onSelect={() => {
-                      setSelected(p);
-                      setQtyOpen(true);
-                    }}
-                  />
-                </div>
-              ))}
+                ))}
             </motion.div>
           </AnimatePresence>
         )}
