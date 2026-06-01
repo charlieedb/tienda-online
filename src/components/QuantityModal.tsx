@@ -138,7 +138,7 @@ export function QuantityModal({
                   className={[
                     "rounded-2xl border px-3 py-3 text-left transition-colors",
                     variant === "unit"
-                      ? "border-[#2b3bb8]/40 bg-[#2b3bb8]/12 ring-2 ring-[#2b3bb8]/20"
+                      ? "border-[#2b3bb8]/45 bg-[#dbe7ff]"
                       : "border-border bg-surface hover:bg-surface-2",
                   ].join(" ")}
                 >
@@ -170,7 +170,7 @@ export function QuantityModal({
                     "rounded-2xl border px-3 py-3 text-left transition-colors",
                     !hasPack ? "cursor-not-allowed opacity-45" : "",
                     variant === "pack"
-                      ? "border-[#2b3bb8]/40 bg-[#2b3bb8]/12 ring-2 ring-[#2b3bb8]/20"
+                      ? "border-[#2b3bb8]/45 bg-[#dbe7ff]"
                       : "border-border bg-surface hover:bg-surface-2",
                   ].join(" ")}
                 >
@@ -214,8 +214,8 @@ export function QuantityModal({
                   <div className="flex items-center gap-2">
                     <MotionButton
                       type="button"
-                      tone="soft"
-                      className="h-9 w-9 px-0"
+                      tone="ghost"
+                      className="h-9 w-9 border border-border !bg-white px-0 !text-black hover:!bg-black/5"
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
                       aria-label="Restar"
                     >
@@ -233,8 +233,8 @@ export function QuantityModal({
                     />
                     <MotionButton
                       type="button"
-                      tone="soft"
-                      className="h-9 w-9 px-0"
+                      tone="ghost"
+                      className="h-9 w-9 border border-border !bg-white px-0 !text-black hover:!bg-black/5"
                       onClick={() => setQty((q) => Math.min(99, q + 1))}
                       aria-label="Sumar"
                     >
