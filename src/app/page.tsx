@@ -763,7 +763,7 @@ export default function Home() {
                     aria-label="Abrir ofertas del día"
                   >
                     <Image
-                      src="/ofertas.png"
+                      src="/oferta.png"
                       alt="Ofertas"
                       width={520}
                       height={180}
