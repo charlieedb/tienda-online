@@ -138,25 +138,25 @@ export function QuantityModal({
                   className={[
                     "rounded-2xl border px-3 py-3 text-left transition-colors",
                     variant === "unit"
-                      ? "border-[#2b3bb8]/45 bg-[#dbe7ff]"
+                      ? "border-[#1f2a8a] bg-[#2b3bb8] text-white"
                       : "border-border bg-surface hover:bg-surface-2",
                   ].join(" ")}
                 >
-                  <div className="text-xs font-semibold text-foreground/70">
+                  <div className={["text-xs font-semibold", variant === "unit" ? "text-white/85" : "text-foreground/70"].join(" ")}>
                     Unidades
                   </div>
-                  <div className="text-sm font-semibold text-foreground">
+                  <div className={["text-sm font-semibold", variant === "unit" ? "text-white" : "text-foreground"].join(" ")}>
                     {hasDiscount ? (
                       <span className="inline-flex items-baseline gap-2">
                         <span>{formatArs(applyDiscount(product.unit.price))}</span>
-                        <span className="text-xs font-semibold text-foreground/45 line-through">
+                        <span className={["text-xs font-semibold line-through", variant === "unit" ? "text-white/70" : "text-foreground/45"].join(" ")}>
                           {formatArs(product.unit.price)}
                         </span>
                       </span>
                     ) : (
                       formatArs(product.unit.price)
                     )}{" "}
-                    <span className="text-xs font-medium text-foreground/65">
+                    <span className={["text-xs font-medium", variant === "unit" ? "text-white/80" : "text-foreground/65"].join(" ")}>
                       · {product.unit.label}
                     </span>
                   </div>
@@ -170,27 +170,27 @@ export function QuantityModal({
                     "rounded-2xl border px-3 py-3 text-left transition-colors",
                     !hasPack ? "cursor-not-allowed opacity-45" : "",
                     variant === "pack"
-                      ? "border-[#2b3bb8]/45 bg-[#dbe7ff]"
+                      ? "border-[#1f2a8a] bg-[#2b3bb8] text-white"
                       : "border-border bg-surface hover:bg-surface-2",
                   ].join(" ")}
                 >
-                  <div className="text-xs font-semibold text-foreground/70">
+                  <div className={["text-xs font-semibold", variant === "pack" ? "text-white/85" : "text-foreground/70"].join(" ")}>
                     Cajas
                   </div>
-                  <div className="text-sm font-semibold text-foreground">
+                  <div className={["text-sm font-semibold", variant === "pack" ? "text-white" : "text-foreground"].join(" ")}>
                     {product.pack ? (
                       <>
                         {hasDiscount ? (
                           <span className="inline-flex items-baseline gap-2">
                             <span>{formatArs(applyDiscount(product.pack.price))}</span>
-                            <span className="text-xs font-semibold text-foreground/45 line-through">
+                            <span className={["text-xs font-semibold line-through", variant === "pack" ? "text-white/70" : "text-foreground/45"].join(" ")}>
                               {formatArs(product.pack.price)}
                             </span>
                           </span>
                         ) : (
                           formatArs(product.pack.price)
                         )}{" "}
-                        <span className="text-xs font-medium text-foreground/65">
+                        <span className={["text-xs font-medium", variant === "pack" ? "text-white/80" : "text-foreground/65"].join(" ")}>
                           · {product.pack.label}
                         </span>
                       </>
