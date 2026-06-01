@@ -174,8 +174,8 @@ function ListitaIllustrationAlt() {
   );
 }
 
-function createItem(raw: string): SuperItem {
-  const token = normalizeToken(raw);
+function createItem(raw: string, tokenOverride?: string): SuperItem {
+  const token = tokenOverride ?? normalizeToken(raw);
   return {
     id:
       typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -188,8 +188,8 @@ function createItem(raw: string): SuperItem {
   };
 }
 
-function createItemWithOpts(raw: string, opts?: { noResults?: boolean }): SuperItem {
-  const base = createItem(raw);
+function createItemWithOpts(raw: string, opts?: { noResults?: boolean; token?: string }): SuperItem {
+  const base = createItem(raw, opts?.token);
   if (opts?.noResults) return { ...base, noResults: true };
   return base;
 }
@@ -384,6 +384,25 @@ export default function Home() {
     });
 
     // Open options for that category.
+    setShowOptions(true);
+    setOptionsPulse((p) => p + 1);
+  };
+
+  const openCategoryToken = (params: { token: string; label: string }) => {
+    const token = normalizeToken(params.token);
+    if (!token) return;
+
+    setItems((prev) => {
+      const existing = prev.find((i) => i.token === token);
+      if (existing) {
+        setActiveId(existing.id);
+        return prev;
+      }
+      const it = createItem(params.label, token);
+      setActiveId(it.id);
+      return [it, ...prev];
+    });
+
     setShowOptions(true);
     setOptionsPulse((p) => p + 1);
   };
@@ -844,22 +863,44 @@ export default function Home() {
                 />
 
                 <div className="mt-8 flex justify-center pb-6">
-                  <motion.button
-                    type="button"
-                    onClick={() => setShowOffers(true)}
-                    whileTap={{ scale: 0.99 }}
-                    className="rounded-3xl border border-black/10 bg-gradient-to-br from-[#FFE86A] via-[#FFD44D] to-[#FFB84A] p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
-                    aria-label="Abrir ofertas del día"
-                  >
-                    <Image
-                      src="/oferta.png"
-                      alt="Ofertas"
-                      width={520}
-                      height={180}
-                      priority
-                      className="h-auto w-[min(520px,92vw)] select-none"
-                    />
-                  </motion.button>
+                  <div className="flex w-full max-w-[560px] flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+                    <motion.button
+                      type="button"
+                      onClick={() => setShowOffers(true)}
+                      whileTap={{ scale: 0.99 }}
+                      className="w-full rounded-3xl border border-black/10 bg-gradient-to-br from-[#FFE86A] via-[#FFD44D] to-[#FFB84A] p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40 sm:w-auto"
+                      aria-label="Abrir ofertas del día"
+                    >
+                      <Image
+                        src="/oferta.png"
+                        alt="Ofertas"
+                        width={520}
+                        height={180}
+                        priority
+                        className="h-16 w-auto select-none object-contain"
+                      />
+                    </motion.button>
+
+                    <motion.button
+                      type="button"
+                      onClick={() => {
+                        setShowOffers(false);
+                        openCategoryToken({ token: "promo", label: "Combos" });
+                      }}
+                      whileTap={{ scale: 0.99 }}
+                      className="w-full rounded-3xl border border-black/10 bg-gradient-to-br from-[#FFE86A] via-[#FFD44D] to-[#FFB84A] p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40 sm:w-auto"
+                      aria-label="Abrir combos"
+                    >
+                      <Image
+                        src="/combos.png"
+                        alt="Combos"
+                        width={520}
+                        height={180}
+                        priority
+                        className="h-16 w-auto select-none object-contain"
+                      />
+                    </motion.button>
+                  </div>
                 </div>
               </div>
             </div>

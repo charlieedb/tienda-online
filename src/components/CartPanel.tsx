@@ -138,12 +138,12 @@ export function CartPanel() {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/92 backdrop-blur-md">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-gradient-to-br from-white via-[#fff6ea] to-[#ffe7d1] backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-center px-4 py-3 pb-[max(env(safe-area-inset-bottom),12px)]">
           <motion.button
             type="button"
             whileTap={{ scale: 0.985 }}
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#E10600] px-5 py-3 text-sm font-black tracking-wide text-white shadow-lg shadow-black/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#E10600] px-5 py-3 text-sm font-black tracking-wide text-white shadow-xl shadow-black/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
             onClick={() => useCartStore.getState().toggleCart()}
             aria-label="Abrir carrito"
           >
@@ -165,7 +165,7 @@ export function CartPanel() {
           <>
             <motion.button
               aria-label="Cerrar carrito"
-              className="fixed inset-0 z-40 bg-black/65 backdrop-blur-sm"
+              className="fixed inset-0 z-[90] bg-black/65 backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -174,7 +174,7 @@ export function CartPanel() {
 
             {isMobile ? (
               <motion.aside
-                className="fixed bottom-0 left-0 right-0 z-50 h-[78vh] overflow-hidden rounded-t-3xl bg-gradient-to-b from-[#f7f4f4] to-[#efebeb] shadow-2xl"
+                className="fixed bottom-0 left-0 right-0 z-[100] h-[78vh] overflow-hidden rounded-t-3xl bg-gradient-to-b from-[#f7f4f4] to-[#efebeb] shadow-2xl"
                 initial={{ y: 40, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 40, opacity: 0 }}
@@ -185,7 +185,7 @@ export function CartPanel() {
               </motion.aside>
             ) : (
               <motion.aside
-                className="fixed right-4 top-4 z-50 h-[calc(100vh-2rem)] w-[380px] overflow-hidden rounded-3xl bg-gradient-to-b from-[#f7f4f4] to-[#efebeb] shadow-2xl"
+                className="fixed right-4 top-4 z-[100] h-[calc(100vh-2rem)] w-[380px] overflow-hidden rounded-3xl bg-gradient-to-b from-[#f7f4f4] to-[#efebeb] shadow-2xl"
                 initial={{ x: 30, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 30, opacity: 0 }}
@@ -203,14 +203,14 @@ export function CartPanel() {
           <>
             <motion.button
               aria-label="Cerrar"
-              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+              className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setConstructionOpen(false)}
             />
             <motion.div
-              className="fixed left-1/2 top-1/2 z-[70] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f7f4f4] shadow-2xl"
+              className="fixed left-1/2 top-1/2 z-[130] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f7f4f4] shadow-2xl"
               initial={{ opacity: 0, y: 10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -236,4 +236,3 @@ export function CartPanel() {
     </>
   );
 }
-
