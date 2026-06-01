@@ -759,7 +759,7 @@ export default function Home() {
                     type="button"
                     onClick={() => setShowOffers(true)}
                     whileTap={{ scale: 0.99 }}
-                    className="rounded-3xl border border-black/10 bg-white/50 p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
+                    className="rounded-3xl border border-black/10 bg-gradient-to-br from-[#FFE86A] via-[#FFD44D] to-[#FFB84A] p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
                     aria-label="Abrir ofertas del día"
                   >
                     <Image
