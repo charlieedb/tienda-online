@@ -10,11 +10,13 @@ import { SuperList, type Selection, type SuperItem } from "@/components/SuperLis
 import { QuantityModal } from "@/components/QuantityModal";
 import { OffersModal } from "@/components/OffersModal";
 import { AuthModal } from "@/components/AuthModal";
+import { TopBar } from "@/components/TopBar";
 import { normalizeToken } from "@/lib/normalize";
 import { getProductById, startCatalogAutoRefresh } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
 import { useAuth } from "@/auth/AuthProvider";
 import { APP_VERSION } from "@/lib/appVersion";
+import { CATEGORIES, type Category } from "@/lib/categories";
 
 type Stage = "landing" | "builder";
 
@@ -207,6 +209,7 @@ export default function Home() {
   const cartItems = useCartStore((s) => s.items);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     return startCatalogAutoRefresh();
@@ -296,6 +299,38 @@ export default function Home() {
   };
 
   const focusOptions = () => {
+    setShowOptions(true);
+    setOptionsPulse((p) => p + 1);
+  };
+
+  const userLabel = useMemo(() => {
+    if (!user) return null;
+    const name =
+      (typeof user.displayName === "string" && user.displayName.trim()) ||
+      (typeof user.email === "string" ? user.email.split("@")[0] : "") ||
+      "";
+    return name || "Cuenta";
+  }, [user]);
+
+  const onSelectCategory = (cat: Category) => {
+    setMenuOpen(false);
+    const raw = cat.label;
+    const token = normalizeToken(cat.token || raw);
+    if (!token) return;
+
+    // Ensure the category row exists.
+    setItems((prev) => {
+      const existing = prev.find((i) => i.token === token);
+      if (existing) {
+        setActiveId(existing.id);
+        return prev;
+      }
+      const it = createItem(raw);
+      setActiveId(it.id);
+      return [it, ...prev];
+    });
+
+    // Open options for that category.
     setShowOptions(true);
     setOptionsPulse((p) => p + 1);
   };
@@ -554,12 +589,26 @@ export default function Home() {
         ) : (
           <motion.main
             key="builder"
-            className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-4 px-4 py-5 md:gap-6 md:px-6 md:py-6"
+            className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-4 px-4 pb-5 md:gap-6 md:px-6 md:pb-6"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
+            <TopBar
+              userLabel={userLabel}
+              menuOpen={menuOpen}
+              onToggleMenu={() => setMenuOpen((v) => !v)}
+              onGoHome={() => {
+                setStage("landing");
+                setShowOptions(false);
+                setMenuOpen(false);
+              }}
+              categories={CATEGORIES}
+              onSelectCategory={onSelectCategory}
+              onCloseMenu={() => setMenuOpen(false)}
+            />
+
             <QuantityModal
               open={editOpen}
               product={editProduct}
@@ -682,31 +731,6 @@ export default function Home() {
                 );
               }}
             />
-
-            <div className="flex items-center justify-start">
-              <MotionButton
-                tone="ghost"
-                className="h-10 px-3"
-                onClick={() => {
-                  setStage("landing");
-                  setShowOptions(false);
-                }}
-              >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M15 18l-6-6 6-6" />
-                </svg>
-                Inicio
-              </MotionButton>
-            </div>
 
             <div className="grid flex-1 grid-cols-1 gap-4 md:gap-6">
               <div className="flex min-h-[40vh] flex-col rounded-3xl border border-border bg-surface p-4 shadow-sm md:min-h-0">
