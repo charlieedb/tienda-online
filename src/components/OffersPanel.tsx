@@ -82,7 +82,7 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
 
       <div className="text-xs font-semibold text-foreground/70">Ofertas del día</div>
 
-      <div className="no-scrollbar mt-3 flex-1 overflow-auto">
+      <div className="no-scrollbar mt-3 flex-1 overflow-hidden">
         {loading ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface p-4 text-sm text-foreground/70">
             Cargando ofertas…
@@ -97,29 +97,47 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
           </div>
         ) : (
           <AnimatePresence initial={false}>
-              <motion.div layout className="flex flex-col gap-1">
-                {visible.map((p) => (
-                  <div key={p.id} className="relative">
+            <motion.div layout className="relative flex-1">
+              <div className="mb-2 flex justify-center md:hidden">
+                <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-1 text-[11px] font-semibold text-foreground/70">
+                  <span aria-hidden="true" className="text-[12px] leading-none">
+                    ⇆
+                  </span>
+                  Deslizá para ver más
+                </div>
+              </div>
+
+              <div className="no-scrollbar -mr-2 overflow-x-auto overflow-y-hidden pr-2 [scrollbar-gutter:stable] [scrollbar-width:none]">
+                <div className="flex snap-x snap-mandatory gap-3 pb-2">
+                  {visible.map((p) => (
                     <div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute -left-10 top-5 z-20 w-44 -rotate-12 bg-[#2b3bb8] py-2 text-center text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-black/20"
+                      key={p.id}
+                      className="relative w-[82%] shrink-0 snap-center md:w-[360px]"
                     >
-                      OFERTA
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute -left-10 top-5 z-20 w-44 -rotate-12 bg-[#2b3bb8] py-2 text-center text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-black/20"
+                      >
+                        OFERTA
+                      </div>
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute -left-10 top-5 z-[19] h-9 w-3 -rotate-12 bg-[#1f2a8a]"
+                        style={{ clipPath: "polygon(0 0, 100% 50%, 0 100%)" }}
+                      />
+                      <ProductCard
+                        product={p}
+                        tag="OFERTA"
+                        tone="offers"
+                        onSelect={() => {
+                          setSelected(p);
+                          setQtyOpen(true);
+                        }}
+                      />
                     </div>
-                    <div
-                      aria-hidden="true"
-                      className="pointer-events-none absolute -left-10 top-5 z-[19] h-9 w-3 -rotate-12 bg-[#1f2a8a]"
-                      style={{ clipPath: "polygon(0 0, 100% 50%, 0 100%)" }}
-                    />
-                    <ProductCard
-                      product={p}
-                      onSelect={() => {
-                        setSelected(p);
-                        setQtyOpen(true);
-                      }}
-                    />
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
             </motion.div>
           </AnimatePresence>
         )}

@@ -11,9 +11,16 @@ type Props = {
   onSelect: () => void;
   tag?: "OFERTA";
   addedQty?: number | null;
+  tone?: "default" | "offers";
 };
 
-export function ProductCard({ product, onSelect, tag, addedQty = null }: Props) {
+export function ProductCard({
+  product,
+  onSelect,
+  tag,
+  addedQty = null,
+  tone = "default",
+}: Props) {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const isOut = product.active === false;
@@ -50,6 +57,11 @@ export function ProductCard({ product, onSelect, tag, addedQty = null }: Props) 
   const unitDiscounted = hasDiscount
     ? Math.max(0, Math.round(unitOriginal * (1 - discount / 100)))
     : unitOriginal;
+
+  const priceClass =
+    tone === "offers"
+      ? "text-[18px] font-black tracking-tight"
+      : "text-sm font-semibold";
 
   return (
     <motion.div
@@ -132,7 +144,7 @@ export function ProductCard({ product, onSelect, tag, addedQty = null }: Props) 
             <div className="text-xs font-semibold text-foreground/70">
               {product.brand ?? " "}
             </div>
-            <div className="text-sm font-semibold text-foreground">
+            <div className={["text-foreground", priceClass].join(" ")}>
               {hasDiscount ? (
                 <span className="inline-flex items-baseline gap-2">
                   <span className="text-foreground">{formatArs(unitDiscounted)}</span>
