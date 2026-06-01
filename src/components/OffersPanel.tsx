@@ -112,27 +112,24 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
                   {visible.map((p) => (
                     <div
                       key={p.id}
-                      className="relative w-[82%] shrink-0 snap-center pt-6 md:w-[360px]"
+                      className="relative w-[82%] shrink-0 snap-center md:w-[360px]"
                     >
-                      <div
-                        aria-hidden="true"
-                        className="pointer-events-none absolute -left-10 top-0 z-20 w-44 -rotate-12 bg-[#2b3bb8] py-2 text-center text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-black/20"
-                      >
-                        OFERTA
+                      <div className="relative overflow-hidden rounded-2xl">
+                        <div
+                          aria-hidden="true"
+                          className="pointer-events-none absolute -right-14 top-6 z-20 w-48 rotate-45 bg-[#2b3bb8] py-2 text-center text-xs font-black uppercase tracking-widest text-white shadow-lg shadow-black/25"
+                        >
+                          OFERTA
+                        </div>
+                        <ProductCard
+                          product={p}
+                          tone="offers"
+                          onSelect={() => {
+                            setSelected(p);
+                            setQtyOpen(true);
+                          }}
+                        />
                       </div>
-                      <div
-                        aria-hidden="true"
-                        className="pointer-events-none absolute -left-10 top-0 z-[19] h-9 w-3 -rotate-12 bg-[#1f2a8a]"
-                        style={{ clipPath: "polygon(0 0, 100% 50%, 0 100%)" }}
-                      />
-                      <ProductCard
-                        product={p}
-                        tone="offers"
-                        onSelect={() => {
-                          setSelected(p);
-                          setQtyOpen(true);
-                        }}
-                      />
                     </div>
                   ))}
                 </div>
