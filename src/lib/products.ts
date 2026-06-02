@@ -36,6 +36,21 @@ function normalizeForSearch(value: string) {
     .trim();
 }
 
+function expandEquivalentTokens(token: string) {
+  const t = normalizeForSearch(token);
+  if (!t) return [];
+
+  const variants = new Set<string>([t]);
+
+  // Treat singular/plural category typos as the same logical token.
+  if (t.length > 4) {
+    if (t.endsWith("s")) variants.add(t.slice(0, -1));
+    else variants.add(`${t}s`);
+  }
+
+  return Array.from(variants).filter(Boolean);
+}
+
 function levenshtein(a: string, b: string) {
   if (a === b) return 0;
   if (!a) return b.length;
@@ -258,17 +273,18 @@ export async function getActiveCatalog(): Promise<Product[]> {
 }
 
 function productMatchesToken(product: Product, token: string) {
-  const t = normalizeForSearch(token);
-  if (!t) return false;
+  const candidates = expandEquivalentTokens(token);
+  if (candidates.length === 0) return false;
 
   const keywords = (product.keywords ?? []).map(normalizeForSearch);
-  if (keywords.includes(t)) return true;
+  if (candidates.some((candidate) => keywords.includes(candidate))) return true;
 
   // Substring match only for 3+ chars to avoid noisy matches.
-  if (t.length >= 3) {
-    const name = normalizeForSearch(product.name);
-    const brand = normalizeForSearch(product.brand ?? "");
-    if (name.includes(t) || brand.includes(t)) return true;
+  const name = normalizeForSearch(product.name);
+  const brand = normalizeForSearch(product.brand ?? "");
+  for (const candidate of candidates) {
+    if (candidate.length < 3) continue;
+    if (name.includes(candidate) || brand.includes(candidate)) return true;
   }
 
   return false;

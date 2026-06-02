@@ -21,6 +21,13 @@ import type { Category } from "@/components/TopBar";
 
 type Stage = "landing" | "builder";
 
+function canonicalizeCategoryToken(value: string) {
+  const token = normalizeToken(value);
+  if (!token) return "";
+  if (token.length > 4 && token.endsWith("s")) return token.slice(0, -1);
+  return token;
+}
+
 function ListitaIllustration() {
   return (
     <svg
@@ -225,13 +232,28 @@ export default function Home() {
       const catalog = await getActiveCatalog();
       if (cancelled) return;
 
-      const map = new Map<string, string>();
+      const map = new Map<string, { label: string; count: number }>();
       for (const p of catalog) {
         const b = String(p.brand ?? "").trim();
         if (!b) continue;
-        const token = normalizeToken(b);
+        const token = canonicalizeCategoryToken(b);
         if (!token) continue;
-        if (!map.has(token)) map.set(token, b);
+        const existing = map.get(token);
+        if (!existing) {
+          map.set(token, { label: b, count: 1 });
+          continue;
+        }
+
+        const nextCount = existing.count + 1;
+        const shouldReplaceLabel =
+          nextCount > existing.count &&
+          (b.length > existing.label.length ||
+            b.localeCompare(existing.label, "es", { sensitivity: "base" }) < 0);
+
+        map.set(token, {
+          label: shouldReplaceLabel ? b : existing.label,
+          count: nextCount,
+        });
       }
 
       const iconFor = (token: string): Category["icon"] => {
@@ -249,9 +271,10 @@ export default function Home() {
       const cats: Category[] = [{ token: "__offers__", label: "Ofertas", icon: "sparkles" }];
 
       const sorted = Array.from(map.entries()).sort((a, b) =>
-        a[1].localeCompare(b[1], "es", { sensitivity: "base" }),
+        a[1].label.localeCompare(b[1].label, "es", { sensitivity: "base" }),
       );
-      for (const [token, label] of sorted) {
+      for (const [token, meta] of sorted) {
+        const label = meta.label;
         let display = label;
         if (token === "aa") display = "Exclusivos";
         if (token === "promo") display = "Combos";
