@@ -1,7 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, memo } from "react";
 import { formatArs } from "@/lib/format";
 import type { Product } from "@/lib/products";
 import { MotionButton } from "@/components/MotionButton";
@@ -14,7 +13,7 @@ type Props = {
   tone?: "default" | "offers";
 };
 
-export function ProductCard({
+function ProductCardInner({
   product,
   onSelect,
   tag,
@@ -99,16 +98,11 @@ export function ProductCard({
       : "text-sm font-semibold";
 
   return (
-    <motion.div
-      layout
+    <div
       className={[
         "rounded-2xl border border-border bg-surface p-3 shadow-sm transition-opacity",
         isOut ? "opacity-70" : "",
       ].join(" ")}
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 6 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
     >
       <div className="relative overflow-hidden rounded-2xl">
         <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
@@ -223,6 +217,8 @@ export function ProductCard({
           </MotionButton>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
+
+export const ProductCard = memo(ProductCardInner);

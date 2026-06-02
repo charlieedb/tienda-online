@@ -39,6 +39,9 @@ export function SuggestionsPanel({
   const [fadeLeft, setFadeLeft] = useState(false);
   const [fadeRight, setFadeRight] = useState(false);
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_PRODUCTS);
+  const scrollRafRef = useRef<number | null>(null);
+  const fadeStateRef = useRef({ top: false, bottom: false, left: false, right: false });
+  const loadingMoreRef = useRef(false);
 
   const token = useMemo(
     () => {
@@ -57,27 +60,56 @@ export function SuggestionsPanel({
     const canScrollY = el.scrollHeight - el.clientHeight > 2;
     const canScrollX = el.scrollWidth - el.clientWidth > 2;
 
+    let nextTop = false;
+    let nextBottom = false;
+    let nextLeft = false;
+    let nextRight = false;
+
     if (canScrollY) {
-      setFadeTop(el.scrollTop > 2);
-      setFadeBottom(el.scrollTop + el.clientHeight < el.scrollHeight - 2);
-    } else {
-      setFadeTop(false);
-      setFadeBottom(false);
+      nextTop = el.scrollTop > 2;
+      nextBottom = el.scrollTop + el.clientHeight < el.scrollHeight - 2;
     }
 
     if (canScrollX) {
-      setFadeLeft(el.scrollLeft > 2);
-      setFadeRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
-    } else {
-      setFadeLeft(false);
-      setFadeRight(false);
+      nextLeft = el.scrollLeft > 2;
+      nextRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
     }
 
-    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 220;
-    const nearRight = el.scrollLeft + el.clientWidth >= el.scrollWidth - 220;
+    const prev = fadeStateRef.current;
+    if (prev.top !== nextTop) setFadeTop(nextTop);
+    if (prev.bottom !== nextBottom) setFadeBottom(nextBottom);
+    if (prev.left !== nextLeft) setFadeLeft(nextLeft);
+    if (prev.right !== nextRight) setFadeRight(nextRight);
+    fadeStateRef.current = {
+      top: nextTop,
+      bottom: nextBottom,
+      left: nextLeft,
+      right: nextRight,
+    };
+
+    if (loadingMoreRef.current) return;
+
+    const remainingY = el.scrollHeight - (el.scrollTop + el.clientHeight);
+    const remainingX = el.scrollWidth - (el.scrollLeft + el.clientWidth);
+    const nearBottom = canScrollY && remainingY < 220;
+    const nearRight = canScrollX && remainingX < 220;
     if (nearBottom || nearRight) {
-      setVisibleCount((prev) => Math.min(prev + LOAD_MORE_STEP, sortedProductsRef.current.length));
+      loadingMoreRef.current = true;
+      setVisibleCount((prevCount) => {
+        const nextCount = Math.min(prevCount + LOAD_MORE_STEP, sortedProductsRef.current.length);
+        loadingMoreRef.current = false;
+        return nextCount;
+      });
+      return;
     }
+  };
+
+  const handleScroll = () => {
+    if (scrollRafRef.current !== null) return;
+    scrollRafRef.current = window.requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      updateFades();
+    });
   };
 
   const sortedProductsRef = useRef<Product[]>([]);
@@ -141,6 +173,7 @@ export function SuggestionsPanel({
 
   useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE_PRODUCTS);
+    loadingMoreRef.current = false;
   }, [token, products.length]);
 
   const visibleProducts = useMemo(
@@ -161,7 +194,7 @@ export function SuggestionsPanel({
 
   useEffect(() => {
     // Preload thumbnails for the first items to improve perceived speed.
-    const top = sortedProducts.slice(0, 10);
+    const top = sortedProducts.slice(0, Math.min(visibleCount + 6, sortedProducts.length));
     for (const p of top) {
       const src = String(p.imageUrl ?? "").trim();
       if (!src) continue;
@@ -169,7 +202,15 @@ export function SuggestionsPanel({
       img.decoding = "async";
       img.src = src;
     }
-  }, [sortedProducts]);
+  }, [sortedProducts, visibleCount]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current !== null) {
+        window.cancelAnimationFrame(scrollRafRef.current);
+      }
+    };
+  }, []);
 
   const openProduct = (p: Product) => {
     const unitId = `${p.id}:unit`;
@@ -304,14 +345,13 @@ export function SuggestionsPanel({
             </div>
           </div>
         ) : (
-          <AnimatePresence initial={false}>
-            <div className="relative">
+          <div className="relative">
               {/* Mobile carousel */}
               <div className="md:hidden">
                 <div
                   ref={scrollRef}
                   className="no-scrollbar -mr-2 overflow-x-auto overflow-y-hidden pr-2 [scrollbar-gutter:stable] [scrollbar-width:none]"
-                  onScroll={updateFades}
+                  onScroll={handleScroll}
                 >
                   <div className="flex snap-x snap-mandatory gap-3 pb-2">
                     {visibleProducts.map((p) => (
@@ -333,7 +373,7 @@ export function SuggestionsPanel({
                 ref={scrollRef}
                 layout
                 className="no-scrollbar hidden max-h-[520px] overflow-auto pr-1 [scrollbar-gutter:stable] md:block"
-                onScroll={updateFades}
+                onScroll={handleScroll}
               >
                 <motion.div layout className="flex flex-col gap-1 pb-2">
                   {visibleProducts.map((p) => (
@@ -394,8 +434,7 @@ export function SuggestionsPanel({
                     "linear-gradient(to left, color-mix(in srgb, var(--surface) 92%, transparent), transparent)",
                 }}
               />
-            </div>
-          </AnimatePresence>
+          </div>
         )}
       </div>
     </motion.div>
