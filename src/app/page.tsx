@@ -213,6 +213,7 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuCategories, setMenuCategories] = useState<Category[]>([]);
+  const [floatingCategory, setFloatingCategory] = useState<{ token: string; label: string } | null>(null);
 
   useEffect(() => {
     return startCatalogAutoRefresh();
@@ -301,20 +302,37 @@ export default function Home() {
     qty: number;
     label: string;
   }) => {
-    if (!activeItem) return;
     const id = `${info.productId}:${info.variant}`;
-    setItems((prev) =>
-      prev.map((it) =>
-        it.id === activeItem.id
-          ? upsertSelection(it, {
-              id,
-              productId: info.productId,
-              variant: info.variant,
-              qty: info.qty,
-            })
-          : it,
-      ),
-    );
+    if (activeItem) {
+      setItems((prev) =>
+        prev.map((it) =>
+          it.id === activeItem.id
+            ? upsertSelection(it, {
+                id,
+                productId: info.productId,
+                variant: info.variant,
+                qty: info.qty,
+              })
+            : it,
+        ),
+      );
+      return;
+    }
+
+    if (!floatingCategory) return;
+
+    const it = createItem(floatingCategory.label, floatingCategory.token);
+    setItems((prev) => [
+      upsertSelection(it, {
+        id,
+        productId: info.productId,
+        variant: info.variant,
+        qty: info.qty,
+      }),
+      ...prev,
+    ]);
+    setActiveId(it.id);
+    setFloatingCategory(null);
   };
 
   const onAddedFromOffer = (info: {
@@ -366,6 +384,7 @@ export default function Home() {
   const onSelectCategory = (cat: Category) => {
     setMenuOpen(false);
     if (cat.token === "__offers__") {
+      setFloatingCategory(null);
       setShowOffers(true);
       return;
     }
@@ -373,19 +392,14 @@ export default function Home() {
     const token = normalizeToken(cat.token || raw);
     if (!token) return;
 
-    // Ensure the category row exists.
-    setItems((prev) => {
-      const existing = prev.find((i) => i.token === token);
-      if (existing) {
-        setActiveId(existing.id);
-        return prev;
-      }
-      const it = createItem(raw);
-      setActiveId(it.id);
-      return [it, ...prev];
-    });
-
-    // Open options for that category.
+    const existing = items.find((i) => i.token === token);
+    if (existing) {
+      setActiveId(existing.id);
+      setFloatingCategory(null);
+    } else {
+      setActiveId(null);
+      setFloatingCategory({ token, label: raw });
+    }
     setShowOptions(true);
     setOptionsPulse((p) => p + 1);
   };
@@ -394,17 +408,14 @@ export default function Home() {
     const token = normalizeToken(params.token);
     if (!token) return;
 
-    setItems((prev) => {
-      const existing = prev.find((i) => i.token === token);
-      if (existing) {
-        setActiveId(existing.id);
-        return prev;
-      }
-      const it = createItem(params.label, token);
-      setActiveId(it.id);
-      return [it, ...prev];
-    });
-
+    const existing = items.find((i) => i.token === token);
+    if (existing) {
+      setActiveId(existing.id);
+      setFloatingCategory(null);
+    } else {
+      setActiveId(null);
+      setFloatingCategory({ token, label: params.label });
+    }
     setShowOptions(true);
     setOptionsPulse((p) => p + 1);
   };
@@ -432,6 +443,7 @@ export default function Home() {
       if (start.x <= 24 && dx >= 80 && Math.abs(dy) <= 40) {
         setStage("landing");
         setShowOptions(false);
+        setFloatingCategory(null);
       }
     };
 
@@ -460,6 +472,7 @@ export default function Home() {
       setItems((prev) => (prev.length ? [] : prev));
       setActiveId(null);
       setShowOptions(false);
+      setFloatingCategory(null);
       return;
     }
     const cartById = new Map(cartItems.map((c) => [c.id, c.qty] as const));
@@ -663,12 +676,22 @@ export default function Home() {
         ) : (
           <motion.main
             key="builder"
-            className="flex min-h-dvh w-full flex-col gap-4 pb-24 md:gap-6"
+            className="relative flex min-h-dvh w-full flex-col gap-4 pb-24 md:gap-6"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-0 opacity-[0.28] motion-safe:animate-[fondo-pan_26s_linear_infinite]"
+              style={{
+                backgroundImage: "url(/fondo.png)",
+                backgroundRepeat: "repeat",
+                backgroundSize: "360px auto",
+                backgroundPosition: "center top",
+              }}
+            />
             <TopBar
               userLabel={userLabel}
               menuOpen={menuOpen}
@@ -690,7 +713,7 @@ export default function Home() {
               }}
             />
 
-            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-5 pt-12 md:gap-6 md:px-6 md:pb-6">
+            <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-5 pt-12 md:gap-6 md:px-6 md:pb-6">
               <AccountSettingsModal
                 open={settingsOpen}
                 onClose={() => setSettingsOpen(false)}
@@ -800,9 +823,12 @@ export default function Home() {
 
             <OptionsModal
               open={showOptions}
-              activeToken={activeItem?.token ?? null}
+              activeToken={activeItem?.token ?? floatingCategory?.token ?? null}
               pulse={optionsPulse}
-              onClose={() => setShowOptions(false)}
+              onClose={() => {
+                setShowOptions(false);
+                if (!activeItem) setFloatingCategory(null);
+              }}
               onAdded={(info) => {
                 onAddedFromSuggestions(info);
               }}
@@ -819,7 +845,7 @@ export default function Home() {
             />
 
             <div className="grid flex-1 grid-cols-1 gap-4 md:gap-6">
-              <div className="flex min-h-[40vh] flex-col rounded-3xl border border-border bg-surface p-4 shadow-sm md:min-h-0">
+              <div className="flex min-h-[40vh] flex-col md:min-h-0">
                 <SuperList
                   items={items}
                   activeId={activeId}
@@ -827,14 +853,19 @@ export default function Home() {
                     const it = createItemWithOpts(raw, opts);
                     setItems((prev) => [it, ...prev]);
                     setActiveId(it.id);
+                    setFloatingCategory(null);
                     setShowOptions(false);
                   }}
-                  onSelect={(id) => setActiveId(id)}
+                  onSelect={(id) => {
+                    setActiveId(id);
+                    setFloatingCategory(null);
+                  }}
                   onMarkAdded={(id) => markAdded(id)}
                   onClear={() => {
                     useCartStore.getState().clear();
                     setItems([]);
                     setActiveId(null);
+                    setFloatingCategory(null);
                     setShowOptions(false);
                   }}
                   onFocusOptions={focusOptions}
@@ -845,6 +876,7 @@ export default function Home() {
                     const p = await getProductById(sel.productId);
                     if (!p) return;
                     setActiveId(itemId);
+                    setFloatingCategory(null);
                     setEditItemId(itemId);
                     setEditSelectionId(selectionId);
                     setEditProduct(p);

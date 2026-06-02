@@ -92,7 +92,7 @@ export function ProductCard({
       layout
       className={[
         "rounded-2xl border border-border bg-surface p-3 shadow-sm transition-opacity",
-        isOut ? "opacity-60" : "",
+        isOut ? "opacity-70" : "",
       ].join(" ")}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
@@ -118,6 +118,9 @@ export function ProductCard({
           ) : null}
         </div>
         <div className="relative aspect-square w-full p-4">
+          {isOut ? (
+            <div className="pointer-events-none absolute inset-0 z-[1] bg-black/18" />
+          ) : null}
           <div
             aria-hidden="true"
             className={[
@@ -141,7 +144,7 @@ export function ProductCard({
               className={[
                 "absolute inset-0 h-full w-full object-contain",
                 "transition-opacity duration-300",
-                isOut ? "grayscale" : "",
+                isOut ? "brightness-[0.72] saturate-[0.82]" : "",
                 imgLoaded ? "opacity-100" : "opacity-0",
               ].join(" ")}
               loading="eager"
