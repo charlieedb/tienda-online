@@ -25,31 +25,53 @@ export function ProductCard({
   const [imgLoaded, setImgLoaded] = useState(false);
   const isOut = product.active === false;
 
-  const fullImageUrl = useMemo(() => {
-    const u = String(product.imageUrl ?? "").trim();
-    if (!u) return "";
-    return u
-      .replace("fotosProductosThumb%2F", "fotosProductos%2F")
-      .replace("/fotosProductosThumb/", "/fotosProductos/");
-  }, [product.imageUrl]);
+  const withStorageSafeFilename = (value: string) => {
+    const safeId = product.id.replaceAll("/", "_");
+    const encodedSafeId = encodeURIComponent(safeId);
+    return value
+      .replace(new RegExp(`${encodeURIComponent(product.id)}(?=\\.jpg)`, "g"), encodedSafeId)
+      .replace(new RegExp(`${product.id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=\\.jpg)`, "g"), safeId);
+  };
 
-  const [imgSrc, setImgSrc] = useState<string | null>(product.imageUrl ?? null);
-  const triedFullRef = useRef(false);
+  const imageCandidates = useMemo(() => {
+    const u = String(product.imageUrl ?? "").trim();
+    const candidates: string[] = [];
+    const add = (value: string) => {
+      const next = value.trim();
+      if (!next || candidates.includes(next)) return;
+      candidates.push(next);
+    };
+
+    if (u) {
+      add(u);
+      add(
+        u
+          .replace("fotosProductosThumb%2F", "fotosProductos%2F")
+          .replace("/fotosProductosThumb/", "/fotosProductos/"),
+      );
+      if (product.id.includes("/")) {
+        add(withStorageSafeFilename(u));
+        add(
+          withStorageSafeFilename(
+            u
+              .replace("fotosProductosThumb%2F", "fotosProductos%2F")
+              .replace("/fotosProductosThumb/", "/fotosProductos/"),
+          ),
+        );
+      }
+    }
+
+    return candidates;
+  }, [product.id, product.imageUrl]);
+
+  const [imgSrc, setImgSrc] = useState<string | null>(imageCandidates[0] ?? null);
+  const candidateIndexRef = useRef(0);
   useEffect(() => {
     setImgError(false);
-    setImgSrc(product.imageUrl ?? null);
+    setImgSrc(imageCandidates[0] ?? null);
     setImgLoaded(false);
-    triedFullRef.current = false;
-  }, [product.imageUrl]);
-
-  useEffect(() => {
-    if (!imgSrc) return;
-    if (!fullImageUrl) return;
-    if (fullImageUrl === imgSrc) return;
-    const pre = new Image();
-    pre.src = fullImageUrl;
-    pre.onload = () => setImgSrc(fullImageUrl);
-  }, [fullImageUrl, imgSrc]);
+    candidateIndexRef.current = 0;
+  }, [imageCandidates]);
 
   const showImage = Boolean(imgSrc) && !imgError;
 
@@ -68,7 +90,10 @@ export function ProductCard({
   return (
     <motion.div
       layout
-      className="rounded-2xl border border-border bg-surface p-3 shadow-sm"
+      className={[
+        "rounded-2xl border border-border bg-surface p-3 shadow-sm transition-opacity",
+        isOut ? "opacity-60" : "",
+      ].join(" ")}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 6 }}
@@ -116,6 +141,7 @@ export function ProductCard({
               className={[
                 "absolute inset-0 h-full w-full object-contain",
                 "transition-opacity duration-300",
+                isOut ? "grayscale" : "",
                 imgLoaded ? "opacity-100" : "opacity-0",
               ].join(" ")}
               loading="eager"
@@ -123,10 +149,11 @@ export function ProductCard({
               fetchPriority="high"
               onLoad={() => setImgLoaded(true)}
               onError={() => {
-                if (fullImageUrl && imgSrc && imgSrc !== fullImageUrl && !triedFullRef.current) {
-                  triedFullRef.current = true;
+                const nextIndex = candidateIndexRef.current + 1;
+                if (nextIndex < imageCandidates.length) {
+                  candidateIndexRef.current = nextIndex;
                   setImgLoaded(false);
-                  setImgSrc(fullImageUrl);
+                  setImgSrc(imageCandidates[nextIndex] ?? null);
                   return;
                 }
                 setImgError(true);
@@ -143,19 +170,19 @@ export function ProductCard({
 
       <div className="mt-3 grid grid-cols-1 gap-2">
         <div className="px-1">
-          <div className="truncate text-sm font-semibold text-foreground">
+          <div className={["truncate text-sm font-semibold", isOut ? "text-foreground/70" : "text-foreground"].join(" ")}>
             {product.name}
           </div>
         </div>
-        <div className="flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2">
+        <div className={["flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2", isOut ? "bg-surface-2/70" : ""].join(" ")}>
           <div>
-            <div className="text-xs font-semibold text-foreground/70">
+            <div className="text-xs font-semibold text-foreground/60">
               {product.brand ?? " "}
             </div>
-            <div className={["text-foreground", priceClass].join(" ")}>
+            <div className={[isOut ? "text-foreground/70" : "text-foreground", priceClass].join(" ")}>
               {hasDiscount ? (
                 <span className="inline-flex items-baseline gap-2">
-                  <span className="text-foreground">{formatArs(unitDiscounted)}</span>
+                  <span className={isOut ? "text-foreground/70" : "text-foreground"}>{formatArs(unitDiscounted)}</span>
                   <span className="text-xs font-semibold text-foreground/45 line-through">
                     {formatArs(unitOriginal)}
                   </span>

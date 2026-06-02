@@ -63,6 +63,10 @@ function toInt(value: unknown): number | null {
   return i;
 }
 
+function storageSafeCode(code: string) {
+  return code.replaceAll("/", "_");
+}
+
 function mapRowToProduct(row: SourceRow): Product | null {
   const codigo = String(row["Código"] ?? "").trim();
   const nombre = String(row.Nombre ?? "").trim();
@@ -104,8 +108,9 @@ function mapRowToProduct(row: SourceRow): Product | null {
     process.env.FIREBASE_STORAGE_BUCKET?.trim() ||
     "";
 
+  const safeCode = storageSafeCode(codigo);
   const fallbackThumbUrl = bucket
-    ? `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(`fotosProductosThumb/${codigo}.jpg`)}?alt=media`
+    ? `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(`fotosProductosThumb/${safeCode}.jpg`)}?alt=media`
     : undefined;
   const imageUrl = String(row.imagenURL ?? "").trim() || fallbackThumbUrl;
 
