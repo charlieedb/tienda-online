@@ -253,18 +253,6 @@ export function SuggestionsPanel({
   const [selectedExistingId, setSelectedExistingId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Preload thumbnails for the first items to improve perceived speed.
-    const top = sortedProducts.slice(0, Math.min(visibleCount + 6, sortedProducts.length));
-    for (const p of top) {
-      const src = String(p.imageUrl ?? "").trim();
-      if (!src) continue;
-      const img = new Image();
-      img.decoding = "async";
-      img.src = src;
-    }
-  }, [sortedProducts, visibleCount]);
-
-  useEffect(() => {
     return () => {
       if (scrollRafRef.current !== null) {
         window.cancelAnimationFrame(scrollRafRef.current);

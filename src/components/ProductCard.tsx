@@ -22,8 +22,10 @@ function ProductCardInner({
 }: Props) {
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgActivated, setImgActivated] = useState(false);
   const isOut = product.active === false;
   const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ?? "";
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   const withStorageSafeFilename = (value: string) => {
     const safeId = product.id.replaceAll("/", "_");
@@ -80,10 +82,33 @@ function ProductCardInner({
     setImgError(false);
     setImgSrc(imageCandidates[0] ?? null);
     setImgLoaded(false);
+    setImgActivated(false);
     candidateIndexRef.current = 0;
   }, [imageCandidates]);
 
-  const showImage = Boolean(imgSrc) && !imgError;
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        setImgActivated(true);
+        observer.disconnect();
+      },
+      {
+        root: null,
+        rootMargin: "220px",
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [product.id]);
+
+  const showImage = imgActivated && Boolean(imgSrc) && !imgError;
 
   const hasDiscount = Boolean(product.offer && (product.offerDiscount ?? 0) > 0);
   const discount = product.offerDiscount ?? 0;
@@ -99,6 +124,7 @@ function ProductCardInner({
 
   return (
     <div
+      ref={cardRef}
       className={[
         "rounded-2xl border border-border bg-surface p-3 shadow-sm transition-opacity",
         isOut ? "opacity-70" : "",
@@ -152,9 +178,9 @@ function ProductCardInner({
                 isOut ? "brightness-[0.72] saturate-[0.82]" : "",
                 imgLoaded ? "opacity-100" : "opacity-0",
               ].join(" ")}
-              loading="eager"
+              loading="lazy"
               decoding="async"
-              fetchPriority="high"
+              fetchPriority={imgActivated ? "high" : "low"}
               onLoad={() => setImgLoaded(true)}
               onError={() => {
                 const nextIndex = candidateIndexRef.current + 1;
