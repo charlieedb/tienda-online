@@ -181,8 +181,11 @@ function ListitaIllustrationAlt() {
   );
 }
 
-function createItem(raw: string, tokenOverride?: string): SuperItem {
-  const token = tokenOverride ?? normalizeToken(raw);
+function createItem(
+  raw: string,
+  opts?: { tokenOverride?: string; source?: SuperItem["source"] },
+): SuperItem {
+  const token = opts?.tokenOverride ?? normalizeToken(raw);
   return {
     id:
       typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -190,13 +193,20 @@ function createItem(raw: string, tokenOverride?: string): SuperItem {
         : `${Date.now()}_${Math.random().toString(16).slice(2)}`,
     raw,
     token,
+    source: opts?.source ?? "list",
     added: false,
     selections: [],
   };
 }
 
-function createItemWithOpts(raw: string, opts?: { noResults?: boolean; token?: string }): SuperItem {
-  const base = createItem(raw, opts?.token);
+function createItemWithOpts(
+  raw: string,
+  opts?: { noResults?: boolean; token?: string; source?: SuperItem["source"] },
+): SuperItem {
+  const base = createItem(raw, {
+    tokenOverride: opts?.token,
+    source: opts?.source,
+  });
   if (opts?.noResults) return { ...base, noResults: true };
   return base;
 }
@@ -344,7 +354,10 @@ export default function Home() {
 
     if (!floatingCategory) return;
 
-    const it = createItem(floatingCategory.label, floatingCategory.token);
+    const it = createItem(floatingCategory.label, {
+      tokenOverride: floatingCategory.token,
+      source: "category",
+    });
     setItems((prev) => [
       upsertSelection(it, {
         id,
@@ -383,7 +396,7 @@ export default function Home() {
       }
 
       const it: SuperItem = {
-        ...createItem("Ofertas"),
+        ...createItem("Ofertas", { source: "offer" }),
         offer: true,
       };
       return [upsertSelection(it, { id: offerId, productId: info.productId, variant: info.variant, qty: info.qty }), ...prev];
@@ -847,6 +860,9 @@ export default function Home() {
             <OptionsModal
               open={showOptions}
               activeToken={activeItem?.token ?? floatingCategory?.token ?? null}
+              searchMode={
+                floatingCategory || activeItem?.source === "category" ? "category" : "free"
+              }
               pulse={optionsPulse}
               onClose={() => {
                 setShowOptions(false);

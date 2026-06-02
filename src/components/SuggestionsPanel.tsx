@@ -3,13 +3,18 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeToken } from "@/lib/normalize";
-import { searchProductsByToken, type Product } from "@/lib/products";
+import {
+  searchProductsByCategoryToken,
+  searchProductsByToken,
+  type Product,
+} from "@/lib/products";
 import { ProductCard } from "@/components/ProductCard";
 import { QuantityModal } from "@/components/QuantityModal";
 import { useCartStore } from "@/store/cart";
 
 type Props = {
   activeToken: string | null;
+  searchMode?: "free" | "category";
   onAdded: (info: {
     productId: string;
     variant: "unit" | "pack";
@@ -25,6 +30,7 @@ const LOAD_MORE_STEP = 30;
 
 export function SuggestionsPanel({
   activeToken,
+  searchMode = "free",
   onAdded,
   onSearchState,
   pulse = 0,
@@ -134,7 +140,10 @@ export function SuggestionsPanel({
       setLoading(true);
       setError(null);
       try {
-        const result = await searchProductsByToken(token);
+        const result =
+          searchMode === "category"
+            ? await searchProductsByCategoryToken(token)
+            : await searchProductsByToken(token);
         if (cancelled) return;
         setProducts(result.products);
         onSearchStateRef.current?.({ token, hasResults: result.products.length > 0 });
@@ -159,7 +168,7 @@ export function SuggestionsPanel({
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, searchMode]);
 
   const addItem = useCartStore((s) => s.addItem);
   const setItemQty = useCartStore((s) => s.setItemQty);

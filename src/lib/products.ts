@@ -51,6 +51,13 @@ function expandEquivalentTokens(token: string) {
   return Array.from(variants).filter(Boolean);
 }
 
+function canonicalizeCategoryToken(value: string) {
+  const token = normalizeForSearch(value);
+  if (!token) return "";
+  if (token.length > 4 && token.endsWith("s")) return token.slice(0, -1);
+  return token;
+}
+
 function levenshtein(a: string, b: string) {
   if (a === b) return 0;
   if (!a) return b.length;
@@ -290,6 +297,16 @@ function productMatchesToken(product: Product, token: string) {
   return false;
 }
 
+function productMatchesCategoryToken(product: Product, token: string) {
+  const candidates = expandEquivalentTokens(token);
+  if (candidates.length === 0) return false;
+
+  const brandToken = canonicalizeCategoryToken(product.brand ?? "");
+  if (!brandToken) return false;
+
+  return candidates.some((candidate) => canonicalizeCategoryToken(candidate) === brandToken);
+}
+
 function buildKeywordUniverse(catalog: Product[]) {
   const set = new Set<string>();
   for (const p of catalog) {
@@ -349,4 +366,24 @@ export async function searchProductsByToken(token: string): Promise<{
   const universe = buildKeywordUniverse(catalog);
   const suggestions = suggestKeywords(t, universe);
   return { products: [], suggestions };
+}
+
+export async function searchProductsByCategoryToken(token: string): Promise<{
+  products: Product[];
+  suggestions: string[];
+}> {
+  const t = normalizeForSearch(token);
+  if (!t) return { products: [], suggestions: [] };
+
+  if (typeof window !== "undefined" && catalogOrigin === null) {
+    const fromLs = loadCatalogFromLocalStorage();
+    if (fromLs?.items?.length) {
+      cachedCatalog = { at: Date.now(), items: fromLs.items };
+      catalogOrigin = "api";
+    }
+  }
+
+  const catalog = await getActiveCatalog();
+  const products = catalog.filter((p) => productMatchesCategoryToken(p, t));
+  return { products, suggestions: [] };
 }

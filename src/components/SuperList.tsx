@@ -20,6 +20,7 @@ export type SuperItem = {
   id: string;
   raw: string;
   token: string;
+  source?: "list" | "category" | "offer";
   added: boolean;
   noResults?: boolean;
   selections?: Selection[];
@@ -29,7 +30,14 @@ export type SuperItem = {
 type Props = {
   items: SuperItem[];
   activeId: string | null;
-  onAddItem: (raw: string, opts?: { noResults?: boolean }) => void;
+  onAddItem: (
+    raw: string,
+    opts?: {
+      noResults?: boolean;
+      token?: string;
+      source?: SuperItem["source"];
+    },
+  ) => void;
   onSelect: (id: string) => void;
   onMarkAdded: (id: string) => void;
   onClear: () => void;

@@ -9,6 +9,7 @@ import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 type Props = {
   open: boolean;
   activeToken: string | null;
+  searchMode?: "free" | "category";
   onClose: () => void;
   onAdded: (info: {
     productId: string;
@@ -23,6 +24,7 @@ type Props = {
 export function OptionsModal({
   open,
   activeToken,
+  searchMode = "free",
   onClose,
   onAdded,
   onSearchState,
@@ -76,6 +78,7 @@ export function OptionsModal({
             <div className="h-[calc(100%-52px)] p-4">
               <SuggestionsPanel
                 activeToken={activeToken}
+                searchMode={searchMode}
                 onAdded={onAdded}
                 onSearchState={onSearchState}
                 pulse={pulse}
@@ -108,6 +111,7 @@ export function OptionsModal({
             <div className="h-[calc(100%-74px)] p-4">
               <SuggestionsPanel
                 activeToken={activeToken}
+                searchMode={searchMode}
                 onAdded={onAdded}
                 onSearchState={onSearchState}
                 pulse={pulse}
