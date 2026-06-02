@@ -183,10 +183,23 @@ export function TopBar({
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((v) => !v)}
-                  className="max-w-[120px] truncate rounded-xl px-2 py-1 text-right text-[10px] font-semibold text-white/90 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 sm:text-[11px]"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white/90 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
                   aria-label="Abrir menú de usuario"
+                  title={userLabel ?? "Cuenta"}
                 >
-                  {userLabel}
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20 21a8 8 0 0 0-16 0" />
+                    <circle cx="12" cy="8" r="4" />
+                  </svg>
                 </button>
 
                 <AnimatePresence>
