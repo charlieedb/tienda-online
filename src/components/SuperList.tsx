@@ -188,7 +188,7 @@ export function SuperList({
       >
         <div className="relative pb-3">
           <div className="text-center text-base font-semibold tracking-tight text-black/85 sm:text-lg">
-            Mi lista
+            Arma tu listita de super
           </div>
           <button
             type="button"
@@ -251,7 +251,7 @@ export function SuperList({
                 if (pending) setPending(null);
               }}
               placeholder="que necesitas?"
-              className="w-full rounded-2xl border border-border bg-white/85 py-3 pl-4 pr-14 text-base text-black shadow-[0_10px_18px_rgba(0,0,0,0.08)] outline-none ring-0 placeholder:text-black/40 focus:border-black/25"
+              className="w-full rounded-2xl border border-black/10 bg-white/96 py-3.5 pl-4 pr-14 text-base text-black shadow-[0_18px_34px_rgba(17,24,39,0.16),0_6px_14px_rgba(255,255,255,0.7)] outline-none ring-2 ring-[#2b3bb8]/12 placeholder:text-black/42 focus:border-[#2b3bb8]/28 focus:ring-[#2b3bb8]/24"
             />
             {value.trim().length > 0 ? (
               <button
