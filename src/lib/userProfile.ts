@@ -25,7 +25,13 @@ export type UserProfile = {
 
 const profileCacheKey = (uid: string) => `listita.userProfile.${uid}`;
 type RawLatLng = { lat?: unknown; lng?: unknown };
-type RawAddress = { id?: unknown; localidad?: unknown; direccion?: unknown; ubicacion?: unknown };
+type RawAddress = {
+  id?: unknown;
+  provincia?: unknown;
+  localidad?: unknown;
+  direccion?: unknown;
+  ubicacion?: unknown;
+};
 type RawProfile = {
   email?: unknown;
   username?: unknown;
@@ -35,6 +41,7 @@ type RawProfile = {
   apellido?: unknown;
   telefono?: unknown;
   direcciones?: unknown;
+  provincia?: unknown;
   localidad?: unknown;
   direccion?: unknown;
   ubicacion?: unknown;
