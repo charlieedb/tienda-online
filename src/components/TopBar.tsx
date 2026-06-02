@@ -238,7 +238,7 @@ export function TopBar({
           <>
             <motion.button
               aria-label="Cerrar menú"
-              className="fixed inset-0 z-[55] bg-black/45 backdrop-blur-sm"
+              className="modal-backdrop-lite fixed inset-0 z-[55]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

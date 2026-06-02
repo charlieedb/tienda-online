@@ -165,7 +165,7 @@ export function CartPanel() {
           <>
             <motion.button
               aria-label="Cerrar carrito"
-              className="fixed inset-0 z-[90] bg-black/65 backdrop-blur-sm"
+              className="modal-backdrop-lite fixed inset-0 z-[90]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -203,7 +203,7 @@ export function CartPanel() {
           <>
             <motion.button
               aria-label="Cerrar"
-              className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm"
+              className="modal-backdrop-lite fixed inset-0 z-[120]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

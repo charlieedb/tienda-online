@@ -713,7 +713,7 @@ export default function Home() {
               }}
             />
 
-            <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-5 pt-12 md:gap-6 md:px-6 md:pb-6">
+            <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-5 pt-16 md:gap-6 md:px-6 md:pb-6 md:pt-[4.5rem]">
               <AccountSettingsModal
                 open={settingsOpen}
                 onClose={() => setSettingsOpen(false)}

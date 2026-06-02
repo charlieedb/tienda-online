@@ -51,6 +51,12 @@ body {
   overflow-y: hidden;
 }
 
+.modal-backdrop-lite {
+  background:
+    linear-gradient(to bottom, rgba(13, 17, 24, 0.52), rgba(8, 10, 16, 0.68)),
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.04), transparent 42%);
+}
+
 .no-scrollbar {
   -ms-overflow-style: none; /* IE/Edge */
   scrollbar-width: none; /* Firefox */

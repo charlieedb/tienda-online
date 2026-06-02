@@ -143,7 +143,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
         <>
           <motion.div
             aria-hidden="true"
-            className="fixed inset-0 z-[70] bg-black/65 backdrop-blur-sm"
+            className="modal-backdrop-lite fixed inset-0 z-[70]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

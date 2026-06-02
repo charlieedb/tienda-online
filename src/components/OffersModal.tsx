@@ -35,7 +35,7 @@ export function OffersModal({ open, onClose, onOfferAdded }: Props) {
         <>
           <motion.button
             aria-label="Cerrar ofertas"
-            className="fixed inset-0 z-[55] bg-black/55 backdrop-blur-sm"
+            className="modal-backdrop-lite fixed inset-0 z-[55]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

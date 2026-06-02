@@ -24,6 +24,7 @@ export function ProductCard({
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const isOut = product.active === false;
+  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ?? "";
 
   const withStorageSafeFilename = (value: string) => {
     const safeId = product.id.replaceAll("/", "_");
@@ -61,8 +62,18 @@ export function ProductCard({
       }
     }
 
+    if (storageBucket) {
+      const safeId = product.id.replaceAll("/", "_");
+      add(
+        `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(storageBucket)}/o/${encodeURIComponent(`fotosProductosThumb/${safeId}.jpg`)}?alt=media`,
+      );
+      add(
+        `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(storageBucket)}/o/${encodeURIComponent(`fotosProductos/${safeId}.jpg`)}?alt=media`,
+      );
+    }
+
     return candidates;
-  }, [product.id, product.imageUrl]);
+  }, [product.id, product.imageUrl, storageBucket]);
 
   const [imgSrc, setImgSrc] = useState<string | null>(imageCandidates[0] ?? null);
   const candidateIndexRef = useRef(0);
@@ -173,7 +184,16 @@ export function ProductCard({
 
       <div className="mt-3 grid grid-cols-1 gap-2">
         <div className="px-1">
-          <div className={["truncate text-sm font-semibold", isOut ? "text-foreground/70" : "text-foreground"].join(" ")}>
+          <div
+            className={["text-pretty text-[13px] font-semibold leading-4", isOut ? "text-foreground/70" : "text-foreground"].join(" ")}
+            style={{
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+            title={product.name}
+          >
             {product.name}
           </div>
         </div>
