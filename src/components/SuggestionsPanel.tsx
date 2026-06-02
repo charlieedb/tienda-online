@@ -33,7 +33,8 @@ export function SuggestionsPanel({
   const [products, setProducts] = useState<Product[]>([]);
   const [error, setError] = useState<string | null>(null);
   const onSearchStateRef = useRef<Props["onSearchState"]>(onSearchState);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const mobileScrollRef = useRef<HTMLDivElement | null>(null);
+  const desktopScrollRef = useRef<HTMLDivElement | null>(null);
   const [fadeTop, setFadeTop] = useState(false);
   const [fadeBottom, setFadeBottom] = useState(false);
   const [fadeLeft, setFadeLeft] = useState(false);
@@ -42,7 +43,8 @@ export function SuggestionsPanel({
   const scrollRafRef = useRef<number | null>(null);
   const fadeStateRef = useRef({ top: false, bottom: false, left: false, right: false });
   const loadingMoreRef = useRef(false);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const mobileSentinelRef = useRef<HTMLDivElement | null>(null);
+  const desktopSentinelRef = useRef<HTMLDivElement | null>(null);
 
   const token = useMemo(
     () => {
@@ -55,8 +57,17 @@ export function SuggestionsPanel({
     onSearchStateRef.current = onSearchState;
   }, [onSearchState]);
 
-  const updateFades = () => {
-    const el = scrollRef.current;
+  const loadMore = () => {
+    if (loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+    setVisibleCount((prevCount) => {
+      const nextCount = Math.min(prevCount + LOAD_MORE_STEP, sortedProductsRef.current.length);
+      loadingMoreRef.current = false;
+      return nextCount;
+    });
+  };
+
+  const updateFades = (el: HTMLDivElement | null) => {
     if (!el) return;
     const canScrollY = el.scrollHeight - el.clientHeight > 2;
     const canScrollX = el.scrollWidth - el.clientWidth > 2;
@@ -88,28 +99,21 @@ export function SuggestionsPanel({
       right: nextRight,
     };
 
-    if (loadingMoreRef.current) return;
-
     const remainingY = el.scrollHeight - (el.scrollTop + el.clientHeight);
     const remainingX = el.scrollWidth - (el.scrollLeft + el.clientWidth);
     const nearBottom = canScrollY && remainingY < 220;
     const nearRight = canScrollX && remainingX < 220;
     if (nearBottom || nearRight) {
-      loadingMoreRef.current = true;
-      setVisibleCount((prevCount) => {
-        const nextCount = Math.min(prevCount + LOAD_MORE_STEP, sortedProductsRef.current.length);
-        loadingMoreRef.current = false;
-        return nextCount;
-      });
+      loadMore();
       return;
     }
   };
 
-  const handleScroll = () => {
+  const handleScroll = (el: HTMLDivElement | null) => {
     if (scrollRafRef.current !== null) return;
     scrollRafRef.current = window.requestAnimationFrame(() => {
       scrollRafRef.current = null;
-      updateFades();
+      updateFades(el);
     });
   };
 
@@ -121,7 +125,10 @@ export function SuggestionsPanel({
       if (!token) {
         setProducts([]);
         setError(null);
-        queueMicrotask(() => updateFades());
+        queueMicrotask(() => {
+          updateFades(mobileScrollRef.current);
+          updateFades(desktopScrollRef.current);
+        });
         return;
       }
       setLoading(true);
@@ -131,13 +138,19 @@ export function SuggestionsPanel({
         if (cancelled) return;
         setProducts(result.products);
         onSearchStateRef.current?.({ token, hasResults: result.products.length > 0 });
-        queueMicrotask(() => updateFades());
+        queueMicrotask(() => {
+          updateFades(mobileScrollRef.current);
+          updateFades(desktopScrollRef.current);
+        });
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "Error");
         setProducts([]);
         onSearchStateRef.current?.({ token, hasResults: false });
-        queueMicrotask(() => updateFades());
+        queueMicrotask(() => {
+          updateFades(mobileScrollRef.current);
+          updateFades(desktopScrollRef.current);
+        });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -183,8 +196,8 @@ export function SuggestionsPanel({
   );
 
   useEffect(() => {
-    const root = scrollRef.current;
-    const target = sentinelRef.current;
+    const root = mobileScrollRef.current;
+    const target = mobileSentinelRef.current;
     const hasMoreToUnlock = visibleCount < sortedProducts.length;
     if (!root || !target || !hasMoreToUnlock) return;
 
@@ -192,13 +205,30 @@ export function SuggestionsPanel({
       (entries) => {
         const entry = entries[0];
         if (!entry?.isIntersecting) return;
-        if (loadingMoreRef.current) return;
-        loadingMoreRef.current = true;
-        setVisibleCount((prevCount) => {
-          const nextCount = Math.min(prevCount + LOAD_MORE_STEP, sortedProducts.length);
-          loadingMoreRef.current = false;
-          return nextCount;
-        });
+        loadMore();
+      },
+      {
+        root,
+        rootMargin: "200px",
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [visibleCount, sortedProducts.length, visibleProducts.length]);
+
+  useEffect(() => {
+    const root = desktopScrollRef.current;
+    const target = desktopSentinelRef.current;
+    const hasMoreToUnlock = visibleCount < sortedProducts.length;
+    if (!root || !target || !hasMoreToUnlock) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        loadMore();
       },
       {
         root,
@@ -379,9 +409,9 @@ export function SuggestionsPanel({
               {/* Mobile carousel */}
               <div className="md:hidden">
                 <div
-                  ref={scrollRef}
+                  ref={mobileScrollRef}
                   className="no-scrollbar -mr-2 overflow-x-auto overflow-y-hidden pr-2 [scrollbar-gutter:stable] [scrollbar-width:none]"
-                  onScroll={handleScroll}
+                  onScroll={(e) => handleScroll(e.currentTarget)}
                 >
                   <div className="flex snap-x snap-mandatory gap-3 pb-2">
                     {visibleProducts.map((p) => (
@@ -394,17 +424,17 @@ export function SuggestionsPanel({
                         />
                       </div>
                     ))}
-                    <div ref={sentinelRef} aria-hidden="true" className="h-px w-px shrink-0" />
+                    <div ref={mobileSentinelRef} aria-hidden="true" className="h-px w-px shrink-0" />
                   </div>
                 </div>
               </div>
 
               {/* Desktop list (keeps previous limit + vertical scroll) */}
               <motion.div
-                ref={scrollRef}
+                ref={desktopScrollRef}
                 layout
                 className="no-scrollbar hidden max-h-[520px] overflow-auto pr-1 [scrollbar-gutter:stable] md:block"
-                onScroll={handleScroll}
+                onScroll={(e) => handleScroll(e.currentTarget)}
               >
                 <motion.div layout className="flex flex-col gap-1 pb-2">
                   {visibleProducts.map((p) => (
@@ -416,7 +446,7 @@ export function SuggestionsPanel({
                       onSelect={() => openProduct(p)}
                     />
                   ))}
-                  <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
+                  <div ref={desktopSentinelRef} aria-hidden="true" className="h-px w-full" />
                 </motion.div>
               </motion.div>
 
