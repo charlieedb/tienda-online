@@ -11,7 +11,7 @@ import { QuantityModal } from "@/components/QuantityModal";
 import { OffersModal } from "@/components/OffersModal";
 import { AuthModal } from "@/components/AuthModal";
 import { TopBar } from "@/components/TopBar";
-import { AccountSettingsModal } from "@/components/AccountSettingsModal";
+import { AccountSettingsPage } from "@/components/AccountSettingsPage";
 import { normalizeToken } from "@/lib/normalize";
 import { getActiveCatalog, getProductById, startCatalogAutoRefresh } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
@@ -19,7 +19,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { APP_VERSION } from "@/lib/appVersion";
 import type { Category } from "@/components/TopBar";
 
-type Stage = "landing" | "builder";
+type Stage = "landing" | "builder" | "settings";
 
 function canonicalizeCategoryToken(value: string) {
   const token = normalizeToken(value);
@@ -228,7 +228,6 @@ export default function Home() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [menuCategories, setMenuCategories] = useState<Category[]>([]);
   const [floatingCategory, setFloatingCategory] = useState<{ token: string; label: string } | null>(null);
 
@@ -709,7 +708,7 @@ export default function Home() {
               onModeChange={setAuthMode}
             />
           </motion.main>
-        ) : (
+        ) : stage === "builder" ? (
           <motion.main
             key="builder"
             className="relative flex min-h-dvh w-full flex-col gap-4 pb-24 md:gap-6"
@@ -740,7 +739,11 @@ export default function Home() {
               categories={menuCategories}
               onSelectCategory={onSelectCategory}
               onCloseMenu={() => setMenuOpen(false)}
-              onOpenSettings={() => setSettingsOpen(true)}
+              onOpenSettings={() => {
+                setMenuOpen(false);
+                setShowOptions(false);
+                setStage("settings");
+              }}
               onSignOut={async () => {
                 await signOut();
                 setStage("landing");
@@ -750,10 +753,6 @@ export default function Home() {
             />
 
             <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-5 pt-16 md:gap-6 md:px-6 md:pb-6 md:pt-[4.5rem]">
-              <AccountSettingsModal
-                open={settingsOpen}
-                onClose={() => setSettingsOpen(false)}
-              />
             <QuantityModal
               open={editOpen}
               product={editProduct}
@@ -978,6 +977,31 @@ export default function Home() {
               </div>
             </div>
             </div>
+          </motion.main>
+        ) : (
+          <motion.main
+            key="settings"
+            className="relative flex min-h-dvh w-full flex-col pb-10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-0 opacity-[0.28] motion-safe:animate-[fondo-pan_26s_linear_infinite]"
+              style={{
+                backgroundImage: "url(/fondo.png)",
+                backgroundRepeat: "repeat",
+                backgroundSize: "360px auto",
+                backgroundPosition: "center top",
+              }}
+            />
+            <AccountSettingsPage
+              onBack={() => {
+                setStage("builder");
+              }}
+            />
           </motion.main>
         )}
       </AnimatePresence>
