@@ -22,6 +22,23 @@ export type UserProfile = {
   direcciones?: UserAddress[];
 };
 
+const profileCacheKey = (uid: string) => `listita.userProfile.${uid}`;
+type RawLatLng = { lat?: unknown; lng?: unknown };
+type RawAddress = { id?: unknown; localidad?: unknown; direccion?: unknown; ubicacion?: unknown };
+type RawProfile = {
+  email?: unknown;
+  username?: unknown;
+  dni?: unknown;
+  displayName?: unknown;
+  nombre?: unknown;
+  apellido?: unknown;
+  telefono?: unknown;
+  direcciones?: unknown;
+  localidad?: unknown;
+  direccion?: unknown;
+  ubicacion?: unknown;
+};
+
 export function normalizeUsername(value: string) {
   return value.toLowerCase().trim().replace(/\s+/g, "");
 }
@@ -47,15 +64,15 @@ export async function reserveUsername(params: { uid: string; email: string | nul
   return username;
 }
 
-function normalizeAddress(raw: any, fallbackId: string): UserAddress {
+function normalizeAddress(raw: RawAddress | null | undefined, fallbackId: string): UserAddress {
   const id = typeof raw?.id === "string" && raw.id.trim() ? raw.id : fallbackId;
   const localidad = typeof raw?.localidad === "string" ? raw.localidad : "";
   const direccion = typeof raw?.direccion === "string" ? raw.direccion : "";
   const ubicacion =
     raw?.ubicacion && typeof raw.ubicacion === "object"
       ? {
-          lat: Number((raw.ubicacion as any).lat),
-          lng: Number((raw.ubicacion as any).lng),
+          lat: Number((raw.ubicacion as RawLatLng).lat),
+          lng: Number((raw.ubicacion as RawLatLng).lng),
         }
       : null;
   return {
@@ -67,22 +84,15 @@ function normalizeAddress(raw: any, fallbackId: string): UserAddress {
   };
 }
 
-export async function getUserProfile(uid: string) {
-  const db = getDb();
-  if (!db) throw new Error("Firebase no está configurado.");
-
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) return null;
-  const data = snap.data() as any;
-
+function normalizeProfile(uid: string, raw: RawProfile | null | undefined): UserProfile {
   let direcciones: UserAddress[] | undefined;
-  if (Array.isArray(data.direcciones)) {
-    direcciones = data.direcciones.map((a: any, idx: number) => normalizeAddress(a, `addr_${idx + 1}`));
+  if (Array.isArray(raw?.direcciones)) {
+    direcciones = raw.direcciones.map((a, idx: number) =>
+      normalizeAddress((a as RawAddress | null | undefined) ?? undefined, `addr_${idx + 1}`),
+    );
   } else {
-    // Backward-compat: older schema stored a single address.
     const legacy = normalizeAddress(
-      { localidad: data.localidad ?? "", direccion: data.direccion ?? "", ubicacion: data.ubicacion ?? null },
+      { localidad: raw?.localidad ?? "", direccion: raw?.direccion ?? "", ubicacion: raw?.ubicacion ?? null },
       "principal",
     );
     if (legacy.localidad || legacy.direccion || legacy.ubicacion) direcciones = [legacy];
@@ -90,42 +100,89 @@ export async function getUserProfile(uid: string) {
 
   return {
     uid,
-    email: (data.email ?? null) as string | null,
-    username: String(data.username ?? ""),
-    dni: String(data.dni ?? ""),
-    displayName: (data.displayName ?? null) as string | null,
-    nombre: typeof data.nombre === "string" ? data.nombre : "",
-    apellido: typeof data.apellido === "string" ? data.apellido : "",
-    telefono: typeof data.telefono === "string" ? data.telefono : "",
+    email: (raw?.email ?? null) as string | null,
+    username: String(raw?.username ?? ""),
+    dni: String(raw?.dni ?? ""),
+    displayName: (raw?.displayName ?? null) as string | null,
+    nombre: typeof raw?.nombre === "string" ? raw.nombre : "",
+    apellido: typeof raw?.apellido === "string" ? raw.apellido : "",
+    telefono: typeof raw?.telefono === "string" ? raw.telefono : "",
     direcciones,
   } satisfies UserProfile;
 }
 
+function readCachedUserProfile(uid: string) {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(profileCacheKey(uid));
+    if (!raw) return null;
+    return normalizeProfile(uid, JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedUserProfile(profile: UserProfile) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(profileCacheKey(profile.uid), JSON.stringify(profile));
+  } catch {
+    // Ignore storage failures; Firestore remains the main source when available.
+  }
+}
+
+export async function getUserProfile(uid: string) {
+  const db = getDb();
+  if (!db) return readCachedUserProfile(uid);
+
+  const ref = doc(db, "users", uid);
+  try {
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return readCachedUserProfile(uid);
+    const profile = normalizeProfile(uid, snap.data() as RawProfile);
+    writeCachedUserProfile(profile);
+    return profile;
+  } catch {
+    return readCachedUserProfile(uid);
+  }
+}
+
 export async function upsertUserProfile(profile: UserProfile) {
   const db = getDb();
-  if (!db) throw new Error("Firebase no está configurado.");
-
-  const ref = doc(db, "users", profile.uid);
-  const existing = await getDoc(ref);
 
   const direcciones = (profile.direcciones ?? [])
     .map((a, idx) => normalizeAddress(a, `addr_${idx + 1}`))
     .filter((a) => a.localidad || a.direccion || a.ubicacion);
 
+  const normalizedProfile: UserProfile = {
+    ...profile,
+    username: normalizeUsername(profile.username),
+    dni: String(profile.dni ?? "").trim(),
+    nombre: String(profile.nombre ?? "").trim(),
+    apellido: String(profile.apellido ?? "").trim(),
+    telefono: String(profile.telefono ?? "").trim(),
+    direcciones,
+  };
+
+  writeCachedUserProfile(normalizedProfile);
+
+  if (!db) return;
+
+  const ref = doc(db, "users", profile.uid);
+  const existing = await getDoc(ref);
   const first = direcciones[0] ?? null;
 
   await setDoc(
     ref,
     {
-      email: profile.email ?? null,
-      username: normalizeUsername(profile.username),
-      dni: String(profile.dni ?? "").trim(),
-      displayName: profile.displayName ?? null,
-      nombre: String(profile.nombre ?? "").trim(),
-      apellido: String(profile.apellido ?? "").trim(),
-      telefono: String(profile.telefono ?? "").trim(),
+      email: normalizedProfile.email ?? null,
+      username: normalizedProfile.username,
+      dni: normalizedProfile.dni,
+      displayName: normalizedProfile.displayName ?? null,
+      nombre: normalizedProfile.nombre ?? "",
+      apellido: normalizedProfile.apellido ?? "",
+      telefono: normalizedProfile.telefono ?? "",
       direcciones: direcciones.length ? direcciones : [],
-      // Backward-compat fields
       localidad: first?.localidad ?? "",
       direccion: first?.direccion ?? "",
       ubicacion: first?.ubicacion ?? null,
@@ -149,4 +206,3 @@ export async function resolveEmailFromUsername(usernameRaw: string) {
   const data = snap.data() as { email?: string | null };
   return data.email ?? null;
 }
-
