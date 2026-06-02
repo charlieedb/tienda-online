@@ -25,6 +25,7 @@ const LOAD_MORE_STEP = 30;
 const MOBILE_CARD_WIDTH_RATIO = 0.82;
 const MOBILE_CARD_GAP_PX = 12;
 const MOBILE_WINDOW_SIZE = 8;
+const LOAD_MORE_THRESHOLD = 4;
 
 export function SuggestionsPanel({
   activeToken,
@@ -220,6 +221,21 @@ export function SuggestionsPanel({
     () => sortedProducts.slice(0, Math.min(visibleCount, sortedProducts.length)),
     [sortedProducts, visibleCount],
   );
+
+  useEffect(() => {
+    if (loadingMoreRef.current) return;
+    const remainingLoaded = visibleProducts.length - 1 - mobileIndex;
+    const hasMoreToUnlock = visibleCount < sortedProducts.length;
+    if (!hasMoreToUnlock) return;
+    if (remainingLoaded > LOAD_MORE_THRESHOLD) return;
+
+    loadingMoreRef.current = true;
+    setVisibleCount((prevCount) => {
+      const nextCount = Math.min(prevCount + LOAD_MORE_STEP, sortedProducts.length);
+      loadingMoreRef.current = false;
+      return nextCount;
+    });
+  }, [mobileIndex, sortedProducts.length, visibleCount, visibleProducts.length]);
 
   useEffect(() => {
     visibleProductsRef.current = visibleProducts;
