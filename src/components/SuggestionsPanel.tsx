@@ -43,6 +43,7 @@ export function SuggestionsPanel({
   const [fadeRight, setFadeRight] = useState(false);
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_PRODUCTS);
   const [mobileIndex, setMobileIndex] = useState(0);
+  const [mobileItemExtent, setMobileItemExtent] = useState(0);
   const scrollRafRef = useRef<number | null>(null);
   const fadeStateRef = useRef({ top: false, bottom: false, left: false, right: false });
   const loadingMoreRef = useRef(false);
@@ -59,6 +60,14 @@ export function SuggestionsPanel({
   useEffect(() => {
     onSearchStateRef.current = onSearchState;
   }, [onSearchState]);
+
+  const measureMobileItemExtent = () => {
+    const el = scrollRef.current;
+    const nextExtent = el ? el.clientWidth * MOBILE_CARD_WIDTH_RATIO + MOBILE_CARD_GAP_PX : 0;
+    if (!nextExtent) return;
+    mobileItemExtentRef.current = nextExtent;
+    setMobileItemExtent((prev) => (Math.abs(prev - nextExtent) > 0.5 ? nextExtent : prev));
+  };
 
   const updateFades = () => {
     const el = scrollRef.current;
@@ -82,6 +91,7 @@ export function SuggestionsPanel({
 
       const itemWidth = el.clientWidth * MOBILE_CARD_WIDTH_RATIO + MOBILE_CARD_GAP_PX;
       mobileItemExtentRef.current = itemWidth;
+      if (Math.abs(mobileItemExtent - itemWidth) > 0.5) setMobileItemExtent(itemWidth);
       const nextIndex = Math.max(
         0,
         Math.min(
@@ -199,6 +209,13 @@ export function SuggestionsPanel({
     setMobileIndex(0);
   }, [token, products.length]);
 
+  useEffect(() => {
+    measureMobileItemExtent();
+    const onResize = () => measureMobileItemExtent();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   const visibleProducts = useMemo(
     () => sortedProducts.slice(0, Math.min(visibleCount, sortedProducts.length)),
     [sortedProducts, visibleCount],
@@ -206,6 +223,7 @@ export function SuggestionsPanel({
 
   useEffect(() => {
     visibleProductsRef.current = visibleProducts;
+    queueMicrotask(() => measureMobileItemExtent());
     if (mobileIndexRef.current >= visibleProducts.length) {
       const nextIndex = Math.max(0, visibleProducts.length - 1);
       mobileIndexRef.current = nextIndex;
@@ -224,7 +242,7 @@ export function SuggestionsPanel({
     let end = Math.min(total, start + MOBILE_WINDOW_SIZE);
     start = Math.max(0, end - MOBILE_WINDOW_SIZE);
 
-    const itemExtent = mobileItemExtentRef.current;
+    const itemExtent = mobileItemExtent || mobileItemExtentRef.current;
     const leftSpacer = start > 0 ? `${start * itemExtent}px` : "0px";
     const rightCount = total - end;
     const rightSpacer = rightCount > 0 ? `${rightCount * itemExtent}px` : "0px";
