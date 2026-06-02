@@ -8,9 +8,31 @@ import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 declare global {
   interface Window {
-    L?: any;
+    L?: LeafletGlobal;
   }
 }
+
+type LeafletPoint = { lat: number; lng: number };
+type LeafletMap = {
+  setView: (coords: [number, number], zoom: number) => LeafletMap;
+  getZoom: () => number;
+  on: (event: "click", handler: (event: { latlng: LeafletPoint }) => void) => void;
+  remove: () => void;
+};
+type LeafletMarker = {
+  setLatLng: (coords: [number, number]) => void;
+};
+type LeafletGlobal = {
+  map: (
+    element: HTMLDivElement,
+    options: { zoomControl: boolean; attributionControl: boolean },
+  ) => LeafletMap;
+  tileLayer: (
+    url: string,
+    options: { maxZoom: number; attribution: string },
+  ) => { addTo: (map: LeafletMap) => void };
+  marker: (coords: [number, number]) => { addTo: (map: LeafletMap) => LeafletMarker };
+};
 
 async function geocode(query: string): Promise<LatLng | null> {
   const q = query.trim();
@@ -46,19 +68,23 @@ export function MapPickerModal({
   useBodyScrollLock(open);
 
   const mapDivRef = useRef<HTMLDivElement | null>(null);
-  const leafletMapRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const leafletMapRef = useRef<LeafletMap | null>(null);
+  const markerRef = useRef<LeafletMarker | null>(null);
   const [picked, setPicked] = useState<LatLng | null>(initial);
   const [leafletReady, setLeafletReady] = useState(false);
   const [query, setQuery] = useState(initialQuery);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const lastAutoQueryRef = useRef<string>("");
 
   useEffect(() => {
     if (!open) return;
-    setPicked(initial);
-    setQuery(initialQuery);
-    setSearchError(null);
+    queueMicrotask(() => {
+      setPicked(initial);
+      setQuery(initialQuery);
+      setSearchError(null);
+    });
+    lastAutoQueryRef.current = "";
   }, [open, initial, initialQuery]);
 
   const baseCenter = useMemo<LatLng>(() => {
@@ -74,7 +100,9 @@ export function MapPickerModal({
     if (initial) return;
     if (picked) return;
     if (!center) return;
-    setPicked(center);
+    queueMicrotask(() => {
+      setPicked(center);
+    });
   }, [open, initial, picked, center]);
 
   const setMarker = (p: LatLng) => {
@@ -103,7 +131,7 @@ export function MapPickerModal({
         attribution: "&copy; OpenStreetMap",
       }).addTo(map);
 
-      map.on("click", (e: any) => {
+      map.on("click", (e) => {
         const p = { lat: e.latlng.lat, lng: e.latlng.lng };
         setPicked(p);
         setMarker(p);
@@ -126,6 +154,40 @@ export function MapPickerModal({
       markerRef.current = null;
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const nextQuery = initialQuery.trim();
+    if (!nextQuery) return;
+    if (lastAutoQueryRef.current === nextQuery) return;
+    lastAutoQueryRef.current = nextQuery;
+
+    let cancelled = false;
+    const runAutoSearch = async () => {
+      setSearching(true);
+      setSearchError(null);
+      try {
+        const point = await geocode(nextQuery);
+        if (!point || cancelled) return;
+        if (leafletMapRef.current) {
+          leafletMapRef.current.setView([point.lat, point.lng], 15);
+        }
+        setPicked(point);
+        setMarker(point);
+      } catch {
+        if (!cancelled) {
+          setSearchError("No se pudo orientar el mapa con esa dirección.");
+        }
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    };
+
+    void runAutoSearch();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, initialQuery]);
 
   return (
     <AnimatePresence>

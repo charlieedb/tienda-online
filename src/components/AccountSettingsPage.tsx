@@ -30,6 +30,33 @@ type BaseProfile = Pick<UserProfile, "uid" | "email" | "username" | "displayName
 
 type SaveError = Error & { message: string };
 
+const PROVINCES = [
+  "Buenos Aires",
+  "CABA",
+  "Catamarca",
+  "Chaco",
+  "Chubut",
+  "Cordoba",
+  "Corrientes",
+  "Entre Rios",
+  "Formosa",
+  "Jujuy",
+  "La Pampa",
+  "La Rioja",
+  "Mendoza",
+  "Misiones",
+  "Neuquen",
+  "Rio Negro",
+  "Salta",
+  "San Juan",
+  "San Luis",
+  "Santa Cruz",
+  "Santa Fe",
+  "Santiago del Estero",
+  "Tierra del Fuego",
+  "Tucuman",
+] as const;
+
 export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -43,7 +70,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
       apellido: "",
       dni: "",
       telefono: "",
-      direcciones: [{ id: "principal", localidad: "", direccion: "", ubicacion: null }],
+      direcciones: [{ id: "principal", provincia: "", localidad: "", direccion: "", ubicacion: null }],
     }),
     [],
   );
@@ -78,7 +105,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
         const direcciones =
           (profile?.direcciones ?? []).length > 0
             ? (profile?.direcciones ?? [])
-            : [{ id: "principal", localidad: "", direccion: "", ubicacion: null }];
+            : [{ id: "principal", provincia: "", localidad: "", direccion: "", ubicacion: null }];
 
         setBaseProfile({
           uid: user.uid,
@@ -238,44 +265,6 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                         Empezamos con una principal. Si querés, después podés sumar más.
                       </div>
                     </div>
-
-                    {!multiAddressEnabled ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMultiAddressEnabled(true);
-                          setForm((prev) => {
-                            if (prev.direcciones.length > 1) return prev;
-                            return {
-                              ...prev,
-                              direcciones: [
-                                ...prev.direcciones,
-                                { id: newId(), localidad: "", direccion: "", ubicacion: null },
-                              ],
-                            };
-                          });
-                        }}
-                        className="h-10 rounded-2xl bg-black/5 px-4 text-xs font-black text-black hover:bg-black/8"
-                      >
-                        Quiero agregar más de una
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setForm((prev) => ({
-                            ...prev,
-                            direcciones: [
-                              ...prev.direcciones,
-                              { id: newId(), localidad: "", direccion: "", ubicacion: null },
-                            ],
-                          }))
-                        }
-                        className="h-10 rounded-2xl bg-[#1f2a8a] px-4 text-xs font-black text-white"
-                      >
-                        Agregar otra dirección
-                      </button>
-                    )}
                   </div>
 
                   <div className="mt-4 flex flex-col gap-3">
@@ -301,17 +290,43 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                           ) : null}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          <Field label="Localidad">
-                            <input
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          <Field label="Provincia">
+                            <select
                               className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
-                              value={addr.localidad}
+                              value={addr.provincia}
                               onChange={(e) => {
                                 const value = e.target.value;
                                 setForm((prev) => ({
                                   ...prev,
                                   direcciones: prev.direcciones.map((d) =>
-                                    d.id === addr.id ? { ...d, localidad: value } : d,
+                                    d.id === addr.id
+                                      ? { ...d, provincia: value, localidad: "", direccion: "", ubicacion: null }
+                                      : d,
+                                  ),
+                                }));
+                              }}
+                            >
+                              <option value="">Seleccioná provincia</option>
+                              {PROVINCES.map((province) => (
+                                <option key={province} value={province}>
+                                  {province}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+
+                          <Field label="Localidad">
+                            <input
+                              className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50 disabled:bg-black/[0.03] disabled:text-black/45"
+                              value={addr.localidad}
+                              disabled={!addr.provincia}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setForm((prev) => ({
+                                  ...prev,
+                                  direcciones: prev.direcciones.map((d) =>
+                                    d.id === addr.id ? { ...d, localidad: value, ubicacion: null } : d,
                                   ),
                                 }));
                               }}
@@ -322,14 +337,15 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                           <Field label="Dirección">
                             <div className="relative">
                               <input
-                                className="h-11 w-full rounded-2xl border border-border bg-white px-4 pr-12 text-[16px] text-black outline-none focus:border-brand/50"
+                                className="h-11 w-full rounded-2xl border border-border bg-white px-4 pr-12 text-[16px] text-black outline-none focus:border-brand/50 disabled:bg-black/[0.03] disabled:text-black/45"
                                 value={addr.direccion}
+                                disabled={!addr.provincia || !addr.localidad.trim()}
                                 onChange={(e) => {
                                   const value = e.target.value;
                                   setForm((prev) => ({
                                     ...prev,
                                     direcciones: prev.direcciones.map((d) =>
-                                      d.id === addr.id ? { ...d, direccion: value } : d,
+                                      d.id === addr.id ? { ...d, direccion: value, ubicacion: null } : d,
                                     ),
                                   }));
                                 }}
@@ -342,9 +358,12 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                                   setMapAddressId(addr.id);
                                   setMapOpen(true);
                                   setMapCenter(addr.ubicacion);
-                                  const query = `${addr.direccion}${addr.localidad ? `, ${addr.localidad}` : ""}`.trim();
+                                  const query = [addr.direccion, addr.localidad, addr.provincia, "Argentina"]
+                                    .filter(Boolean)
+                                    .join(", ");
                                   setMapInitialQuery(query);
                                 }}
+                                disabled={!addr.provincia || !addr.localidad.trim() || !addr.direccion.trim()}
                                 className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-xl bg-black/5 text-black/70 hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
                                 aria-label="Marcar ubicación en el mapa"
                                 title="Marcar ubicación en el mapa"
@@ -369,6 +388,46 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    {!multiAddressEnabled ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMultiAddressEnabled(true);
+                          setForm((prev) => {
+                            if (prev.direcciones.length > 1) return prev;
+                            return {
+                              ...prev,
+                              direcciones: [
+                                ...prev.direcciones,
+                                { id: newId(), provincia: "", localidad: "", direccion: "", ubicacion: null },
+                              ],
+                            };
+                          });
+                        }}
+                        className="h-10 rounded-2xl bg-black/5 px-4 text-xs font-black text-black hover:bg-black/8"
+                      >
+                        Quiero agregar más de una
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            direcciones: [
+                              ...prev.direcciones,
+                              { id: newId(), provincia: "", localidad: "", direccion: "", ubicacion: null },
+                            ],
+                          }))
+                        }
+                        className="h-10 rounded-2xl bg-[#1f2a8a] px-4 text-xs font-black text-white"
+                      >
+                        Agregar otra
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -400,6 +459,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                           direcciones: form.direcciones,
                         });
                         setSavedNotice("Tus datos quedaron guardados en tu cuenta.");
+                        onBack();
                       } catch (unknownError) {
                         const e = unknownError as SaveError;
                         setError(e?.message || "No se pudo guardar.");

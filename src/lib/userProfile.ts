@@ -5,6 +5,7 @@ export type LatLng = { lat: number; lng: number };
 
 export type UserAddress = {
   id: string;
+  provincia: string;
   localidad: string;
   direccion: string;
   ubicacion: LatLng | null;
@@ -66,6 +67,7 @@ export async function reserveUsername(params: { uid: string; email: string | nul
 
 function normalizeAddress(raw: RawAddress | null | undefined, fallbackId: string): UserAddress {
   const id = typeof raw?.id === "string" && raw.id.trim() ? raw.id : fallbackId;
+  const provincia = typeof raw?.provincia === "string" ? raw.provincia : "";
   const localidad = typeof raw?.localidad === "string" ? raw.localidad : "";
   const direccion = typeof raw?.direccion === "string" ? raw.direccion : "";
   const ubicacion =
@@ -77,6 +79,7 @@ function normalizeAddress(raw: RawAddress | null | undefined, fallbackId: string
       : null;
   return {
     id,
+    provincia: provincia.trim(),
     localidad: localidad.trim(),
     direccion: direccion.trim(),
     ubicacion:
@@ -92,7 +95,12 @@ function normalizeProfile(uid: string, raw: RawProfile | null | undefined): User
     );
   } else {
     const legacy = normalizeAddress(
-      { localidad: raw?.localidad ?? "", direccion: raw?.direccion ?? "", ubicacion: raw?.ubicacion ?? null },
+      {
+        provincia: raw?.provincia ?? "",
+        localidad: raw?.localidad ?? "",
+        direccion: raw?.direccion ?? "",
+        ubicacion: raw?.ubicacion ?? null,
+      },
       "principal",
     );
     if (legacy.localidad || legacy.direccion || legacy.ubicacion) direcciones = [legacy];
@@ -152,7 +160,7 @@ export async function upsertUserProfile(profile: UserProfile) {
 
   const direcciones = (profile.direcciones ?? [])
     .map((a, idx) => normalizeAddress(a, `addr_${idx + 1}`))
-    .filter((a) => a.localidad || a.direccion || a.ubicacion);
+    .filter((a) => a.provincia || a.localidad || a.direccion || a.ubicacion);
 
   const normalizedProfile: UserProfile = {
     ...profile,
@@ -183,6 +191,7 @@ export async function upsertUserProfile(profile: UserProfile) {
       apellido: normalizedProfile.apellido ?? "",
       telefono: normalizedProfile.telefono ?? "",
       direcciones: direcciones.length ? direcciones : [],
+      provincia: first?.provincia ?? "",
       localidad: first?.localidad ?? "",
       direccion: first?.direccion ?? "",
       ubicacion: first?.ubicacion ?? null,
