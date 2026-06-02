@@ -868,11 +868,7 @@ export default function Home() {
                       type="button"
                       onClick={() => setShowOffers(true)}
                       whileTap={{ scale: 0.99 }}
-<<<<<<< HEAD
-                      className="w-full rounded-3xl border border-black/10 bg-gradient-to-br from-[#FFE86A] via-[#FFD44D] to-[#FFB84A] p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40 sm:w-auto"
-=======
                       className="flex w-full items-center justify-center rounded-3xl border border-black/10 bg-gradient-to-br from-[#FFE86A] via-[#FFD44D] to-[#FFB84A] p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40 sm:w-auto"
->>>>>>> dd1d4a9 (Ajusta estilo del boton de combos)
                       aria-label="Abrir ofertas del día"
                     >
                       <Image
@@ -892,11 +888,7 @@ export default function Home() {
                         openCategoryToken({ token: "promo", label: "Combos" });
                       }}
                       whileTap={{ scale: 0.99 }}
-<<<<<<< HEAD
-                      className="w-full rounded-3xl border border-black/10 bg-gradient-to-br from-[#FFE86A] via-[#FFD44D] to-[#FFB84A] p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40 sm:w-auto"
-=======
                       className="flex w-full items-center justify-center overflow-hidden rounded-3xl border border-[#0b173d] bg-gradient-to-br from-[#17327C] via-[#13275F] to-[#09132E] px-2 py-1 shadow-[0_14px_28px_rgba(5,10,28,0.35)] hover:shadow-[0_18px_36px_rgba(5,10,28,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1f4ed8] sm:w-auto"
->>>>>>> dd1d4a9 (Ajusta estilo del boton de combos)
                       aria-label="Abrir combos"
                     >
                       <Image
@@ -905,11 +897,7 @@ export default function Home() {
                         width={520}
                         height={180}
                         priority
-<<<<<<< HEAD
-                        className="h-16 w-auto select-none object-contain"
-=======
                         className="h-24 w-auto max-w-full select-none object-contain sm:h-28"
->>>>>>> dd1d4a9 (Ajusta estilo del boton de combos)
                       />
                     </motion.button>
                   </div>
