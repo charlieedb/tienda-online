@@ -22,9 +22,6 @@ type Props = {
 
 const INITIAL_VISIBLE_PRODUCTS = 30;
 const LOAD_MORE_STEP = 30;
-const MOBILE_CARD_WIDTH_RATIO = 0.82;
-const MOBILE_CARD_GAP_PX = 12;
-const LOAD_MORE_THRESHOLD = 4;
 
 export function SuggestionsPanel({
   activeToken,
@@ -42,11 +39,10 @@ export function SuggestionsPanel({
   const [fadeLeft, setFadeLeft] = useState(false);
   const [fadeRight, setFadeRight] = useState(false);
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_PRODUCTS);
-  const [mobileIndex, setMobileIndex] = useState(0);
   const scrollRafRef = useRef<number | null>(null);
   const fadeStateRef = useRef({ top: false, bottom: false, left: false, right: false });
   const loadingMoreRef = useRef(false);
-  const mobileIndexRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const token = useMemo(
     () => {
@@ -78,19 +74,6 @@ export function SuggestionsPanel({
     if (canScrollX) {
       nextLeft = el.scrollLeft > 2;
       nextRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
-
-      const itemWidth = el.clientWidth * MOBILE_CARD_WIDTH_RATIO + MOBILE_CARD_GAP_PX;
-      const nextIndex = Math.max(
-        0,
-        Math.min(
-          visibleProducts.length - 1,
-          Math.round(el.scrollLeft / Math.max(itemWidth, 1)),
-        ),
-      );
-      if (nextIndex !== mobileIndexRef.current) {
-        mobileIndexRef.current = nextIndex;
-        setMobileIndex(nextIndex);
-      }
     }
 
     const prev = fadeStateRef.current;
@@ -192,8 +175,6 @@ export function SuggestionsPanel({
   useEffect(() => {
     setVisibleCount(INITIAL_VISIBLE_PRODUCTS);
     loadingMoreRef.current = false;
-    mobileIndexRef.current = 0;
-    setMobileIndex(0);
   }, [token, products.length]);
 
   const visibleProducts = useMemo(
@@ -202,27 +183,33 @@ export function SuggestionsPanel({
   );
 
   useEffect(() => {
-    if (loadingMoreRef.current) return;
-    const remainingLoaded = visibleProducts.length - 1 - mobileIndex;
+    const root = scrollRef.current;
+    const target = sentinelRef.current;
     const hasMoreToUnlock = visibleCount < sortedProducts.length;
-    if (!hasMoreToUnlock) return;
-    if (remainingLoaded > LOAD_MORE_THRESHOLD) return;
+    if (!root || !target || !hasMoreToUnlock) return;
 
-    loadingMoreRef.current = true;
-    setVisibleCount((prevCount) => {
-      const nextCount = Math.min(prevCount + LOAD_MORE_STEP, sortedProducts.length);
-      loadingMoreRef.current = false;
-      return nextCount;
-    });
-  }, [mobileIndex, sortedProducts.length, visibleCount, visibleProducts.length]);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry?.isIntersecting) return;
+        if (loadingMoreRef.current) return;
+        loadingMoreRef.current = true;
+        setVisibleCount((prevCount) => {
+          const nextCount = Math.min(prevCount + LOAD_MORE_STEP, sortedProducts.length);
+          loadingMoreRef.current = false;
+          return nextCount;
+        });
+      },
+      {
+        root,
+        rootMargin: "200px",
+        threshold: 0.01,
+      },
+    );
 
-  useEffect(() => {
-    if (mobileIndexRef.current >= visibleProducts.length) {
-      const nextIndex = Math.max(0, visibleProducts.length - 1);
-      mobileIndexRef.current = nextIndex;
-      setMobileIndex(nextIndex);
-    }
-  }, [visibleProducts]);
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [visibleCount, sortedProducts.length, visibleProducts.length]);
 
   const [selected, setSelected] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -407,6 +394,7 @@ export function SuggestionsPanel({
                         />
                       </div>
                     ))}
+                    <div ref={sentinelRef} aria-hidden="true" className="h-px w-px shrink-0" />
                   </div>
                 </div>
               </div>
@@ -428,6 +416,7 @@ export function SuggestionsPanel({
                       onSelect={() => openProduct(p)}
                     />
                   ))}
+                  <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
                 </motion.div>
               </motion.div>
 
