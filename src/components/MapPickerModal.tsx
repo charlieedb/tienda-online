@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LatLng } from "@/lib/userProfile";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 declare global {
   interface Window {
@@ -42,6 +43,8 @@ export function MapPickerModal({
   onClose: () => void;
   onPick: (p: LatLng) => void;
 }) {
+  useBodyScrollLock(open);
+
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const leafletMapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
@@ -237,4 +240,3 @@ export function MapPickerModal({
     </AnimatePresence>
   );
 }
-

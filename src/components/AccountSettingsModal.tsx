@@ -11,6 +11,7 @@ import {
   type UserProfile,
 } from "@/lib/userProfile";
 import { MapPickerModal } from "@/components/MapPickerModal";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 type AddressForm = UserAddress;
 
@@ -27,6 +28,8 @@ function newId() {
 }
 
 export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  useBodyScrollLock(open);
+
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -402,4 +405,3 @@ function PinIcon() {
     </svg>
   );
 }
-

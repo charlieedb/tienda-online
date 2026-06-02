@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
 import { SuggestionsPanel } from "@/components/SuggestionsPanel";
 import { MotionButton } from "@/components/MotionButton";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 type Props = {
   open: boolean;
@@ -27,6 +28,8 @@ export function OptionsModal({
   onSearchState,
   pulse = 0,
 }: Props) {
+  useBodyScrollLock(open);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {

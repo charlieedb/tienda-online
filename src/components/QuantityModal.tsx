@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Product } from "@/lib/products";
 import { formatArs } from "@/lib/format";
 import { MotionButton } from "@/components/MotionButton";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 type Variant = "unit" | "pack";
 
@@ -35,6 +36,8 @@ export function QuantityModal({
   onClose,
   onConfirm,
 }: Props) {
+  useBodyScrollLock(open);
+
   const hasPack = Boolean(product?.pack);
   const isOut = product?.active === false;
   const [variant, setVariant] = useState<Variant>("unit");

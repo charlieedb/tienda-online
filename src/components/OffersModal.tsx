@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
 import { MotionButton } from "@/components/MotionButton";
 import { OffersPanel } from "@/components/OffersPanel";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 
 type Props = {
   open: boolean;
@@ -17,6 +18,8 @@ type Props = {
 };
 
 export function OffersModal({ open, onClose, onOfferAdded }: Props) {
+  useBodyScrollLock(open);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {

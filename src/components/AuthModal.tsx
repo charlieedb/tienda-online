@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { MotionButton } from "@/components/MotionButton";
 import { useAuth } from "@/auth/AuthProvider";
+import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import {
   reserveUsername,
   resolveEmailFromUsername,
@@ -36,6 +37,8 @@ function friendlyAuthError(message: string) {
 }
 
 export function AuthModal({ open, mode, onClose, onModeChange, forced = false }: Props) {
+  useBodyScrollLock(open);
+
   const { signInEmail, signUpEmail, signInGoogle, firebaseReady } = useAuth();
   const title = useMemo(
     () => (mode === "login" ? "Iniciar sesión" : "Crear cuenta"),
