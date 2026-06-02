@@ -245,10 +245,11 @@ export default function Home() {
         return "tag";
       };
 
-      const cats: Category[] = [];
-      cats.push({ token: "__offers__", label: "Ofertas", icon: "sparkles" });
+      const cats: Category[] = [{ token: "__offers__", label: "Ofertas", icon: "sparkles" }];
 
-      const sorted = Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+      const sorted = Array.from(map.entries()).sort((a, b) =>
+        a[1].localeCompare(b[1], "es", { sensitivity: "base" }),
+      );
       for (const [token, label] of sorted) {
         let display = label;
         if (token === "aa") display = "Exclusivos";
@@ -256,6 +257,7 @@ export default function Home() {
         cats.push({ token, label: display, icon: iconFor(token) });
       }
 
+      cats.sort((a, b) => a.label.localeCompare(b.label, "es", { sensitivity: "base" }));
       setMenuCategories(cats);
     })();
 

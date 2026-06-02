@@ -132,7 +132,6 @@ export function SuggestionsPanel({
     return list;
   }, [products]);
 
-  const visibleProducts = useMemo(() => sortedProducts.slice(0, 4), [sortedProducts]);
   const [selected, setSelected] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMode, setSelectedMode] = useState<"add" | "edit">("add");
@@ -321,7 +320,7 @@ export function SuggestionsPanel({
                 onScroll={updateFades}
               >
                 <motion.div layout className="flex flex-col gap-1 pb-2">
-                  {visibleProducts.map((p) => (
+                  {sortedProducts.map((p) => (
                     <ProductCard
                       key={p.id}
                       product={p}

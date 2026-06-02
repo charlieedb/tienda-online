@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatArs } from "@/lib/format";
 import type { Product } from "@/lib/products";
 import { MotionButton } from "@/components/MotionButton";
@@ -34,10 +34,12 @@ export function ProductCard({
   }, [product.imageUrl]);
 
   const [imgSrc, setImgSrc] = useState<string | null>(product.imageUrl ?? null);
+  const triedFullRef = useRef(false);
   useEffect(() => {
     setImgError(false);
     setImgSrc(product.imageUrl ?? null);
     setImgLoaded(false);
+    triedFullRef.current = false;
   }, [product.imageUrl]);
 
   useEffect(() => {
@@ -121,6 +123,12 @@ export function ProductCard({
               fetchPriority="high"
               onLoad={() => setImgLoaded(true)}
               onError={() => {
+                if (fullImageUrl && imgSrc && imgSrc !== fullImageUrl && !triedFullRef.current) {
+                  triedFullRef.current = true;
+                  setImgLoaded(false);
+                  setImgSrc(fullImageUrl);
+                  return;
+                }
                 setImgError(true);
                 setImgLoaded(false);
               }}
