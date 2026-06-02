@@ -21,7 +21,7 @@ export type Product = {
   offerDiscount?: number;
 };
 
-const MAX_RESULTS = 30;
+const MAX_RESULTS = 500;
 const CATALOG_LIMIT = 400;
 const LS_KEY = "listita.catalog.v1";
 const VERSION_CHECK_TTL_MS = 7_000;
