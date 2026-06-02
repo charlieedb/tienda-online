@@ -20,6 +20,9 @@ type Props = {
   pulse?: number;
 };
 
+const INITIAL_VISIBLE_PRODUCTS = 30;
+const LOAD_MORE_STEP = 30;
+
 export function SuggestionsPanel({
   activeToken,
   onAdded,
@@ -35,6 +38,7 @@ export function SuggestionsPanel({
   const [fadeBottom, setFadeBottom] = useState(false);
   const [fadeLeft, setFadeLeft] = useState(false);
   const [fadeRight, setFadeRight] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_PRODUCTS);
 
   const token = useMemo(
     () => {
@@ -68,7 +72,15 @@ export function SuggestionsPanel({
       setFadeLeft(false);
       setFadeRight(false);
     }
+
+    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 220;
+    const nearRight = el.scrollLeft + el.clientWidth >= el.scrollWidth - 220;
+    if (nearBottom || nearRight) {
+      setVisibleCount((prev) => Math.min(prev + LOAD_MORE_STEP, sortedProductsRef.current.length));
+    }
   };
+
+  const sortedProductsRef = useRef<Product[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,6 +134,19 @@ export function SuggestionsPanel({
     });
     return list;
   }, [products]);
+
+  useEffect(() => {
+    sortedProductsRef.current = sortedProducts;
+  }, [sortedProducts]);
+
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE_PRODUCTS);
+  }, [token, products.length]);
+
+  const visibleProducts = useMemo(
+    () => sortedProducts.slice(0, Math.min(visibleCount, sortedProducts.length)),
+    [sortedProducts, visibleCount],
+  );
 
   const [selected, setSelected] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -289,7 +314,7 @@ export function SuggestionsPanel({
                   onScroll={updateFades}
                 >
                   <div className="flex snap-x snap-mandatory gap-3 pb-2">
-                    {sortedProducts.map((p) => (
+                    {visibleProducts.map((p) => (
                       <div key={p.id} className="w-[82%] shrink-0 snap-center">
                         <ProductCard
                           product={p}
@@ -311,7 +336,7 @@ export function SuggestionsPanel({
                 onScroll={updateFades}
               >
                 <motion.div layout className="flex flex-col gap-1 pb-2">
-                  {sortedProducts.map((p) => (
+                  {visibleProducts.map((p) => (
                     <ProductCard
                       key={p.id}
                       product={p}

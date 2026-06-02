@@ -21,7 +21,6 @@ export type Product = {
   offerDiscount?: number;
 };
 
-const MAX_RESULTS = 500;
 const CATALOG_LIMIT = 400;
 const LS_KEY = "listita.catalog.v1";
 const VERSION_CHECK_TTL_MS = 7_000;
@@ -342,9 +341,7 @@ export async function searchProductsByToken(token: string): Promise<{
 
   // Fallback/augment: local filtering from catalog (covers seed + partial matches).
   const catalog = await getActiveCatalog();
-  const products = catalog
-    .filter((p) => productMatchesToken(p, t))
-    .slice(0, MAX_RESULTS);
+  const products = catalog.filter((p) => productMatchesToken(p, t));
 
   if (products.length > 0) return { products, suggestions: [] };
 
