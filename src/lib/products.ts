@@ -5,6 +5,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
+import { APP_VERSION } from "@/lib/appVersion";
 import { getDb } from "@/lib/firebase";
 import { seedProducts } from "@/lib/seedProducts";
 
@@ -22,7 +23,7 @@ export type Product = {
 };
 
 const CATALOG_LIMIT = 400;
-const LS_KEY = "listita.catalog.v1";
+const LS_KEY = `listita.catalog.${APP_VERSION}`;
 const VERSION_CHECK_TTL_MS = 7_000;
 
 function normalizeForSearch(value: string) {
