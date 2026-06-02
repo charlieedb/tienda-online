@@ -77,6 +77,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
           : [
               {
                 id: "principal",
+                provincia: "",
                 localidad: "",
                 direccion: "",
                 ubicacion: null,
@@ -205,7 +206,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                               ...p,
                               direcciones: [
                                 ...p.direcciones,
-                                { id: newId(), localidad: "", direccion: "", ubicacion: null },
+                                { id: newId(), provincia: "", localidad: "", direccion: "", ubicacion: null },
                               ],
                             }))
                           }
