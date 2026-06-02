@@ -187,8 +187,15 @@ export function SuperList({
         }}
       >
         <div className="relative pb-3">
-          <div className="text-center text-base font-semibold tracking-tight text-black/85 sm:text-lg">
-            Arma tu listita de super
+          <div className="text-center">
+            <span className="relative inline-flex items-center justify-center px-4 py-1.5 font-hand text-[20px] leading-none text-white sm:text-[22px]">
+              <span
+                aria-hidden="true"
+                className="absolute inset-x-0 inset-y-1 -z-10 rounded-[18px] bg-[#d92d34] shadow-[0_8px_18px_rgba(217,45,52,0.28)]"
+                style={{ transform: "rotate(-1.2deg)" }}
+              />
+              Armá tu listita de super
+            </span>
           </div>
           <button
             type="button"

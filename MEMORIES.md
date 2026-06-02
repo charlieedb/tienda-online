@@ -79,3 +79,5 @@ Conclusion practica:
 - Primero revisar `MEMORIES.md`.
 - Antes de cambiar logica de catalogo o auth, confirmar si la tarea depende solo del repo o de archivos/servicios externos.
 - Priorizar arreglos visuales, UX y logica local de la tienda, que son seguros de trabajar desde esta PC.
+- Despues de cada actualizacion, siempre aumentar `APP_VERSION` en `src/lib/appVersion.ts`.
+- Despues de cada actualizacion, siempre pasar el bloque de deploy listo para PowerShell junto con el cambio.
