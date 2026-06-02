@@ -188,11 +188,11 @@ export function SuperList({
       >
         <div className="relative pb-3">
           <div className="text-center">
-            <span className="relative inline-flex items-center justify-center px-4 py-1.5 font-hand text-[20px] leading-none text-white sm:text-[22px]">
+            <span className="relative inline-block font-hand text-[20px] leading-none text-white sm:text-[22px]">
               <span
                 aria-hidden="true"
-                className="absolute inset-x-0 inset-y-1 -z-10 rounded-[18px] bg-[#d92d34] shadow-[0_8px_18px_rgba(217,45,52,0.28)]"
-                style={{ transform: "rotate(-1.2deg)" }}
+                className="pointer-events-none absolute inset-x-[-8px] bottom-[-0.02em] z-[-1] h-[0.95em] rounded-xl bg-[#d92d34]/88 blur-[0.2px]"
+                style={{ transform: "rotate(-1.6deg)" }}
               />
               Armá tu listita de super
             </span>
