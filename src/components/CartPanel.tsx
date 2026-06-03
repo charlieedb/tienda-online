@@ -271,6 +271,76 @@ function CheckoutModal({
   );
 }
 
+function SuccessOverlay({
+  open,
+  onOk,
+}: {
+  open: boolean;
+  onOk: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="fixed inset-0 z-[160] overflow-hidden"
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <div className="absolute inset-0 bg-[#0d1b11]" />
+          <motion.div
+            className="absolute left-1/2 top-1/2 h-[160vmax] w-[160vmax] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,#4ee082_0%,#22c55e_45%,#159947_72%,#0f6e33_100%)] shadow-[0_0_120px_rgba(34,197,94,0.35)]"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 1.08, opacity: 0 }}
+            transition={{ duration: 0.7, ease: [0.2, 0.9, 0.2, 1] }}
+          />
+
+          <motion.div
+            className="relative z-10 flex min-h-dvh flex-col items-center justify-center px-6 text-center text-white"
+            initial={{ opacity: 0, scale: 0.96, y: 18 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ delay: 0.34, duration: 0.34, ease: "easeOut" }}
+          >
+            <motion.div
+              className="mb-5 flex h-24 w-24 items-center justify-center rounded-full border border-white/25 bg-white/12 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-md"
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.42, duration: 0.32, ease: "easeOut" }}
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-12 w-12" fill="none">
+                <path
+                  d="M5 12.5 9.2 16.7 19 7.5"
+                  stroke="currentColor"
+                  strokeWidth="2.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </motion.div>
+
+            <div className="max-w-md">
+              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Pedido enviado</h2>
+              <p className="mt-3 text-sm font-medium text-white/88 sm:text-base">
+                Recibimos tu pedido correctamente. En breve lo vamos a preparar.
+              </p>
+            </div>
+
+            <MotionButton
+              type="button"
+              className="mt-8 h-12 min-w-40 rounded-2xl border border-white/20 !bg-white !px-8 !text-[#12803b] shadow-[0_16px_34px_rgba(0,0,0,0.16)] hover:!bg-white/95"
+              onClick={onOk}
+            >
+              OK
+            </MotionButton>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
 export function CartPanel() {
   const { user } = useAuth();
   const open = useCartStore((s) => s.open);
@@ -280,6 +350,7 @@ export function CartPanel() {
   const itemsCount = useMemo(() => items.reduce((a, i) => a + i.qty, 0), [items]);
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [successOpen, setSuccessOpen] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
@@ -351,6 +422,7 @@ export function CartPanel() {
       clearCart();
       closeCart();
       setCheckoutOpen(false);
+      setSuccessOpen(true);
       setForm({ nombre: "", telefono: "", direccion: "", nota: "" });
     } catch (error) {
       setCheckoutError(error instanceof Error ? error.message : "No se pudo enviar el pedido.");
@@ -433,6 +505,15 @@ export function CartPanel() {
         }}
         onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
         onSubmit={handleSubmitOrder}
+      />
+      <SuccessOverlay
+        open={successOpen}
+        onOk={() => {
+          setSuccessOpen(false);
+          if (typeof window !== "undefined") {
+            window.location.assign("/");
+          }
+        }}
       />
     </>
   );
