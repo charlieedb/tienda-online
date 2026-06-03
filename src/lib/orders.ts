@@ -108,6 +108,19 @@ export type OrdersPage = {
 const PAGE_SIZE = 40;
 const REALTIME_LIMIT = 80;
 
+function statusHistoryLabel(status: OrderStatus) {
+  switch (status) {
+    case "preparing":
+      return "Preparado";
+    case "dispatched":
+      return "Remitado";
+    case "delivered":
+      return "Cobrado";
+    default:
+      return "Nuevo";
+  }
+}
+
 function asNumber(value: unknown) {
   const number = typeof value === "number" ? value : Number(value || 0);
   return Number.isFinite(number) ? number : 0;
@@ -315,7 +328,7 @@ export async function updateOrderWorkflow(params: {
       status: params.status,
       atIso: nowIso,
       actor: params.actor,
-      note: noteParts.join(" · ") || `Estado cambiado a ${params.status}.`,
+      note: noteParts.join(" · ") || `Estado cambiado a ${statusHistoryLabel(params.status)}.`,
     }),
   });
 }

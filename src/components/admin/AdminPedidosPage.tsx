@@ -18,10 +18,25 @@ import {
 
 const STATUS_OPTIONS: Array<{ value: OrderStatus; label: string }> = [
   { value: "new", label: "Nuevo" },
+  { value: "preparing", label: "Preparado" },
+  { value: "dispatched", label: "Remitado" },
+  { value: "delivered", label: "Cobrado" },
+];
+
+const STATUS_ACTIONS: Array<{ value: OrderStatus; label: string }> = [
+  { value: "new", label: "Nuevo" },
   { value: "preparing", label: "En preparacion" },
   { value: "dispatched", label: "Remitar" },
-  { value: "delivered", label: "Entregado" },
+  { value: "delivered", label: "Cobrar" },
 ];
+
+function statusLabel(status: OrderStatus) {
+  return STATUS_OPTIONS.find((option) => option.value === status)?.label || status;
+}
+
+function statusActionLabel(status: OrderStatus) {
+  return STATUS_ACTIONS.find((option) => option.value === status)?.label || statusLabel(status);
+}
 
 function statusPill(status: OrderStatus) {
   switch (status) {
@@ -312,7 +327,7 @@ export function AdminPedidosPage() {
                     note:
                       [remitoNumber ? `Remito ${remitoNumber}` : "", draftValue.note]
                         .filter(Boolean)
-                        .join(" Â· ") || `Estado cambiado a ${status}.`,
+                        .join(" · ") || `Estado cambiado a ${statusLabel(status)}.`,
                   }),
                 },
           ),
@@ -322,6 +337,14 @@ export function AdminPedidosPage() {
       setSavingOrderId(null);
       setSavingStatus(null);
     }
+  }
+
+  async function handleOpenRemito(order: OrderRecord) {
+    await generateOrderRemitoPdf({
+      order,
+      actor: user,
+      remitoNumber: order.dispatch.remitoNumber || undefined,
+    });
   }
 
   if (loading || checkingAdmin) {
@@ -520,7 +543,7 @@ export function AdminPedidosPage() {
                         <span
                           className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusPill(order.status)}`}
                         >
-                          {STATUS_OPTIONS.find((option) => option.value === order.status)?.label || order.status}
+                          {statusLabel(order.status)}
                         </span>
                       </td>
                       <td>{formatMoney(order.totals.total)}</td>
@@ -553,7 +576,7 @@ export function AdminPedidosPage() {
                     <span
                       className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusPill(selectedOrder.status)}`}
                     >
-                      {STATUS_OPTIONS.find((option) => option.value === selectedOrder.status)?.label || selectedOrder.status}
+                      {statusLabel(selectedOrder.status)}
                     </span>
                   ) : null}
                 </div>
@@ -625,7 +648,17 @@ export function AdminPedidosPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {STATUS_OPTIONS.map((option) => (
+                      {selectedOrder.dispatch.remitoNumber ? (
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          onClick={() => void handleOpenRemito(selectedOrder)}
+                          disabled={savingOrderId === selectedOrder.id}
+                        >
+                          Ver remito {selectedOrder.dispatch.remitoNumber}
+                        </button>
+                      ) : null}
+                      {STATUS_ACTIONS.map((option) => (
                         <button
                           key={option.value}
                           type="button"
@@ -639,14 +672,25 @@ export function AdminPedidosPage() {
                               {option.value === "dispatched" ? "Generando..." : "Guardando..."}
                             </span>
                           ) : (
-                            option.label
+                            statusActionLabel(option.value)
                           )}
                         </button>
                       ))}
                     </div>
 
                     <div className="mt-5 rounded-[24px] border border-black/8 bg-[#f7f2eb] p-4">
-                      <div className="text-sm font-semibold text-[#20283b]">Historial</div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-semibold text-[#20283b]">Historial</div>
+                        {selectedOrder.dispatch.remitoNumber ? (
+                          <button
+                            type="button"
+                            className="text-xs font-semibold text-[#8b1e24] underline-offset-4 hover:underline"
+                            onClick={() => void handleOpenRemito(selectedOrder)}
+                          >
+                            Abrir remito {selectedOrder.dispatch.remitoNumber}
+                          </button>
+                        ) : null}
+                      </div>
                       <div className="mt-3 space-y-3">
                         {selectedOrder.history.slice().reverse().map((entry, index) => (
                           <div
@@ -655,9 +699,18 @@ export function AdminPedidosPage() {
                           >
                             <div>
                               <div className="font-semibold text-[#20283b]">
-                                {STATUS_OPTIONS.find((option) => option.value === entry.status)?.label || entry.status}
+                                {statusLabel(entry.status)}
                               </div>
                               <div className="text-black/55">{entry.note || "Sin nota operativa."}</div>
+                              {entry.status === "dispatched" && selectedOrder.dispatch.remitoNumber ? (
+                                <button
+                                  type="button"
+                                  className="mt-1 text-xs font-semibold text-[#8b1e24] underline-offset-4 hover:underline"
+                                  onClick={() => void handleOpenRemito(selectedOrder)}
+                                >
+                                  Ver remito {selectedOrder.dispatch.remitoNumber}
+                                </button>
+                              ) : null}
                             </div>
                             <div className="text-right text-black/45">
                               <div>{entry.actor || "Sistema"}</div>
