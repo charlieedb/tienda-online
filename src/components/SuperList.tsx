@@ -181,16 +181,6 @@ export function SuperList({
         }}
       >
         <div className="relative pb-3">
-          <button
-            type="button"
-            onClick={() => {
-              setValue("");
-              onClear();
-            }}
-            className="absolute right-0 top-0 rounded-xl px-3 py-2 text-xs font-semibold text-black/70 hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
-          >
-            Limpiar
-          </button>
         </div>
         <form
           onSubmit={async (e) => {
@@ -303,11 +293,21 @@ export function SuperList({
           )}
         </div>
 
-        <div className="mt-3">
-            <div className="rounded-2xl border border-border bg-white/70 px-4 py-3 text-center font-hand text-[20px] leading-5 text-black">
-              TOTAL: <span className="font-semibold">{formatArs(total)}</span>
-            </div>
+        <div className="mt-3 flex items-center gap-2">
+          <div className="flex-1 rounded-2xl border border-border bg-white/70 px-4 py-3 text-center font-hand text-[20px] leading-5 text-black">
+            TOTAL: <span className="font-semibold">{formatArs(total)}</span>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              setValue("");
+              onClear();
+            }}
+            className="rounded-2xl border border-border bg-white/70 px-4 py-3 text-center text-xs font-semibold text-black/60 hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
+          >
+            Limpiar
+          </button>
+        </div>
       </div>
     </div>
   );
