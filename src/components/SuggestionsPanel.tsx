@@ -312,7 +312,7 @@ export function SuggestionsPanel({
               }
             : undefined
         }
-        onConfirm={({ product, variant, qty, label, price }) => {
+        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack }) => {
           const newId = `${product.id}:${variant}`;
           if (selectedMode === "edit" && selectedExistingId) {
             if (selectedExistingId === newId) {
@@ -327,6 +327,8 @@ export function SuggestionsPanel({
                   variant,
                   label,
                   price,
+                  unitPriceFinal,
+                  unitsPerPack,
                 },
                 qty,
               );
@@ -340,6 +342,8 @@ export function SuggestionsPanel({
                 variant,
                 label,
                 price,
+                unitPriceFinal,
+                unitsPerPack,
               },
               qty,
             );

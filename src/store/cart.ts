@@ -12,6 +12,8 @@ export type CartItem = {
   variant: "unit" | "pack";
   label: string;
   price: number;
+  unitPriceFinal?: number;
+  unitsPerPack?: number;
   qty: number;
 };
 

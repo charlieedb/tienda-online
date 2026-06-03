@@ -23,6 +23,8 @@ type Props = {
     qty: number;
     label: string;
     price: number;
+    unitPriceFinal: number;
+    unitsPerPack: number;
   }) => void;
 };
 
@@ -268,6 +270,11 @@ export function QuantityModal({
                         qty,
                         label: variantInfo.label,
                         price: variantInfo.price,
+                        unitPriceFinal:
+                          variant === "pack"
+                            ? applyDiscount(product.unit.price)
+                            : variantInfo.price,
+                        unitsPerPack: variant === "pack" ? Math.max(1, product.pack?.qty ?? 1) : 1,
                       });
                     }}
                     disabled={isOut}

@@ -67,6 +67,15 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
                     <div className="text-xs text-black/70">
                       {i.label} · {formatArs(i.price)}
                     </div>
+                    {typeof i.unitPriceFinal === "number" ? (
+                      <div className="mt-1 text-[11px] text-black/60">
+                        Precio unitario final:{" "}
+                        <span className="font-semibold text-black/80">{formatArs(i.unitPriceFinal)}</span>
+                        {i.variant === "pack" && (i.unitsPerPack || 0) > 1 ? (
+                          <span> · {i.unitsPerPack} unid por caja</span>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                   <MotionButton
                     tone="ghost"
@@ -103,6 +112,8 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
                             variant: i.variant,
                             label: i.label,
                             price: i.price,
+                            unitPriceFinal: i.unitPriceFinal,
+                            unitsPerPack: i.unitsPerPack,
                           },
                           1,
                         )

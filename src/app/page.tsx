@@ -823,7 +823,7 @@ export default function Home() {
                 setEditOpen(false);
                 setEditSelectionId(null);
               }}
-              onConfirm={({ product, variant, qty, label, price }) => {
+              onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack }) => {
                 if (!editItemId) return;
                 const prev = items
                   .find((i) => i.id === editItemId)
@@ -845,6 +845,8 @@ export default function Home() {
                       variant,
                       label,
                       price,
+                      unitPriceFinal,
+                      unitsPerPack,
                     },
                     qty,
                   );
