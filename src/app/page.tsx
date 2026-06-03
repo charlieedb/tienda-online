@@ -14,7 +14,7 @@ import { TopBar } from "@/components/TopBar";
 import { AccountSettingsPage } from "@/components/AccountSettingsPage";
 import { normalizeToken } from "@/lib/normalize";
 import { getActiveCatalog, getProductById, startCatalogAutoRefresh } from "@/lib/products";
-import { useCartStore } from "@/store/cart";
+import { clearPersistedCart, useCartStore } from "@/store/cart";
 import { useAuth } from "@/auth/AuthProvider";
 import { APP_VERSION } from "@/lib/appVersion";
 import type { Category } from "@/components/TopBar";
@@ -230,10 +230,30 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuCategories, setMenuCategories] = useState<Category[]>([]);
   const [floatingCategory, setFloatingCategory] = useState<{ token: string; label: string } | null>(null);
+  const lastUserUidRef = useRef<string | null>(null);
+
+  const resetShoppingSession = () => {
+    useCartStore.getState().resetSession();
+    clearPersistedCart();
+    setItems([]);
+    setActiveId(null);
+    setShowOptions(false);
+    setFloatingCategory(null);
+    setShowOffers(false);
+  };
 
   useEffect(() => {
     return startCatalogAutoRefresh();
   }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+    const currentUid = user?.uid || null;
+    if (currentUid && lastUserUidRef.current !== currentUid) {
+      resetShoppingSession();
+    }
+    lastUserUidRef.current = currentUid;
+  }, [user, authLoading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -637,6 +657,7 @@ export default function Home() {
                         tone="ghost"
                         className="h-10 w-full px-4 !text-foreground/80 hover:!bg-foreground/5 sm:w-auto"
                         onClick={async () => {
+                          resetShoppingSession();
                           await signOut();
                           setStage("landing");
                         }}
@@ -732,8 +753,8 @@ export default function Home() {
               menuOpen={menuOpen}
               onToggleMenu={() => setMenuOpen((v) => !v)}
               onGoHome={() => {
+                resetShoppingSession();
                 setStage("landing");
-                setShowOptions(false);
                 setMenuOpen(false);
               }}
               categories={menuCategories}
@@ -745,9 +766,9 @@ export default function Home() {
                 setStage("settings");
               }}
               onSignOut={async () => {
+                resetShoppingSession();
                 await signOut();
                 setStage("landing");
-                setShowOptions(false);
                 setMenuOpen(false);
               }}
             />

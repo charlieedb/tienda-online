@@ -119,7 +119,7 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
         )}
       </div>
 
-      <div className="border-t border-border p-4 pb-6">
+      <div className="border-t border-border px-4 pb-9 pt-4">
         <div className="flex items-center justify-between">
           <div className="text-sm text-black/70">Total</div>
           <div className="text-lg font-semibold text-black">{formatArs(total)}</div>
@@ -433,19 +433,19 @@ export function CartPanel() {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-gradient-to-br from-white via-[#fff6ea] to-[#ffe7d1] backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-center px-4 py-3 pb-[max(env(safe-area-inset-bottom),12px)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/15 bg-[linear-gradient(135deg,rgba(130,7,10,0.98),rgba(225,6,0,0.96)_48%,rgba(92,5,15,0.98))] shadow-[0_-10px_28px_rgba(113,10,18,0.28)] backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-center px-4 py-4 pb-[max(env(safe-area-inset-bottom),22px)]">
           <motion.button
             type="button"
             whileTap={{ scale: 0.985 }}
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#E10600] px-5 py-3 text-sm font-black tracking-wide text-white shadow-xl shadow-black/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
+            className="inline-flex min-h-[52px] items-center gap-3 rounded-[20px] bg-white px-6 py-3 text-sm font-black tracking-wide text-[#B1060F] shadow-[0_16px_32px_rgba(0,0,0,0.24)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
             onClick={() => useCartStore.getState().toggleCart()}
             aria-label="Abrir carrito"
           >
             <span className="relative inline-flex">
               <CartIcon />
               {itemsCount > 0 ? (
-                <span className="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] font-black text-[#E10600] shadow-sm">
+                <span className="absolute -right-3 -top-3 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#FFF200] px-1.5 text-[11px] font-black text-[#B1060F] shadow-[0_8px_18px_rgba(0,0,0,0.28)] ring-2 ring-white">
                   {itemsCount}
                 </span>
               ) : null}
@@ -469,7 +469,7 @@ export function CartPanel() {
 
             {isMobile ? (
               <motion.aside
-                className="fixed bottom-0 left-0 right-0 z-[100] h-[78vh] overflow-hidden rounded-t-3xl bg-gradient-to-b from-[#f7f4f4] to-[#efebeb] shadow-2xl"
+                className="fixed bottom-0 left-0 right-0 z-[100] h-[78vh] overflow-hidden rounded-t-3xl bg-gradient-to-b from-[#f7f4f4] to-[#efebeb] pb-[max(env(safe-area-inset-bottom),10px)] shadow-2xl"
                 initial={{ y: 40, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 40, opacity: 0 }}

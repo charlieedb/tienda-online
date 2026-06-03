@@ -40,18 +40,25 @@ export async function submitCheckoutOrder(params: {
     const packPrice = Number(product?.pack?.price || 0);
     const unidadesPorCaja = Number(product?.pack?.qty || 0);
     const descuentoPct = product?.offer ? Number(product.offerDiscount || 0) : 0;
-    const precioLista = item.variant === "pack" ? packPrice || item.price : unitPrice || item.price;
-    const precioFinal = Number(item.price || 0);
-    const cantidadUnidades = item.variant === "unit" ? Number(item.qty || 0) : 0;
-    const cantidadCajas = item.variant === "pack" ? Number(item.qty || 0) : 0;
-    const subtotal = roundMoney(precioFinal * Number(item.qty || 0));
+    const qty = Number(item.qty || 0);
+    const cantidadCajas = item.variant === "pack" ? qty : 0;
+    const cantidadUnidades =
+      item.variant === "pack"
+        ? qty * Math.max(1, unidadesPorCaja || 1)
+        : qty;
+    const precioListaCaja = item.variant === "pack" ? packPrice || item.price : unitPrice || item.price;
+    const precioFinalCaja = Number(item.price || 0);
+    const divisor = item.variant === "pack" ? Math.max(1, unidadesPorCaja || 1) : 1;
+    const precioLista = roundMoney(precioListaCaja / divisor);
+    const precioFinal = roundMoney(precioFinalCaja / divisor);
+    const subtotal = roundMoney(precioFinal * cantidadUnidades);
 
     return {
       codigo: String(product?.id || item.productId || "").trim(),
       nombre: String(product?.name || item.name || "").trim(),
-      precioLista: roundMoney(precioLista),
+      precioLista,
       descuentoPct,
-      precioFinal: roundMoney(precioFinal),
+      precioFinal,
       cantidadUnidades,
       cantidadCajas,
       subtotal,
@@ -60,7 +67,7 @@ export async function submitCheckoutOrder(params: {
           ? String(product?.pack?.label || `Caja x${unidadesPorCaja || 1}`).trim()
           : String(product?.unit?.label || "Unidad").trim(),
       unidadesPorCaja: item.variant === "pack" ? unidadesPorCaja || 0 : 0,
-      precioUnitarioBase: roundMoney(unitPrice || precioFinal),
+      precioUnitarioBase: roundMoney(unitPrice || precioLista || precioFinal),
       variantLabel: item.variant === "pack" ? "Caja" : "Unidad",
     };
   });
@@ -71,7 +78,7 @@ export async function submitCheckoutOrder(params: {
       acc.totalUnits += item.cantidadUnidades;
       acc.totalBoxes += item.cantidadCajas;
       acc.subtotal = roundMoney(acc.subtotal + item.subtotal);
-      const qtyBase = Math.max(1, item.cantidadUnidades || item.cantidadCajas || 0);
+      const qtyBase = Math.max(1, item.cantidadUnidades || 0);
       const discount = (item.precioLista - item.precioFinal) * qtyBase;
       acc.discountTotal = roundMoney(acc.discountTotal + Math.max(0, discount));
       return acc;

@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+export const CART_STORAGE_KEY = "listita_cart_v1";
+
 export type CartItem = {
   id: string;
   productId: string;
@@ -24,6 +26,7 @@ type CartState = {
   decItem: (id: string) => void;
   removeItem: (id: string) => void;
   clear: () => void;
+  resetSession: () => void;
 };
 
 export const useCartStore = create<CartState>()(
@@ -72,7 +75,17 @@ export const useCartStore = create<CartState>()(
       removeItem: (id) =>
         set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
       clear: () => set({ items: [] }),
+      resetSession: () => set({ open: false, items: [] }),
     }),
-    { name: "listita_cart_v1" },
+    { name: CART_STORAGE_KEY },
   ),
 );
+
+export function clearPersistedCart() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(CART_STORAGE_KEY);
+  } catch {
+    // Ignore privacy / storage errors.
+  }
+}
