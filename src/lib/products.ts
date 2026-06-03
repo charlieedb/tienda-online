@@ -1,12 +1,4 @@
-import {
-  collection,
-  getDocs,
-  limit,
-  query,
-  where,
-} from "firebase/firestore";
 import { APP_VERSION } from "@/lib/appVersion";
-import { getDb } from "@/lib/firebase";
 import { seedProducts } from "@/lib/seedProducts";
 
 export type Product = {
@@ -22,7 +14,6 @@ export type Product = {
   offerDiscount?: number;
 };
 
-const CATALOG_LIMIT = 400;
 const LS_KEY = `listita.catalog.${APP_VERSION}`;
 const VERSION_CHECK_TTL_MS = 7_000;
 
@@ -222,27 +213,9 @@ export async function getActiveCatalog(): Promise<Product[]> {
         return fromApi.items;
       }
 
-      // Fall back to the previous behavior (Firestore or seed).
-      const db = getDb();
-      if (!db) {
-        const items = seedProducts.filter((p) => p.active);
-        cachedCatalog = { at: Date.now(), items };
-        catalogOrigin = "seed";
-        return items;
-      }
-
-      const q = query(
-        collection(db, "products"),
-        where("active", "==", true),
-        limit(CATALOG_LIMIT),
-      );
-      const snap = await getDocs(q);
-      const items = snap.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Product, "id">),
-      }));
+      const items = seedProducts.filter((p) => p.active);
       cachedCatalog = { at: Date.now(), items };
-      catalogOrigin = "firestore";
+      catalogOrigin = "seed";
       return items;
     })().finally(() => {
       inFlightCatalog = null;
@@ -251,26 +224,14 @@ export async function getActiveCatalog(): Promise<Product[]> {
     return inFlightCatalog;
   }
 
-  const db = getDb();
-  if (!db) return seedProducts.filter((p) => p.active);
-
   const now = Date.now();
   if (cachedCatalog && now - cachedCatalog.at < 60_000) return cachedCatalog.items;
   if (inFlightCatalog) return inFlightCatalog;
 
   inFlightCatalog = (async () => {
-    const q = query(
-      collection(db, "products"),
-      where("active", "==", true),
-      limit(CATALOG_LIMIT),
-    );
-    const snap = await getDocs(q);
-    const items = snap.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as Omit<Product, "id">),
-    }));
+    const items = seedProducts.filter((p) => p.active);
     cachedCatalog = { at: Date.now(), items };
-    catalogOrigin = "firestore";
+    catalogOrigin = "seed";
     return items;
   })().finally(() => {
     inFlightCatalog = null;
