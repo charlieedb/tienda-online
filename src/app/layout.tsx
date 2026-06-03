@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Patrick_Hand } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/auth/AuthProvider";
@@ -22,6 +22,15 @@ const hand = Patrick_Hand({
 export const metadata: Metadata = {
   title: "Listita de Súper",
   description: "Armá tu listita y agregá al carrito",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#E10600",
 };
 
 export default function RootLayout({
@@ -37,6 +46,7 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
         <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
       </head>
       <body className="min-h-full flex flex-col">
         <AuthProvider>{children}</AuthProvider>
@@ -44,4 +54,3 @@ export default function RootLayout({
     </html>
   );
 }
-
