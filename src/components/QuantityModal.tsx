@@ -91,7 +91,7 @@ export function QuantityModal({
         <>
           <motion.button
             aria-label="Cerrar"
-            className="modal-backdrop-lite fixed inset-0 z-[60]"
+            className="modal-backdrop-lite fixed inset-0 z-[60] backdrop-blur-[7px] backdrop-saturate-125"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

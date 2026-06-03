@@ -955,13 +955,13 @@ export default function Home() {
                   }}
                 />
 
-                <div className="mt-8 flex justify-center pb-6">
-                  <div className="flex w-full max-w-[560px] flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+                <div className="mt-6 flex justify-center pb-6">
+                  <div className="grid w-full max-w-[560px] grid-cols-2 gap-3 sm:gap-4">
                     <motion.button
                       type="button"
                       onClick={() => setShowOffers(true)}
                       whileTap={{ scale: 0.99 }}
-                      className="flex w-full items-center justify-center rounded-3xl border border-black/10 bg-gradient-to-br from-[#FFE86A] via-[#FFD44D] to-[#FFB84A] p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40 sm:w-auto"
+                      className="flex min-h-[108px] w-full items-center justify-center rounded-3xl border border-black/10 bg-gradient-to-br from-[#FFE86A] via-[#FFD44D] to-[#FFB84A] p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
                       aria-label="Abrir ofertas del día"
                     >
                       <Image
@@ -970,7 +970,7 @@ export default function Home() {
                         width={520}
                         height={180}
                         priority
-                        className="h-16 w-auto select-none object-contain"
+                        className="h-16 w-auto max-w-full select-none object-contain sm:h-[72px]"
                       />
                     </motion.button>
 
@@ -981,7 +981,7 @@ export default function Home() {
                         openCategoryToken({ token: "promo", label: "Combos" });
                       }}
                       whileTap={{ scale: 0.99 }}
-                      className="flex w-full items-center justify-center overflow-hidden rounded-3xl border border-[#0b173d] bg-gradient-to-br from-[#17327C] via-[#13275F] to-[#09132E] px-2 py-1 shadow-[0_14px_28px_rgba(5,10,28,0.35)] hover:shadow-[0_18px_36px_rgba(5,10,28,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1f4ed8] sm:w-auto"
+                      className="flex min-h-[108px] w-full items-center justify-center overflow-hidden rounded-3xl border border-[#0b173d] bg-gradient-to-br from-[#17327C] via-[#13275F] to-[#09132E] px-2 py-1 shadow-[0_14px_28px_rgba(5,10,28,0.35)] hover:shadow-[0_18px_36px_rgba(5,10,28,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1f4ed8]"
                       aria-label="Abrir combos"
                     >
                       <Image
@@ -990,7 +990,7 @@ export default function Home() {
                         width={520}
                         height={180}
                         priority
-                        className="h-24 w-auto max-w-full select-none object-contain sm:h-28"
+                        className="h-16 w-auto max-w-full select-none object-contain sm:h-[72px]"
                       />
                     </motion.button>
                   </div>

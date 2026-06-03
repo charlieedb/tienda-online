@@ -119,7 +119,7 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
         )}
       </div>
 
-      <div className="border-t border-border px-4 pb-9 pt-4">
+      <div className="border-t border-border px-4 pb-11 pt-5">
         <div className="flex items-center justify-between">
           <div className="text-sm text-black/70">Total</div>
           <div className="text-lg font-semibold text-black">{formatArs(total)}</div>
@@ -433,12 +433,12 @@ export function CartPanel() {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/15 bg-[linear-gradient(135deg,rgba(130,7,10,0.98),rgba(225,6,0,0.96)_48%,rgba(92,5,15,0.98))] shadow-[0_-10px_28px_rgba(113,10,18,0.28)] backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-center px-4 py-4 pb-[max(env(safe-area-inset-bottom),22px)]">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/12 bg-[#E10600] shadow-[0_-10px_28px_rgba(113,10,18,0.28)] backdrop-blur-md">
+        <div className="relative mx-auto w-full max-w-6xl px-4 pb-[max(env(safe-area-inset-bottom),22px)] pt-8">
           <motion.button
             type="button"
             whileTap={{ scale: 0.985 }}
-            className="inline-flex min-h-[52px] items-center gap-3 rounded-[20px] bg-white px-6 py-3 text-sm font-black tracking-wide text-[#B1060F] shadow-[0_16px_32px_rgba(0,0,0,0.24)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+            className="absolute left-1/2 top-0 inline-flex min-h-[56px] -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-[22px] bg-white px-6 py-3 text-sm font-black tracking-wide text-[#B1060F] shadow-[0_18px_34px_rgba(0,0,0,0.24)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
             onClick={() => useCartStore.getState().toggleCart()}
             aria-label="Abrir carrito"
           >
@@ -452,6 +452,7 @@ export function CartPanel() {
             </span>
             <span>CARRITO</span>
           </motion.button>
+          <div className="h-7" />
         </div>
       </div>
 
