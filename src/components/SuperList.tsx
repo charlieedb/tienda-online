@@ -188,13 +188,8 @@ export function SuperList({
       >
         <div className="relative pb-3">
           <div className="text-center">
-            <span className="relative inline-block font-hand text-[20px] leading-none text-white sm:text-[22px]">
-              <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-x-[-8px] bottom-[-0.02em] z-[-1] h-[0.95em] rounded-xl bg-[#d92d34]/88 blur-[0.2px]"
-                style={{ transform: "rotate(-1.6deg)" }}
-              />
-              Armá tu listita de super
+            <span className="inline-block text-[24px] font-black italic leading-none tracking-[-0.03em] text-[#6D0F17] sm:text-[28px]">
+              Armá tu listita!
             </span>
           </div>
           <button
@@ -249,7 +244,7 @@ export function SuperList({
             }
           }}
         >
-          <div className="relative">
+          <div className="relative mx-auto w-full max-w-[92%] sm:max-w-[88%]">
             <input
               ref={inputRef}
               value={value}
@@ -257,8 +252,8 @@ export function SuperList({
                 setValue(e.target.value);
                 if (pending) setPending(null);
               }}
-              placeholder="que necesitas?"
-              className="w-full rounded-2xl border border-black/10 bg-white/96 py-3.5 pl-4 pr-14 text-base text-black shadow-[0_18px_34px_rgba(17,24,39,0.16),0_6px_14px_rgba(255,255,255,0.7)] outline-none ring-2 ring-[#2b3bb8]/12 placeholder:text-black/42 focus:border-[#2b3bb8]/28 focus:ring-[#2b3bb8]/24"
+              placeholder="¿Qué necesitas?"
+              className="w-full rounded-2xl border border-black/10 bg-white/96 py-3.5 pl-4 pr-14 text-center text-base text-black shadow-[0_18px_34px_rgba(17,24,39,0.16),0_6px_14px_rgba(255,255,255,0.7)] outline-none ring-2 ring-[#2b3bb8]/12 placeholder:text-center placeholder:text-black/42 focus:border-[#2b3bb8]/28 focus:ring-[#2b3bb8]/24"
             />
             {value.trim().length > 0 ? (
               <button
