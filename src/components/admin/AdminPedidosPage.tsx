@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { getAdminProfile, type AdminProfile } from "@/lib/adminAuth";
+import { generateOrderRemitoPdf } from "@/lib/remitoPdf";
 import {
   buildMetrics,
   fetchRecentSearchEvents,
@@ -18,7 +19,7 @@ import {
 const STATUS_OPTIONS: Array<{ value: OrderStatus; label: string }> = [
   { value: "new", label: "Nuevo" },
   { value: "preparing", label: "En preparacion" },
-  { value: "dispatched", label: "Remitado" },
+  { value: "dispatched", label: "Remitar" },
   { value: "delivered", label: "Entregado" },
 ];
 
@@ -83,7 +84,8 @@ function LogoutIcon() {
 }
 
 export function AdminPedidosPage() {
-  const { user, loading, signInEmail, signOut } = useAuth();
+  const { user, loading, signInEmailSession, signOut } = useAuth();
+  const [adminSessionActive, setAdminSessionActive] = useState(false);
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -102,10 +104,15 @@ export function AdminPedidosPage() {
   const [weekStartMs] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    setAdminSessionActive(window.sessionStorage.getItem("adminPedidosSession") === "1");
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function check() {
-      if (!user) {
+      if (!user || !adminSessionActive) {
         if (!cancelled) {
           setAdminProfile(null);
           setCheckingAdmin(false);
@@ -128,7 +135,7 @@ export function AdminPedidosPage() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, adminSessionActive]);
 
   useEffect(() => {
     if (!adminProfile) return;
@@ -217,10 +224,22 @@ export function AdminPedidosPage() {
       }
     : null;
 
+  async function handleAdminSignOut() {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem("adminPedidosSession");
+    }
+    setAdminSessionActive(false);
+    await signOut();
+  }
+
   async function handleLogin() {
     setAuthError("");
     try {
-      await signInEmail(loginForm.email.trim(), loginForm.password);
+      await signInEmailSession(loginForm.email.trim(), loginForm.password);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("adminPedidosSession", "1");
+      }
+      setAdminSessionActive(true);
     } catch (error) {
       setAuthError(String((error as Error)?.message || error || "No se pudo iniciar sesion."));
     }
@@ -232,11 +251,28 @@ export function AdminPedidosPage() {
     const nowIso = new Date().toISOString();
     setSavingOrderId(order.id);
     try {
+      let remitoNumber = draftValue.remito;
+      if (status === "dispatched") {
+        remitoNumber = await generateOrderRemitoPdf({
+          order,
+          actor: user,
+          remitoNumber: draftValue.remito,
+        });
+
+        setDispatchDrafts((prev) => ({
+          ...prev,
+          [order.id]: {
+            remito: remitoNumber,
+            note: prev[order.id]?.note || draftValue.note || "",
+          },
+        }));
+      }
+
       await updateOrderWorkflow({
         orderId: order.id,
         status,
         actor: user.email || user.uid,
-        remitoNumber: draftValue.remito,
+        remitoNumber,
         observaciones: draftValue.note,
       });
 
@@ -249,7 +285,7 @@ export function AdminPedidosPage() {
                   ...entry,
                   status,
                   dispatch: {
-                    remitoNumber: draftValue.remito || null,
+                    remitoNumber: remitoNumber || null,
                     observaciones: draftValue.note,
                     remitidoAtIso: status === "dispatched" ? nowIso : entry.dispatch.remitidoAtIso,
                   },
@@ -263,9 +299,9 @@ export function AdminPedidosPage() {
                     atIso: nowIso,
                     actor: user.email || user.uid,
                     note:
-                      [draftValue.remito ? `Remito ${draftValue.remito}` : "", draftValue.note]
+                      [remitoNumber ? `Remito ${remitoNumber}` : "", draftValue.note]
                         .filter(Boolean)
-                        .join(" · ") || `Estado cambiado a ${status}.`,
+                        .join(" Â· ") || `Estado cambiado a ${status}.`,
                   }),
                 },
           ),
@@ -284,7 +320,7 @@ export function AdminPedidosPage() {
     );
   }
 
-  if (!user) {
+  if (!user || !adminSessionActive) {
     return (
       <main className="admin-shell">
         <section className="admin-card mx-auto max-w-xl overflow-hidden">
@@ -349,7 +385,7 @@ export function AdminPedidosPage() {
             </div>
           </div>
           <div className="admin-card__body flex justify-end">
-            <button type="button" className="btn ghost" onClick={() => void signOut()}>
+            <button type="button" className="btn ghost" onClick={() => void handleAdminSignOut()}>
               Cerrar sesion
             </button>
           </div>
@@ -368,7 +404,7 @@ export function AdminPedidosPage() {
           <div className="admin-kicker admin-kicker--light">Admin pedidos</div>
           <div className="admin-topbar__title">Centro de control</div>
         </div>
-        <button type="button" className="admin-topbar__icon" aria-label="Salir" onClick={() => void signOut()}>
+        <button type="button" className="admin-topbar__icon" aria-label="Salir" onClick={() => void handleAdminSignOut()}>
           <LogoutIcon />
         </button>
       </div>
@@ -497,7 +533,7 @@ export function AdminPedidosPage() {
                     </h3>
                     <p className="mt-1 text-sm text-black/55">
                       {selectedOrder
-                        ? `${selectedOrder.cliente.telefono || "Sin telefono"} · ${selectedOrder.cliente.direccion || "Sin direccion"}`
+                        ? `${selectedOrder.cliente.telefono || "Sin telefono"} Â· ${selectedOrder.cliente.direccion || "Sin direccion"}`
                         : "El panel lateral muestra articulos, remito y acciones."}
                     </p>
                   </div>
@@ -532,7 +568,7 @@ export function AdminPedidosPage() {
                             <div>Final: {formatMoney(item.precioFinal)}</div>
                             <div>Desc.: {item.descuentoPct ? `${item.descuentoPct}%` : "Sin descuento"}</div>
                             <div>
-                              Unid.: {item.cantidadUnidades} · Cajas: {item.cantidadCajas}
+                              Unid.: {item.cantidadUnidades} Â· Cajas: {item.cantidadCajas}
                             </div>
                           </div>
                         </div>
@@ -660,7 +696,7 @@ export function AdminPedidosPage() {
                     <div>
                       <div className="font-semibold text-[#20283b]">{product.nombre}</div>
                       <div className="text-black/48">
-                        {product.codigo} · {product.unidades} unid. · {product.cajas} cajas
+                        {product.codigo} Â· {product.unidades} unid. Â· {product.cajas} cajas
                       </div>
                     </div>
                     <div className="font-semibold text-[#20283b]">{formatMoney(product.total)}</div>
@@ -692,3 +728,5 @@ export function AdminPedidosPage() {
     </main>
   );
 }
+
+

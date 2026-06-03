@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import {
   GoogleAuthProvider,
   browserLocalPersistence,
+  browserSessionPersistence,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   setPersistence,
@@ -21,6 +22,7 @@ type AuthContextValue = {
   loading: boolean;
   firebaseReady: boolean;
   signInEmail: (email: string, password: string) => Promise<UserCredential>;
+  signInEmailSession: (email: string, password: string) => Promise<UserCredential>;
   signUpEmail: (email: string, password: string) => Promise<UserCredential>;
   signInGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -96,15 +98,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       firebaseReady: Boolean(auth),
       signInEmail: async (email, password) => {
-        if (!auth) throw new Error("Firebase no está configurado.");
+        if (!auth) throw new Error("Firebase no estÃ¡ configurado.");
+        await setPersistence(auth, browserLocalPersistence);
+        return signInWithEmailAndPassword(auth, email, password);
+      },
+      signInEmailSession: async (email, password) => {
+        if (!auth) throw new Error("Firebase no estÃ¡ configurado.");
+        await setPersistence(auth, browserSessionPersistence);
         return signInWithEmailAndPassword(auth, email, password);
       },
       signUpEmail: async (email, password) => {
-        if (!auth) throw new Error("Firebase no está configurado.");
+        if (!auth) throw new Error("Firebase no estÃ¡ configurado.");
+        await setPersistence(auth, browserLocalPersistence);
         return createUserWithEmailAndPassword(auth, email, password);
       },
       signInGoogle: async () => {
-        if (!auth) throw new Error("Firebase no está configurado.");
+        if (!auth) throw new Error("Firebase no estÃ¡ configurado.");
         const provider = new GoogleAuthProvider();
         try {
           await signInWithPopup(auth, provider);
@@ -127,4 +136,6 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth debe usarse dentro de <AuthProvider>.");
   return ctx;
 }
+
+
 
