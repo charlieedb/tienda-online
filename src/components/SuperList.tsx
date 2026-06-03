@@ -3,11 +3,10 @@
 import { AnimatePresence, motion, useMotionValue, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { normalizeToken } from "@/lib/normalize";
-import { getProductById, searchProductsByToken } from "@/lib/products";
+import { getProductById } from "@/lib/products";
 import { useCartStore } from "@/store/cart";
 import { formatArs } from "@/lib/format";
 import { StrikeThrough } from "@/components/StrikeThrough";
-import { RequestLoggedModal } from "@/components/RequestLoggedModal";
 
 export type Selection = {
   id: string; // `${productId}:${variant}`
@@ -105,17 +104,12 @@ export function SuperList({
   onRemoveItem,
 }: Props) {
   const [value, setValue] = useState("");
+  const [inputFocused, setInputFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listScrollRef = useRef<HTMLDivElement | null>(null);
   const [fadeTop, setFadeTop] = useState(false);
   const [fadeBottom, setFadeBottom] = useState(false);
-  const [pending, setPending] = useState<{ raw: string; suggestions: string[] } | null>(
-    null,
-  );
-  const [checking, setChecking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [requestOpen, setRequestOpen] = useState(false);
-  const [requestedText, setRequestedText] = useState<string | null>(null);
   const [unitsPerSelection, setUnitsPerSelection] = useState<Record<string, number>>(
     {},
   );
@@ -187,11 +181,6 @@ export function SuperList({
         }}
       >
         <div className="relative pb-3">
-          <div className="text-center">
-            <span className="inline-block text-[24px] font-black italic leading-none tracking-[-0.03em] text-[#6D0F17] sm:text-[28px]">
-              Armá tu listita!
-            </span>
-          </div>
           <button
             type="button"
             onClick={() => {
@@ -217,31 +206,9 @@ export function SuperList({
               return;
             }
 
-            setChecking(true);
-            try {
-              const res = await searchProductsByToken(raw);
-              if (res.products.length > 0) {
-                setPending(null);
-                onAddItem(raw);
-                setValue("");
-                queueMicrotask(() => inputRef.current?.focus());
-                return;
-              }
-
-              if (res.suggestions.length > 0) {
-                setPending({ raw, suggestions: res.suggestions });
-                return;
-              }
-
-              setPending(null);
-              onAddItem(raw, { noResults: true });
-              setRequestedText(raw);
-              setRequestOpen(true);
-              setValue("");
-              queueMicrotask(() => inputRef.current?.focus());
-            } finally {
-              setChecking(false);
-            }
+            onAddItem(raw);
+            setValue("");
+            queueMicrotask(() => inputRef.current?.focus());
           }}
         >
           <div className="relative mx-auto w-full max-w-[92%] sm:max-w-[88%]">
@@ -250,10 +217,16 @@ export function SuperList({
               value={value}
               onChange={(e) => {
                 setValue(e.target.value);
-                if (pending) setPending(null);
               }}
-              placeholder="¿Qué necesitas?"
-              className="w-full rounded-2xl border border-black/10 bg-white/96 py-3.5 pl-4 pr-14 text-center text-base text-black shadow-[0_18px_34px_rgba(17,24,39,0.16),0_6px_14px_rgba(255,255,255,0.7)] outline-none ring-2 ring-[#2b3bb8]/12 placeholder:text-center placeholder:text-black/42 focus:border-[#2b3bb8]/28 focus:ring-[#2b3bb8]/24"
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              placeholder={inputFocused ? "" : "¿Qué necesitas?"}
+              className={[
+                "w-full rounded-2xl border border-black/10 bg-white/96 py-3.5 text-base text-black shadow-[0_18px_34px_rgba(17,24,39,0.16),0_6px_14px_rgba(255,255,255,0.7)] outline-none ring-2 ring-[#2b3bb8]/12 focus:border-[#2b3bb8]/28 focus:ring-[#2b3bb8]/24",
+                value.trim().length > 0 || inputFocused
+                  ? "pl-4 pr-14 text-left"
+                  : "px-4 text-center placeholder:text-center",
+              ].join(" ")}
             />
             {value.trim().length > 0 ? (
               <button
@@ -267,59 +240,9 @@ export function SuperList({
           </div>
         </form>
 
-        {pending ? (
-          <div className="mt-3 rounded-2xl border border-border bg-white/70 p-3">
-            <div className="text-xs font-semibold text-black/70">
-              Quizás quisiste buscar:
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {pending.suggestions.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => {
-                    const token = normalizeToken(s);
-                    if (token && items.some((i) => i.token === token)) {
-                      setPending(null);
-                      setNotice("Ese ítem ya está en la lista.");
-                      setValue("");
-                      queueMicrotask(() => inputRef.current?.focus());
-                      return;
-                    }
-                    setPending(null);
-                    onAddItem(s);
-                    setValue("");
-                    queueMicrotask(() => inputRef.current?.focus());
-                  }}
-                  className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-semibold text-black/80 hover:bg-black/5"
-                >
-                  {s}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setPending(null)}
-                className="rounded-full px-3 py-1 text-xs font-semibold text-black/55 hover:bg-black/5"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        {checking ? (
-          <div className="mt-2 text-xs font-semibold text-black/45">Buscando…</div>
-        ) : null}
-
         {notice ? (
           <div className="mt-2 text-xs font-semibold text-red-700">{notice}</div>
         ) : null}
-
-        <RequestLoggedModal
-          open={requestOpen}
-          productText={requestedText ?? undefined}
-          onClose={() => setRequestOpen(false)}
-        />
 
         <div className="relative mt-4 flex-1">
           {items.length === 0 ? (

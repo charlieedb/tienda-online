@@ -378,13 +378,13 @@ export default function Home() {
       source: "category",
     });
     setItems((prev) => [
+      ...prev,
       upsertSelection(it, {
         id,
         productId: info.productId,
         variant: info.variant,
         qty: info.qty,
       }),
-      ...prev,
     ]);
     setActiveId(it.id);
     setFloatingCategory(null);
@@ -418,7 +418,7 @@ export default function Home() {
         ...createItem("Ofertas", { source: "offer" }),
         offer: true,
       };
-      return [upsertSelection(it, { id: offerId, productId: info.productId, variant: info.variant, qty: info.qty }), ...prev];
+      return [...prev, upsertSelection(it, { id: offerId, productId: info.productId, variant: info.variant, qty: info.qty })];
     });
   };
 
@@ -910,7 +910,7 @@ export default function Home() {
                   activeId={activeId}
                   onAddItem={(raw, opts) => {
                     const it = createItemWithOpts(raw, opts);
-                    setItems((prev) => [it, ...prev]);
+                    setItems((prev) => [...prev, it]);
                     setActiveId(it.id);
                     setFloatingCategory(null);
                     setShowOptions(false);
