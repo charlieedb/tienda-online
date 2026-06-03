@@ -28,6 +28,10 @@ export type OrderItem = {
   cantidadUnidades: number;
   cantidadCajas: number;
   subtotal: number;
+  presentacion?: string;
+  unidadesPorCaja?: number;
+  precioUnitarioBase?: number;
+  variantLabel?: string;
 };
 
 export type OrderRecord = {
@@ -144,7 +148,7 @@ function mapOrder(
       nota: asString(data?.cliente?.nota),
     },
     items: Array.isArray(data?.items)
-      ? data.items.map((item: DocumentData) => ({
+        ? data.items.map((item: DocumentData) => ({
           codigo: asString(item?.codigo),
           nombre: asString(item?.nombre),
           precioLista: asNumber(item?.precioLista),
@@ -153,6 +157,10 @@ function mapOrder(
           cantidadUnidades: asNumber(item?.cantidadUnidades),
           cantidadCajas: asNumber(item?.cantidadCajas),
           subtotal: asNumber(item?.subtotal),
+          presentacion: asString(item?.presentacion),
+          unidadesPorCaja: asNumber(item?.unidadesPorCaja),
+          precioUnitarioBase: asNumber(item?.precioUnitarioBase),
+          variantLabel: asString(item?.variantLabel),
         }))
       : [],
     totals: {

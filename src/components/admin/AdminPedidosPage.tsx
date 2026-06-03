@@ -83,6 +83,15 @@ function LogoutIcon() {
   );
 }
 
+function ButtonSpinner() {
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+    />
+  );
+}
+
 export function AdminPedidosPage() {
   const { user, loading, signInEmailSession, signOut } = useAuth();
   const [adminSessionActive, setAdminSessionActive] = useState(false);
@@ -92,6 +101,7 @@ export function AdminPedidosPage() {
   const [searches, setSearches] = useState<SearchEvent[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
+  const [savingStatus, setSavingStatus] = useState<OrderStatus | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [authError, setAuthError] = useState("");
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
@@ -250,6 +260,7 @@ export function AdminPedidosPage() {
     const draftValue = dispatchDrafts[order.id] || { remito: "", note: "" };
     const nowIso = new Date().toISOString();
     setSavingOrderId(order.id);
+    setSavingStatus(status);
     try {
       let remitoNumber = draftValue.remito;
       if (status === "dispatched") {
@@ -309,6 +320,7 @@ export function AdminPedidosPage() {
       });
     } finally {
       setSavingOrderId(null);
+      setSavingStatus(null);
     }
   }
 
@@ -621,7 +633,14 @@ export function AdminPedidosPage() {
                           onClick={() => void handleStatusChange(selectedOrder, option.value)}
                           disabled={savingOrderId === selectedOrder.id}
                         >
-                          {option.label}
+                          {savingOrderId === selectedOrder.id && savingStatus === option.value ? (
+                            <span className="inline-flex items-center gap-2">
+                              <ButtonSpinner />
+                              {option.value === "dispatched" ? "Generando..." : "Guardando..."}
+                            </span>
+                          ) : (
+                            option.label
+                          )}
                         </button>
                       ))}
                     </div>

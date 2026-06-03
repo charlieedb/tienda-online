@@ -8,7 +8,7 @@ import type { OrderRecord } from "@/lib/orders";
 type JsPdfModule = typeof import("jspdf");
 type AutoTableModule = typeof import("jspdf-autotable");
 
-const LOGO_SRC = "/jonico-logo.png";
+const LOGO_SRC = "/logo-joma.png";
 let logoDataUrlPromise: Promise<string | null> | null = null;
 
 function fmtMoneyAR(value: number) {
@@ -101,20 +101,27 @@ export async function generateOrderRemitoPdf(params: {
   const pageWidth = docPdf.internal.pageSize.width;
 
   const rawAddress = String(params.order.cliente.direccion || "").trim();
-  const actorLabel = params.actor?.email || params.actor?.uid || "Admin";
+  const telefonoCliente = String(params.order.cliente.telefono || "").trim();
   const notas = [params.order.cliente.nota, params.order.dispatch.observaciones]
     .map((value) => String(value || "").trim())
     .filter(Boolean);
 
   const productos = params.order.items.map((item) => {
-    const precioDesc = Number(item.precioFinal || 0);
+    const precioUnitarioBase = Number(item.precioUnitarioBase || item.precioLista || 0);
+    const descuentoPct = Number(item.descuentoPct || 0);
+    const precioUnitarioFinal =
+      descuentoPct > 0
+        ? precioUnitarioBase * (1 - descuentoPct / 100)
+        : Number(item.precioFinal || 0) || precioUnitarioBase;
+    const presentacion = String(item.presentacion || "").trim();
+    const descripcion = presentacion ? `${item.nombre} - ${presentacion}` : item.nombre || "";
     return [
       item.cantidadCajas || 0,
-      item.cantidadUnidades || 0,
-      item.nombre || "",
-      fmtMoneyAR(item.precioLista),
-      `${Number(item.descuentoPct || 0)}%`,
-      fmtMoneyAR(precioDesc),
+      item.cantidadUnidades || (item.cantidadCajas && item.unidadesPorCaja ? item.cantidadCajas * item.unidadesPorCaja : 0),
+      descripcion,
+      fmtMoneyAR(precioUnitarioBase),
+      `${descuentoPct}%`,
+      fmtMoneyAR(precioUnitarioFinal),
       fmtMoneyAR(item.subtotal),
     ];
   });
@@ -128,9 +135,9 @@ export async function generateOrderRemitoPdf(params: {
     const xBoxY = HEADER_Y;
 
     if (logoDataUrl) {
-      const logoW = 54;
-      const logoX = MARGIN_X + 18;
-      const logoY = HEADER_Y + 7;
+      const logoW = 64;
+      const logoX = MARGIN_X + 10;
+      const logoY = HEADER_Y + 6;
       docPdf.addImage(logoDataUrl, "PNG", logoX, logoY, logoW, 0);
     }
 
@@ -159,8 +166,8 @@ export async function generateOrderRemitoPdf(params: {
 
     const vCliente = toTitleCase(params.order.cliente.nombre || "-");
     const vDom = toTitleCase(rawAddress || "-");
-    const vHorario = "A coordinar";
-    const vVendedor = toTitleCase(actorLabel || "-");
+    const vHorario = telefonoCliente || "-";
+    const vVendedor = "Compra online";
 
     docPdf.setFontSize(10);
     docPdf.setFont("helvetica", "normal");
@@ -261,7 +268,7 @@ export async function generateOrderRemitoPdf(params: {
     const renderTabla = (rows: Array<Array<string | number>>, pageNum: number) => {
       autoTable(docPdf, {
         startY,
-        head: [["Cajas", "Unid.", "Descripción", "Pr. Unit.", "Desc.", "Pr. Desc.", "Sub Total"]],
+        head: [["Cajas", "Unid.", "Descripción", "Pr. Unit.", "Desc.", "Pr. Final", "Sub Total"]],
         body: rows,
         styles: { fontSize: 10, halign: "center", textColor: [0, 0, 0], lineWidth: 0.15 },
         columnStyles: {

@@ -38,6 +38,7 @@ export async function submitCheckoutOrder(params: {
     const product = params.productsById.get(item.productId);
     const unitPrice = Number(product?.unit?.price || 0);
     const packPrice = Number(product?.pack?.price || 0);
+    const unidadesPorCaja = Number(product?.pack?.qty || 0);
     const descuentoPct = product?.offer ? Number(product.offerDiscount || 0) : 0;
     const precioLista = item.variant === "pack" ? packPrice || item.price : unitPrice || item.price;
     const precioFinal = Number(item.price || 0);
@@ -54,6 +55,13 @@ export async function submitCheckoutOrder(params: {
       cantidadUnidades,
       cantidadCajas,
       subtotal,
+      presentacion:
+        item.variant === "pack"
+          ? String(product?.pack?.label || `Caja x${unidadesPorCaja || 1}`).trim()
+          : String(product?.unit?.label || "Unidad").trim(),
+      unidadesPorCaja: item.variant === "pack" ? unidadesPorCaja || 0 : 0,
+      precioUnitarioBase: roundMoney(unitPrice || precioFinal),
+      variantLabel: item.variant === "pack" ? "Caja" : "Unidad",
     };
   });
 
