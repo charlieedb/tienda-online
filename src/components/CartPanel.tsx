@@ -1,10 +1,14 @@
-"use client";
+﻿"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { formatArs } from "@/lib/format";
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/auth/AuthProvider";
 import { MotionButton } from "@/components/MotionButton";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { submitCheckoutOrder } from "@/lib/checkoutOrders";
+import { formatArs } from "@/lib/format";
+import { getActiveCatalog, type Product } from "@/lib/products";
+import { getUserProfile } from "@/lib/userProfile";
 import { useCartStore } from "@/store/cart";
 
 function CartIcon() {
@@ -75,8 +79,7 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
 
                 <div className="mt-2 flex items-center justify-between">
                   <div className="text-xs text-black/70">
-                    Subtotal:{" "}
-                    <span className="font-semibold text-black">{formatArs(i.price * i.qty)}</span>
+                    Subtotal: <span className="font-semibold text-black">{formatArs(i.price * i.qty)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MotionButton
@@ -129,12 +132,232 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
   );
 }
 
+type CheckoutForm = {
+  nombre: string;
+  telefono: string;
+  direccion: string;
+  nota: string;
+};
+
+function buildAddress(address: {
+  direccion?: string;
+  localidad?: string;
+  provincia?: string;
+} | null) {
+  if (!address) return "";
+  return [address.direccion, address.localidad, address.provincia]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
+function CheckoutModal({
+  open,
+  loadingProfile,
+  form,
+  submitting,
+  error,
+  onClose,
+  onChange,
+  onSubmit,
+}: {
+  open: boolean;
+  loadingProfile: boolean;
+  form: CheckoutForm;
+  submitting: boolean;
+  error: string;
+  onClose: () => void;
+  onChange: (patch: Partial<CheckoutForm>) => void;
+  onSubmit: () => void;
+}) {
+  const canSubmit =
+    String(form.nombre || "").trim().length > 0 &&
+    String(form.telefono || "").trim().length > 0 &&
+    String(form.direccion || "").trim().length > 0 &&
+    !submitting;
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <>
+          <motion.button
+            aria-label="Cerrar"
+            className="modal-backdrop-lite fixed inset-0 z-[120]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="fixed left-1/2 top-1/2 z-[130] w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f7f4f4] shadow-2xl"
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 520, damping: 40 }}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="border-b border-border px-5 py-4">
+              <div className="text-sm font-semibold text-black">Finalizar pedido</div>
+              <div className="mt-1 text-xs text-black/70">
+                Completamos tus datos desde tu perfil y podés corregirlos si hace falta.
+              </div>
+            </div>
+            <div className="space-y-4 px-5 py-4">
+              {loadingProfile ? (
+                <div className="rounded-2xl border border-border bg-white/70 px-4 py-3 text-xs text-black/70">
+                  Cargando tus datos...
+                </div>
+              ) : null}
+              {error ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                  {error}
+                </div>
+              ) : null}
+
+              <label className="block text-xs font-semibold text-black/70">
+                Nombre
+                <input
+                  className="mt-1 h-11 w-full rounded-2xl border border-border bg-white px-4 text-sm text-black outline-none"
+                  value={form.nombre}
+                  onChange={(e) => onChange({ nombre: e.target.value })}
+                  placeholder="Tu nombre"
+                />
+              </label>
+
+              <label className="block text-xs font-semibold text-black/70">
+                Teléfono
+                <input
+                  className="mt-1 h-11 w-full rounded-2xl border border-border bg-white px-4 text-sm text-black outline-none"
+                  value={form.telefono}
+                  onChange={(e) => onChange({ telefono: e.target.value })}
+                  placeholder="WhatsApp o teléfono"
+                  inputMode="tel"
+                />
+              </label>
+
+              <label className="block text-xs font-semibold text-black/70">
+                Dirección
+                <input
+                  className="mt-1 h-11 w-full rounded-2xl border border-border bg-white px-4 text-sm text-black outline-none"
+                  value={form.direccion}
+                  onChange={(e) => onChange({ direccion: e.target.value })}
+                  placeholder="Dirección de entrega"
+                />
+              </label>
+
+              <label className="block text-xs font-semibold text-black/70">
+                Nota
+                <input
+                  className="mt-1 h-11 w-full rounded-2xl border border-border bg-white px-4 text-sm text-black outline-none"
+                  value={form.nota}
+                  onChange={(e) => onChange({ nota: e.target.value })}
+                  placeholder="Aclaraciones (opcional)"
+                />
+              </label>
+            </div>
+            <div className="flex gap-3 border-t border-border px-5 py-4">
+              <MotionButton type="button" tone="ghost" className="h-11 flex-1" onClick={onClose}>
+                Cancelar
+              </MotionButton>
+              <MotionButton type="button" className="h-11 flex-1" onClick={onSubmit} disabled={!canSubmit}>
+                {submitting ? "Enviando..." : "Enviar pedido"}
+              </MotionButton>
+            </div>
+          </motion.div>
+        </>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
 export function CartPanel() {
+  const { user } = useAuth();
   const open = useCartStore((s) => s.open);
+  const items = useCartStore((s) => s.items);
+  const clearCart = useCartStore((s) => s.clear);
   const closeCart = useCartStore((s) => s.closeCart);
-  const itemsCount = useCartStore((s) => s.items.reduce((a, i) => a + i.qty, 0));
+  const itemsCount = useMemo(() => items.reduce((a, i) => a + i.qty, 0), [items]);
   const isMobile = useMediaQuery("(max-width: 767px)");
-  const [constructionOpen, setConstructionOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [form, setForm] = useState<CheckoutForm>({ nombre: "", telefono: "", direccion: "", nota: "" });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!checkoutOpen || !user) return () => {};
+
+    setProfileLoading(true);
+    setCheckoutError("");
+    getUserProfile(user.uid)
+      .then((profile) => {
+        if (cancelled) return;
+        const firstAddress = profile?.direcciones?.[0] ?? null;
+        setForm((prev) => ({
+          nombre: prev.nombre || profile?.nombre || user.displayName || "",
+          telefono: prev.telefono || profile?.telefono || "",
+          direccion: prev.direccion || buildAddress(firstAddress),
+          nota: prev.nota || "",
+        }));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setForm((prev) => ({
+          nombre: prev.nombre || user.displayName || "",
+          telefono: prev.telefono || "",
+          direccion: prev.direccion || "",
+          nota: prev.nota || "",
+        }));
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setProfileLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [checkoutOpen, user]);
+
+  const handleSubmitOrder = async () => {
+    const nombre = String(form.nombre || "").trim();
+    const telefono = String(form.telefono || "").trim();
+    const direccion = String(form.direccion || "").trim();
+    if (!nombre || !telefono || !direccion) {
+      setCheckoutError("Completá nombre, teléfono y dirección para enviar el pedido.");
+      return;
+    }
+
+    setSubmitting(true);
+    setCheckoutError("");
+    try {
+      const catalog = await getActiveCatalog();
+      const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
+
+      await submitCheckoutOrder({
+        user,
+        customer: {
+          nombre,
+          telefono,
+          direccion,
+          nota: String(form.nota || "").trim(),
+        },
+        cartItems: items,
+        productsById,
+      });
+
+      clearCart();
+      closeCart();
+      setCheckoutOpen(false);
+      setForm({ nombre: "", telefono: "", direccion: "", nota: "" });
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : "No se pudo enviar el pedido.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -181,7 +404,7 @@ export function CartPanel() {
                 transition={{ type: "spring", stiffness: 500, damping: 45 }}
               >
                 <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-zinc-300" />
-                <CartContent onContinue={() => setConstructionOpen(true)} />
+                <CartContent onContinue={() => setCheckoutOpen(true)} />
               </motion.aside>
             ) : (
               <motion.aside
@@ -191,48 +414,26 @@ export function CartPanel() {
                 exit={{ x: 30, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 500, damping: 45 }}
               >
-                <CartContent onContinue={() => setConstructionOpen(true)} />
+                <CartContent onContinue={() => setCheckoutOpen(true)} />
               </motion.aside>
             )}
           </>
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {constructionOpen ? (
-          <>
-            <motion.button
-              aria-label="Cerrar"
-              className="modal-backdrop-lite fixed inset-0 z-[120]"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setConstructionOpen(false)}
-            />
-            <motion.div
-              className="fixed left-1/2 top-1/2 z-[130] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f7f4f4] shadow-2xl"
-              initial={{ opacity: 0, y: 10, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 520, damping: 40 }}
-              role="dialog"
-              aria-modal="true"
-            >
-              <div className="border-b border-border px-5 py-4">
-                <div className="text-sm font-semibold text-black">En construcción</div>
-                <div className="mt-1 text-xs text-black/70">
-                  Todavía estamos armando el checkout. Muy pronto vas a poder finalizar tu pedido.
-                </div>
-              </div>
-              <div className="px-5 py-4">
-                <MotionButton className="h-11 w-full" onClick={() => setConstructionOpen(false)}>
-                  Entendido
-                </MotionButton>
-              </div>
-            </motion.div>
-          </>
-        ) : null}
-      </AnimatePresence>
+      <CheckoutModal
+        open={checkoutOpen}
+        loadingProfile={profileLoading}
+        form={form}
+        submitting={submitting}
+        error={checkoutError}
+        onClose={() => {
+          if (submitting) return;
+          setCheckoutOpen(false);
+        }}
+        onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+        onSubmit={handleSubmitOrder}
+      />
     </>
   );
 }
