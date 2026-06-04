@@ -13,6 +13,32 @@ type Props = {
   tone?: "default" | "offers";
 };
 
+type ImageCacheEntry = {
+  thumbLoaded: boolean;
+  fullLoaded: boolean;
+  failedUrls: string[];
+};
+
+const imageStateCache = new Map<string, ImageCacheEntry>();
+
+function getCachedImageState(productId: string): ImageCacheEntry {
+  return imageStateCache.get(productId) ?? { thumbLoaded: false, fullLoaded: false, failedUrls: [] };
+}
+
+function setCachedImageState(productId: string, patch: Partial<ImageCacheEntry>) {
+  const next = { ...getCachedImageState(productId), ...patch };
+  imageStateCache.set(productId, next);
+  return next;
+}
+
+function addFailedUrl(productId: string, url: string) {
+  const prev = getCachedImageState(productId);
+  if (!url || prev.failedUrls.includes(url)) return prev;
+  return setCachedImageState(productId, {
+    failedUrls: [...prev.failedUrls, url],
+  });
+}
+
 function ProductCardInner({
   product,
   onSelect,
@@ -20,9 +46,6 @@ function ProductCardInner({
   addedQty = null,
   tone = "default",
 }: Props) {
-  const [imgError, setImgError] = useState(false);
-  const [imgLoaded, setImgLoaded] = useState(false);
-  const [imgActivated, setImgActivated] = useState(false);
   const isOut = product.active === false;
   const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ?? "";
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -37,54 +60,72 @@ function ProductCardInner({
 
   const imageCandidates = useMemo(() => {
     const u = String(product.imageUrl ?? "").trim();
-    const candidates: string[] = [];
-    const add = (value: string) => {
+    const thumbCandidates: string[] = [];
+    const fullCandidates: string[] = [];
+
+    const addUnique = (list: string[], value: string) => {
       const next = value.trim();
-      if (!next || candidates.includes(next)) return;
-      candidates.push(next);
+      if (!next || list.includes(next)) return;
+      list.push(next);
     };
 
+    const toFullUrl = (value: string) =>
+      value
+        .replace("fotosProductosThumb%2F", "fotosProductos%2F")
+        .replace("/fotosProductosThumb/", "/fotosProductos/");
+
     if (u) {
-      add(u);
-      add(
-        u
-          .replace("fotosProductosThumb%2F", "fotosProductos%2F")
-          .replace("/fotosProductosThumb/", "/fotosProductos/"),
-      );
+      addUnique(thumbCandidates, u);
+      addUnique(fullCandidates, toFullUrl(u));
       if (product.id.includes("/")) {
-        add(withStorageSafeFilename(u));
-        add(
-          withStorageSafeFilename(
-            u
-              .replace("fotosProductosThumb%2F", "fotosProductos%2F")
-              .replace("/fotosProductosThumb/", "/fotosProductos/"),
-          ),
-        );
+        addUnique(thumbCandidates, withStorageSafeFilename(u));
+        addUnique(fullCandidates, withStorageSafeFilename(toFullUrl(u)));
       }
     }
 
     if (storageBucket) {
       const safeId = product.id.replaceAll("/", "_");
-      add(
+      addUnique(
+        thumbCandidates,
         `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(storageBucket)}/o/${encodeURIComponent(`fotosProductosThumb/${safeId}.jpg`)}?alt=media`,
       );
-      add(
+      addUnique(
+        fullCandidates,
         `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(storageBucket)}/o/${encodeURIComponent(`fotosProductos/${safeId}.jpg`)}?alt=media`,
       );
     }
 
-    return candidates;
+    return { thumbCandidates, fullCandidates };
   }, [product.id, product.imageUrl, storageBucket]);
 
-  const [imgSrc, setImgSrc] = useState<string | null>(imageCandidates[0] ?? null);
-  const candidateIndexRef = useRef(0);
+  const initialCache = getCachedImageState(product.id);
+  const thumbIndexRef = useRef(0);
+  const fullIndexRef = useRef(0);
+  const [imgActivated, setImgActivated] = useState(false);
+  const [thumbSrc, setThumbSrc] = useState<string | null>(imageCandidates.thumbCandidates[0] ?? null);
+  const [fullSrc, setFullSrc] = useState<string | null>(imageCandidates.fullCandidates[0] ?? null);
+  const [thumbLoaded, setThumbLoaded] = useState(initialCache.thumbLoaded);
+  const [fullLoaded, setFullLoaded] = useState(initialCache.fullLoaded);
+  const [imgError, setImgError] = useState(false);
+
   useEffect(() => {
-    setImgError(false);
-    setImgSrc(imageCandidates[0] ?? null);
-    setImgLoaded(false);
+    const cache = getCachedImageState(product.id);
+    const nextThumbIndex = imageCandidates.thumbCandidates.findIndex(
+      (candidate) => !cache.failedUrls.includes(candidate),
+    );
+    const nextFullIndex = imageCandidates.fullCandidates.findIndex(
+      (candidate) => !cache.failedUrls.includes(candidate),
+    );
+
+    thumbIndexRef.current = nextThumbIndex >= 0 ? nextThumbIndex : imageCandidates.thumbCandidates.length;
+    fullIndexRef.current = nextFullIndex >= 0 ? nextFullIndex : imageCandidates.fullCandidates.length;
+    setThumbSrc(nextThumbIndex >= 0 ? imageCandidates.thumbCandidates[nextThumbIndex] ?? null : null);
+    setFullSrc(nextFullIndex >= 0 ? imageCandidates.fullCandidates[nextFullIndex] ?? null : null);
+    setThumbLoaded(cache.thumbLoaded);
+    setFullLoaded(cache.fullLoaded);
     setImgActivated(false);
-    candidateIndexRef.current = 0;
-  }, [imageCandidates]);
+    setImgError(false);
+  }, [product.id, imageCandidates]);
 
   useEffect(() => {
     const el = cardRef.current;
@@ -99,7 +140,7 @@ function ProductCardInner({
       },
       {
         root: null,
-        rootMargin: "220px",
+        rootMargin: "180px",
         threshold: 0.01,
       },
     );
@@ -108,7 +149,10 @@ function ProductCardInner({
     return () => observer.disconnect();
   }, [product.id]);
 
-  const showImage = imgActivated && Boolean(imgSrc) && !imgError;
+  const showThumb = imgActivated && Boolean(thumbSrc);
+  const showFull = imgActivated && thumbLoaded && Boolean(fullSrc);
+  const hasVisualImage = (thumbLoaded && Boolean(thumbSrc)) || (fullLoaded && Boolean(fullSrc));
+  const showFallback = !hasVisualImage && (imgError || !imgActivated || (!thumbSrc && !fullSrc));
 
   const hasDiscount = Boolean(product.offer && (product.offerDiscount ?? 0) > 0);
   const discount = product.offerDiscount ?? 0;
@@ -121,6 +165,35 @@ function ProductCardInner({
     tone === "offers"
       ? "text-[18px] font-black tracking-tight"
       : "text-sm font-semibold";
+
+  const handleThumbError = () => {
+    const failed = thumbSrc ?? "";
+    addFailedUrl(product.id, failed);
+    const nextIndex = thumbIndexRef.current + 1;
+    if (nextIndex < imageCandidates.thumbCandidates.length) {
+      thumbIndexRef.current = nextIndex;
+      setThumbLoaded(false);
+      setThumbSrc(imageCandidates.thumbCandidates[nextIndex] ?? null);
+      return;
+    }
+    setThumbSrc(null);
+    setThumbLoaded(false);
+    if (!fullLoaded) setImgError(true);
+  };
+
+  const handleFullError = () => {
+    const failed = fullSrc ?? "";
+    addFailedUrl(product.id, failed);
+    const nextIndex = fullIndexRef.current + 1;
+    if (nextIndex < imageCandidates.fullCandidates.length) {
+      fullIndexRef.current = nextIndex;
+      setFullLoaded(false);
+      setFullSrc(imageCandidates.fullCandidates[nextIndex] ?? null);
+      return;
+    }
+    setFullSrc(null);
+    setFullLoaded(false);
+  };
 
   return (
     <div
@@ -148,64 +221,85 @@ function ProductCardInner({
             </div>
           ) : null}
         </div>
-        <div className="relative aspect-square w-full p-4">
+
+        <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-white via-[#f5f1ef] to-[#ece7e4] p-4">
           {isOut ? (
-            <div className="pointer-events-none absolute inset-0 z-[1] bg-black/18" />
+            <div className="pointer-events-none absolute inset-0 z-[1] bg-black/16" />
           ) : null}
+
           <div
             aria-hidden="true"
             className={[
-              "absolute inset-0",
-              "bg-gradient-to-br from-black/5 via-black/0 to-black/10",
-              "transition-opacity duration-300",
-              imgLoaded ? "opacity-0" : "opacity-100",
+              "absolute inset-0 transition-opacity duration-300",
+              hasVisualImage ? "opacity-0" : "opacity-100",
+              "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.55),transparent_44%),linear-gradient(135deg,rgba(255,255,255,0.72),rgba(0,0,0,0.03))]",
             ].join(" ")}
           />
-          {!imgLoaded && showImage ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-7 w-7 animate-spin rounded-full border-2 border-black/15 border-t-black/45" />
-            </div>
-          ) : null}
-          {showImage ? (
-            // Using a plain <img> here for faster first paint and predictable error fallback.
-            // (The catalog already points to a resized thumb in Firebase Storage.)
+
+          {showThumb ? (
             <img
-              src={imgSrc ?? undefined}
+              src={thumbSrc ?? undefined}
               alt={product.name}
               className={[
-                "absolute inset-0 h-full w-full object-contain",
-                "transition-opacity duration-300",
+                "absolute inset-0 h-full w-full object-contain transition-all duration-500",
                 isOut ? "brightness-[0.72] saturate-[0.82]" : "",
-                imgLoaded ? "opacity-100" : "opacity-0",
+                thumbLoaded ? "scale-100 opacity-100 blur-0" : "scale-[1.045] opacity-100 blur-[14px]",
               ].join(" ")}
               loading="lazy"
               decoding="async"
               fetchPriority={imgActivated ? "high" : "low"}
-              onLoad={() => setImgLoaded(true)}
-              onError={() => {
-                const nextIndex = candidateIndexRef.current + 1;
-                if (nextIndex < imageCandidates.length) {
-                  candidateIndexRef.current = nextIndex;
-                  setImgLoaded(false);
-                  setImgSrc(imageCandidates[nextIndex] ?? null);
-                  return;
-                }
-                setImgError(true);
-                setImgLoaded(false);
+              onLoad={() => {
+                setThumbLoaded(true);
+                setCachedImageState(product.id, { thumbLoaded: true });
+                setImgError(false);
               }}
+              onError={handleThumbError}
             />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-2xl font-black tracking-tight text-foreground/50">
+          ) : null}
+
+          {showFull ? (
+            <img
+              src={fullSrc ?? undefined}
+              alt={product.name}
+              className={[
+                "absolute inset-0 h-full w-full object-contain transition-opacity duration-500",
+                isOut ? "brightness-[0.72] saturate-[0.82]" : "",
+                fullLoaded ? "opacity-100" : "opacity-0",
+              ].join(" ")}
+              loading="lazy"
+              decoding="async"
+              fetchPriority="low"
+              onLoad={() => {
+                setFullLoaded(true);
+                setCachedImageState(product.id, { fullLoaded: true });
+              }}
+              onError={handleFullError}
+            />
+          ) : null}
+
+          {!thumbLoaded && thumbSrc ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="rounded-full bg-white/68 p-2 shadow-sm backdrop-blur-sm">
+                <div className="h-7 w-7 animate-spin rounded-full border-2 border-black/10 border-t-brand" />
+              </div>
+            </div>
+          ) : null}
+
+          {showFallback ? (
+            <div className="flex h-full w-full items-center justify-center rounded-2xl bg-white/65 text-2xl font-black tracking-tight text-foreground/55">
               {product.name.slice(0, 2).toUpperCase()}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
       <div className="mt-3 grid grid-cols-1 gap-2">
         <div className="px-1">
           <div
-            className={["text-pretty text-[13px] font-semibold leading-4", isOut ? "text-foreground/70" : "text-foreground"].join(" ")}
+            className={[
+              "text-pretty text-[13px] font-semibold leading-4",
+              isOut ? "text-foreground/70" : "text-foreground",
+            ].join(" ")}
             style={{
               display: "-webkit-box",
               WebkitLineClamp: 2,
@@ -217,7 +311,12 @@ function ProductCardInner({
             {product.name}
           </div>
         </div>
-        <div className={["flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2", isOut ? "bg-surface-2/70" : ""].join(" ")}>
+        <div
+          className={[
+            "flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2",
+            isOut ? "bg-surface-2/70" : "",
+          ].join(" ")}
+        >
           <div>
             <div className="text-xs font-semibold text-foreground/60">
               {product.brand ?? " "}
@@ -225,7 +324,9 @@ function ProductCardInner({
             <div className={[isOut ? "text-foreground/70" : "text-foreground", priceClass].join(" ")}>
               {hasDiscount ? (
                 <span className="inline-flex items-baseline gap-2">
-                  <span className={isOut ? "text-foreground/70" : "text-foreground"}>{formatArs(unitDiscounted)}</span>
+                  <span className={isOut ? "text-foreground/70" : "text-foreground"}>
+                    {formatArs(unitDiscounted)}
+                  </span>
                   <span className="text-xs font-semibold text-foreground/45 line-through">
                     {formatArs(unitOriginal)}
                   </span>
