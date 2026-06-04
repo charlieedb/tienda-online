@@ -20,6 +20,30 @@ type ImageCacheEntry = {
 };
 
 const imageStateCache = new Map<string, ImageCacheEntry>();
+const thumbRepairRequested = new Set<string>();
+
+function getThumbRepairUrl(productId: string) {
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() ?? "";
+  if (!projectId) return null;
+  const safeId = productId.replaceAll("/", "_");
+  return `https://us-central1-${projectId}.cloudfunctions.net/ensureProductThumb?code=${encodeURIComponent(safeId)}`;
+}
+
+function requestThumbRepair(productId: string) {
+  if (typeof window === "undefined") return;
+  if (thumbRepairRequested.has(productId)) return;
+  const url = getThumbRepairUrl(productId);
+  if (!url) return;
+  thumbRepairRequested.add(productId);
+  window.fetch(url, {
+    method: "GET",
+    mode: "cors",
+    cache: "no-store",
+    keepalive: true,
+  }).catch(() => {
+    // Best effort only: if it fails, we'll keep showing the full image and try again in a future session.
+  });
+}
 
 function getCachedImageState(productId: string): ImageCacheEntry {
   return imageStateCache.get(productId) ?? { thumbLoaded: false, fullLoaded: false, failedUrls: [] };
@@ -178,6 +202,9 @@ function ProductCardInner({
     }
     setThumbSrc(null);
     setThumbLoaded(false);
+    if (imageCandidates.fullCandidates.length > 0) {
+      requestThumbRepair(product.id);
+    }
     if (!fullSrc && !fullLoaded) setImgError(true);
   };
 
