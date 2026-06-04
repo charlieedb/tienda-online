@@ -101,7 +101,7 @@ function ProductCardInner({
   const initialCache = getCachedImageState(product.id);
   const thumbIndexRef = useRef(0);
   const fullIndexRef = useRef(0);
-  const [imgActivated, setImgActivated] = useState(false);
+  const [fullActivated, setFullActivated] = useState(false);
   const [thumbSrc, setThumbSrc] = useState<string | null>(imageCandidates.thumbCandidates[0] ?? null);
   const [fullSrc, setFullSrc] = useState<string | null>(imageCandidates.fullCandidates[0] ?? null);
   const [thumbLoaded, setThumbLoaded] = useState(initialCache.thumbLoaded);
@@ -123,7 +123,7 @@ function ProductCardInner({
     setFullSrc(nextFullIndex >= 0 ? imageCandidates.fullCandidates[nextFullIndex] ?? null : null);
     setThumbLoaded(cache.thumbLoaded);
     setFullLoaded(cache.fullLoaded);
-    setImgActivated(false);
+    setFullActivated(false);
     setImgError(false);
   }, [product.id, imageCandidates]);
 
@@ -135,7 +135,7 @@ function ProductCardInner({
       (entries) => {
         const entry = entries[0];
         if (!entry?.isIntersecting) return;
-        setImgActivated(true);
+        setFullActivated(true);
         observer.disconnect();
       },
       {
@@ -149,10 +149,10 @@ function ProductCardInner({
     return () => observer.disconnect();
   }, [product.id]);
 
-  const showThumb = imgActivated && Boolean(thumbSrc);
-  const showFull = imgActivated && thumbLoaded && Boolean(fullSrc);
+  const showThumb = Boolean(thumbSrc);
+  const showFull = fullActivated && thumbLoaded && Boolean(fullSrc);
   const hasVisualImage = (thumbLoaded && Boolean(thumbSrc)) || (fullLoaded && Boolean(fullSrc));
-  const showFallback = !hasVisualImage && (imgError || !imgActivated || (!thumbSrc && !fullSrc));
+  const showFallback = !hasVisualImage && (imgError || (!thumbSrc && !fullSrc));
 
   const hasDiscount = Boolean(product.offer && (product.offerDiscount ?? 0) > 0);
   const discount = product.offerDiscount ?? 0;
@@ -247,7 +247,7 @@ function ProductCardInner({
               ].join(" ")}
               loading="lazy"
               decoding="async"
-              fetchPriority={imgActivated ? "high" : "low"}
+              fetchPriority="high"
               onLoad={() => {
                 setThumbLoaded(true);
                 setCachedImageState(product.id, { thumbLoaded: true });
