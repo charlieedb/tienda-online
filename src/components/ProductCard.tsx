@@ -150,7 +150,7 @@ function ProductCardInner({
   }, [product.id]);
 
   const showThumb = Boolean(thumbSrc);
-  const showFull = fullActivated && thumbLoaded && Boolean(fullSrc);
+  const showFull = fullActivated && Boolean(fullSrc);
   const hasVisualImage = (thumbLoaded && Boolean(thumbSrc)) || (fullLoaded && Boolean(fullSrc));
   const showFallback = !hasVisualImage && (imgError || (!thumbSrc && !fullSrc));
 
@@ -178,7 +178,7 @@ function ProductCardInner({
     }
     setThumbSrc(null);
     setThumbLoaded(false);
-    if (!fullLoaded) setImgError(true);
+    if (!fullSrc && !fullLoaded) setImgError(true);
   };
 
   const handleFullError = () => {
@@ -277,7 +277,7 @@ function ProductCardInner({
             />
           ) : null}
 
-          {!thumbLoaded && thumbSrc ? (
+          {!hasVisualImage && (thumbSrc || fullSrc) ? (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="rounded-full bg-white/68 p-2 shadow-sm backdrop-blur-sm">
                 <div className="h-7 w-7 animate-spin rounded-full border-2 border-black/10 border-t-brand" />
