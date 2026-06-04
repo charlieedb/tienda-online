@@ -12,6 +12,7 @@ import { OffersModal } from "@/components/OffersModal";
 import { AuthModal } from "@/components/AuthModal";
 import { TopBar } from "@/components/TopBar";
 import { AccountSettingsPage } from "@/components/AccountSettingsPage";
+import { MyOrdersPage } from "@/components/MyOrdersPage";
 import { normalizeToken } from "@/lib/normalize";
 import { getActiveCatalog, getProductById, startCatalogAutoRefresh } from "@/lib/products";
 import { clearPersistedCart, useCartStore } from "@/store/cart";
@@ -19,7 +20,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { APP_VERSION } from "@/lib/appVersion";
 import type { Category } from "@/components/TopBar";
 
-type Stage = "landing" | "builder" | "settings";
+type Stage = "landing" | "builder" | "settings" | "orders";
 
 function canonicalizeCategoryToken(value: string) {
   const token = normalizeToken(value);
@@ -765,6 +766,11 @@ export default function Home() {
                 setShowOptions(false);
                 setStage("settings");
               }}
+              onOpenOrders={() => {
+                setMenuOpen(false);
+                setShowOptions(false);
+                setStage("orders");
+              }}
               onSignOut={async () => {
                 resetShoppingSession();
                 await signOut();
@@ -1001,7 +1007,7 @@ export default function Home() {
             </div>
             </div>
           </motion.main>
-        ) : (
+        ) : stage === "settings" ? (
           <motion.main
             key="settings"
             className="relative flex min-h-dvh w-full flex-col pb-10"
@@ -1021,6 +1027,31 @@ export default function Home() {
               }}
             />
             <AccountSettingsPage
+              onBack={() => {
+                setStage("builder");
+              }}
+            />
+          </motion.main>
+        ) : (
+          <motion.main
+            key="orders"
+            className="relative flex min-h-dvh w-full flex-col pb-10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-0 opacity-[0.28] motion-safe:animate-[fondo-pan_26s_linear_infinite]"
+              style={{
+                backgroundImage: "url(/fondo.png)",
+                backgroundRepeat: "repeat",
+                backgroundSize: "360px auto",
+                backgroundPosition: "center top",
+              }}
+            />
+            <MyOrdersPage
               onBack={() => {
                 setStage("builder");
               }}

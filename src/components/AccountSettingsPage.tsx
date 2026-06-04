@@ -1,10 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import {
+  getCachedUserProfile,
   getUserProfile,
+  refreshUserProfile,
   upsertUserProfile,
   type LatLng,
   type UserAddress,
@@ -57,6 +59,16 @@ const PROVINCES = [
   "Tucuman",
 ] as const;
 
+function buildInitialDirections(profile?: UserProfile | null) {
+  return (profile?.direcciones ?? []).length > 0
+    ? (profile?.direcciones ?? [])
+    : [{ id: "principal", provincia: "", localidad: "", direccion: "", ubicacion: null }];
+}
+
+function Spinner({ className = "h-4 w-4" }: { className?: string }) {
+  return <span aria-hidden="true" className={`app-spinner ${className}`} />;
+}
+
 export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -83,6 +95,36 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
   const [mapAddressId, setMapAddressId] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<LatLng | null>(null);
   const [mapInitialQuery, setMapInitialQuery] = useState("");
+  const hasUserEditedRef = useRef(false);
+
+  const updateForm = (updater: (prev: FormState) => FormState) => {
+    hasUserEditedRef.current = true;
+    setForm(updater);
+  };
+
+  const applyProfileToForm = (profile: UserProfile | null | undefined, forceReplace: boolean) => {
+    if (!profile) return;
+    const nextDirections = buildInitialDirections(profile);
+    setForm((prev) => {
+      if (forceReplace) {
+        return {
+          nombre: profile.nombre ?? "",
+          apellido: profile.apellido ?? "",
+          dni: profile.dni ?? "",
+          telefono: profile.telefono ?? "",
+          direcciones: nextDirections,
+        };
+      }
+      return {
+        nombre: prev.nombre || profile.nombre || "",
+        apellido: prev.apellido || profile.apellido || "",
+        dni: prev.dni || profile.dni || "",
+        telefono: prev.telefono || profile.telefono || "",
+        direcciones: prev.direcciones.length ? prev.direcciones : nextDirections,
+      };
+    });
+    setMultiAddressEnabled(nextDirections.length > 1);
+  };
 
   useEffect(() => {
     if (!user) {
@@ -95,32 +137,37 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
     const loadProfile = async () => {
       setError(null);
       setSavedNotice(null);
+      hasUserEditedRef.current = false;
+
+      const cached = getCachedUserProfile(user.uid);
+      const email = user.email ?? null;
+      const fallbackUsername = cached?.username || (email ? email.split("@")[0] : "usuario");
+
+      setBaseProfile({
+        uid: user.uid,
+        email,
+        username: fallbackUsername,
+        displayName: user.displayName ?? cached?.displayName ?? null,
+      });
+
+      if (cached) {
+        applyProfileToForm(cached, true);
+      }
+
       setLoading(true);
       try {
-        const profile = await getUserProfile(user.uid);
+        const profile = cached
+          ? await refreshUserProfile(user.uid)
+          : await getUserProfile(user.uid, { preferCache: false });
         if (cancelled) return;
-
-        const email = user.email ?? null;
-        const username = profile?.username || (email ? email.split("@")[0] : "usuario");
-        const direcciones =
-          (profile?.direcciones ?? []).length > 0
-            ? (profile?.direcciones ?? [])
-            : [{ id: "principal", provincia: "", localidad: "", direccion: "", ubicacion: null }];
 
         setBaseProfile({
           uid: user.uid,
           email,
-          username,
+          username: profile?.username || fallbackUsername,
           displayName: user.displayName ?? profile?.displayName ?? null,
         });
-        setForm({
-          nombre: profile?.nombre ?? "",
-          apellido: profile?.apellido ?? "",
-          dni: profile?.dni ?? "",
-          telefono: profile?.telefono ?? "",
-          direcciones,
-        });
-        setMultiAddressEnabled(direcciones.length > 1);
+        applyProfileToForm(profile, !hasUserEditedRef.current);
       } catch (unknownError) {
         if (cancelled) return;
         const e = unknownError as SaveError;
@@ -148,6 +195,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
   }, [form.direcciones, mapAddressId]);
 
   const canAddMoreAddresses = multiAddressEnabled || form.direcciones.length <= 1;
+  const hasBasicData = Boolean(form.nombre || form.apellido || form.dni || form.telefono);
 
   return (
     <>
@@ -183,12 +231,22 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
           </div>
 
           <div className="rounded-[28px] border border-black/10 bg-white/82 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-sm md:p-5">
-            {loading ? (
+            {loading && !hasBasicData ? (
               <div className="rounded-2xl border border-dashed border-border bg-white/70 p-4 text-sm text-black/70">
-                Cargando perfil...
+                <div className="flex items-center gap-2 font-semibold">
+                  <Spinner />
+                  <span>Cargando perfil...</span>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col gap-5">
+                {loading ? (
+                  <div className="flex items-center gap-2 rounded-2xl border border-border bg-white/70 px-4 py-3 text-sm font-semibold text-black/70">
+                    <Spinner />
+                    <span>Sincronizando tu perfil...</span>
+                  </div>
+                ) : null}
+
                 <div className="rounded-3xl border border-black/8 bg-[#faf7f7] px-4 py-3">
                   <div className="text-xs font-black uppercase tracking-[0.16em] text-black/55">
                     Cuenta actual
@@ -224,7 +282,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                       <input
                         className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
                         value={form.nombre}
-                        onChange={(e) => setForm((prev) => ({ ...prev, nombre: e.target.value }))}
+                        onChange={(e) => updateForm((prev) => ({ ...prev, nombre: e.target.value }))}
                         placeholder="Tu nombre"
                       />
                     </Field>
@@ -232,7 +290,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                       <input
                         className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
                         value={form.apellido}
-                        onChange={(e) => setForm((prev) => ({ ...prev, apellido: e.target.value }))}
+                        onChange={(e) => updateForm((prev) => ({ ...prev, apellido: e.target.value }))}
                         placeholder="Tu apellido"
                       />
                     </Field>
@@ -240,7 +298,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                       <input
                         className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
                         value={form.dni}
-                        onChange={(e) => setForm((prev) => ({ ...prev, dni: e.target.value }))}
+                        onChange={(e) => updateForm((prev) => ({ ...prev, dni: e.target.value }))}
                         placeholder="Documento"
                         inputMode="numeric"
                       />
@@ -249,7 +307,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                       <input
                         className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
                         value={form.telefono}
-                        onChange={(e) => setForm((prev) => ({ ...prev, telefono: e.target.value }))}
+                        onChange={(e) => updateForm((prev) => ({ ...prev, telefono: e.target.value }))}
                         placeholder="WhatsApp / celular"
                         inputMode="tel"
                       />
@@ -278,7 +336,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                             <button
                               type="button"
                               onClick={() =>
-                                setForm((prev) => ({
+                                updateForm((prev) => ({
                                   ...prev,
                                   direcciones: prev.direcciones.filter((d) => d.id !== addr.id),
                                 }))
@@ -297,7 +355,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                               value={addr.provincia}
                               onChange={(e) => {
                                 const value = e.target.value;
-                                setForm((prev) => ({
+                                updateForm((prev) => ({
                                   ...prev,
                                   direcciones: prev.direcciones.map((d) =>
                                     d.id === addr.id
@@ -323,7 +381,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                               disabled={!addr.provincia}
                               onChange={(e) => {
                                 const value = e.target.value;
-                                setForm((prev) => ({
+                                updateForm((prev) => ({
                                   ...prev,
                                   direcciones: prev.direcciones.map((d) =>
                                     d.id === addr.id ? { ...d, localidad: value, ubicacion: null } : d,
@@ -342,7 +400,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                                 disabled={!addr.provincia || !addr.localidad.trim()}
                                 onChange={(e) => {
                                   const value = e.target.value;
-                                  setForm((prev) => ({
+                                  updateForm((prev) => ({
                                     ...prev,
                                     direcciones: prev.direcciones.map((d) =>
                                       d.id === addr.id ? { ...d, direccion: value, ubicacion: null } : d,
@@ -396,7 +454,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                         type="button"
                         onClick={() => {
                           setMultiAddressEnabled(true);
-                          setForm((prev) => {
+                          updateForm((prev) => {
                             if (prev.direcciones.length > 1) return prev;
                             return {
                               ...prev,
@@ -415,7 +473,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                       <button
                         type="button"
                         onClick={() =>
-                          setForm((prev) => ({
+                          updateForm((prev) => ({
                             ...prev,
                             direcciones: [
                               ...prev.direcciones,
@@ -486,7 +544,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
         onClose={() => setMapOpen(false)}
         onPick={(picked) => {
           if (!mapAddressId) return;
-          setForm((prev) => ({
+          updateForm((prev) => ({
             ...prev,
             direcciones: prev.direcciones.map((d) =>
               d.id === mapAddressId ? { ...d, ubicacion: picked } : d,

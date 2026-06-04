@@ -118,6 +118,7 @@ export function TopBar({
   onSelectCategory,
   onCloseMenu,
   onOpenSettings,
+  onOpenOrders,
   onSignOut,
 }: {
   userLabel: string | null;
@@ -128,6 +129,7 @@ export function TopBar({
   onSelectCategory: (cat: Category) => void;
   onCloseMenu: () => void;
   onOpenSettings: () => void;
+  onOpenOrders: () => void;
   onSignOut: () => void;
 }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -222,6 +224,18 @@ export function TopBar({
                         role="menuitem"
                       >
                         Configuración
+                      </button>
+                      <div className="h-px bg-white/10" />
+                      <button
+                        type="button"
+                        className="w-full px-4 py-3 text-left text-sm font-semibold text-white hover:bg-white/10"
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          onOpenOrders();
+                        }}
+                        role="menuitem"
+                      >
+                        Historial de pedidos
                       </button>
                       <div className="h-px bg-white/10" />
                       <button

@@ -8,7 +8,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { submitCheckoutOrder } from "@/lib/checkoutOrders";
 import { formatArs } from "@/lib/format";
 import { getActiveCatalog, type Product } from "@/lib/products";
-import { getUserProfile } from "@/lib/userProfile";
+import { getCachedUserProfile, refreshUserProfile } from "@/lib/userProfile";
 import { useCartStore } from "@/store/cart";
 
 function CartIcon() {
@@ -162,6 +162,10 @@ function buildAddress(address: {
     .join(", ");
 }
 
+function Spinner({ className = "h-4 w-4" }: { className?: string }) {
+  return <span aria-hidden="true" className={`app-spinner ${className}`} />;
+}
+
 function CheckoutModal({
   open,
   loadingProfile,
@@ -216,8 +220,9 @@ function CheckoutModal({
             </div>
             <div className="space-y-4 px-5 py-4">
               {loadingProfile ? (
-                <div className="rounded-2xl border border-border bg-white/70 px-4 py-3 text-xs text-black/70">
-                  Cargando tus datos...
+                <div className="flex items-center gap-2 rounded-2xl border border-border bg-white/70 px-4 py-3 text-xs font-semibold text-black/72">
+                  <Spinner />
+                  <span>Completando tus datos desde tu perfil...</span>
                 </div>
               ) : null}
               {error ? (
@@ -371,9 +376,20 @@ export function CartPanel() {
     let cancelled = false;
     if (!checkoutOpen || !user) return () => {};
 
+    const cached = getCachedUserProfile(user.uid);
+    if (cached) {
+      const firstAddress = cached.direcciones?.[0] ?? null;
+      setForm((prev) => ({
+        nombre: prev.nombre || cached.nombre || user.displayName || "",
+        telefono: prev.telefono || cached.telefono || "",
+        direccion: prev.direccion || buildAddress(firstAddress),
+        nota: prev.nota || "",
+      }));
+    }
+
     setProfileLoading(true);
     setCheckoutError("");
-    getUserProfile(user.uid)
+    refreshUserProfile(user.uid)
       .then((profile) => {
         if (cancelled) return;
         const firstAddress = profile?.direcciones?.[0] ?? null;

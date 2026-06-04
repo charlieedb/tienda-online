@@ -15,7 +15,7 @@ import {
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getAuthClient } from "@/lib/firebase";
-import { reserveUsername, upsertUserProfile } from "@/lib/userProfile";
+import { preloadUserProfile, reserveUsername, upsertUserProfile } from "@/lib/userProfile";
 
 type AuthContextValue = {
   user: User | null;
@@ -52,6 +52,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     return () => unsub();
   }, [auth]);
+
+  useEffect(() => {
+    if (!auth) return;
+    if (loading) return;
+    if (!user) return;
+
+    void preloadUserProfile(user.uid).catch(() => {});
+  }, [auth, user, loading]);
 
   useEffect(() => {
     if (!auth) return;

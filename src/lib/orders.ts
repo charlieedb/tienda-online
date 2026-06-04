@@ -12,6 +12,7 @@ import {
   query,
   startAfter,
   updateDoc,
+  where,
   type DocumentData,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
@@ -105,8 +106,15 @@ export type OrdersPage = {
   cursor: QueryDocumentSnapshot<DocumentData> | null;
 };
 
+export type MyOrdersPage = {
+  items: OrderRecord[];
+  cursor: QueryDocumentSnapshot<DocumentData> | null;
+};
+
 const PAGE_SIZE = 40;
 const REALTIME_LIMIT = 80;
+const MY_ORDERS_PAGE_SIZE = 12;
+const MY_ORDERS_LOOKBACK_DAYS = 30;
 
 function statusHistoryLabel(status: OrderStatus) {
   switch (status) {
@@ -271,6 +279,38 @@ export async function fetchRecentSearchEvents(limitCount = 120): Promise<SearchE
       createdAtIso: asString(data?.createdAtIso),
     };
   });
+}
+
+export async function fetchMyOrdersPage(params: {
+  uid: string;
+  cursor?: QueryDocumentSnapshot<DocumentData> | null;
+  limitCount?: number;
+  lookbackDays?: number;
+}): Promise<MyOrdersPage> {
+  const db = getDb();
+  if (!db) return { items: [], cursor: null };
+
+  const uid = asString(params.uid);
+  if (!uid) return { items: [], cursor: null };
+
+  const limitCount = Math.max(1, Math.min(30, Math.trunc(params.limitCount || MY_ORDERS_PAGE_SIZE)));
+  const lookbackDays = Math.max(1, Math.min(365, Math.trunc(params.lookbackDays || MY_ORDERS_LOOKBACK_DAYS)));
+  const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+
+  const base = query(
+    collection(db, "orders"),
+    where("cliente.uid", "==", uid),
+    where("audit.createdAt", ">=", Timestamp.fromDate(since)),
+    orderBy("audit.createdAt", "desc"),
+    ...(params.cursor ? [startAfter(params.cursor)] : []),
+    limit(limitCount),
+  );
+
+  const snap = await getDocs(base);
+  return {
+    items: snap.docs.map((docSnap) => mapOrder(docSnap)),
+    cursor: snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
+  };
 }
 
 export function subscribeOrdersRealtime(

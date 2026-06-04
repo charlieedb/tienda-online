@@ -1,5 +1,10 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { getAuth, type Auth } from "firebase/auth";
 import { hasFirebaseEnv } from "@/lib/env";
 
@@ -22,9 +27,24 @@ export function getFirebaseApp() {
   return getApps().length ? getApps()[0]! : initializeApp(config);
 }
 
+let firestoreInitialized = false;
+
 export function getDb() {
   const app = getFirebaseApp();
   if (!app) return null;
+  if (!firestoreInitialized) {
+    try {
+      initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentMultipleTabManager(),
+        }),
+      });
+    } catch {
+      // Fall back to the default Firestore instance if persistence isn't available.
+    } finally {
+      firestoreInitialized = true;
+    }
+  }
   return getFirestore(app);
 }
 

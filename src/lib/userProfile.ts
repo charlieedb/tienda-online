@@ -24,6 +24,13 @@ export type UserProfile = {
 };
 
 const profileCacheKey = (uid: string) => `listita.userProfile.${uid}`;
+const PROFILE_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
+type CachedProfileEnvelope = {
+  profile: UserProfile;
+  cachedAt: number;
+};
+const memoryProfileCache = new Map<string, CachedProfileEnvelope>();
+const inflightProfileRequests = new Map<string, Promise<UserProfile | null>>();
 type RawLatLng = { lat?: unknown; lng?: unknown };
 type RawAddress = {
   id?: unknown;
@@ -126,40 +133,114 @@ function normalizeProfile(uid: string, raw: RawProfile | null | undefined): User
   } satisfies UserProfile;
 }
 
-function readCachedUserProfile(uid: string) {
-  if (typeof window === "undefined") return null;
+function nowMs() {
+  return Date.now();
+}
+
+function normalizeCachedEnvelope(uid: string, raw: unknown): CachedProfileEnvelope | null {
+  if (!raw || typeof raw !== "object") return null;
+  const data = raw as { profile?: unknown; cachedAt?: unknown };
+  if (data.profile && typeof data.profile === "object") {
+    return {
+      profile: normalizeProfile(uid, data.profile as RawProfile),
+      cachedAt: Number(data.cachedAt || 0) || 0,
+    };
+  }
+  return {
+    profile: normalizeProfile(uid, raw as RawProfile),
+    cachedAt: 0,
+  };
+}
+
+function readCachedEnvelope(uid: string) {
   try {
+    const fromMemory = memoryProfileCache.get(uid);
+    if (fromMemory) return fromMemory;
+    if (typeof window === "undefined") return null;
     const raw = window.localStorage.getItem(profileCacheKey(uid));
     if (!raw) return null;
-    return normalizeProfile(uid, JSON.parse(raw));
+    const envelope = normalizeCachedEnvelope(uid, JSON.parse(raw));
+    if (!envelope) return null;
+    memoryProfileCache.set(uid, envelope);
+    return envelope;
   } catch {
     return null;
   }
 }
 
-function writeCachedUserProfile(profile: UserProfile) {
+export function getCachedUserProfile(uid: string) {
+  return readCachedEnvelope(uid)?.profile || null;
+}
+
+function writeCachedUserProfile(profile: UserProfile, cachedAt = nowMs()) {
+  const envelope: CachedProfileEnvelope = { profile, cachedAt };
+  memoryProfileCache.set(profile.uid, envelope);
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(profileCacheKey(profile.uid), JSON.stringify(profile));
+    window.localStorage.setItem(profileCacheKey(profile.uid), JSON.stringify(envelope));
   } catch {
     // Ignore storage failures; Firestore remains the main source when available.
   }
 }
 
-export async function getUserProfile(uid: string) {
+function isFresh(envelope: CachedProfileEnvelope | null, maxAgeMs: number) {
+  if (!envelope) return false;
+  if (!envelope.cachedAt) return false;
+  return nowMs() - envelope.cachedAt <= Math.max(0, maxAgeMs);
+}
+
+async function fetchUserProfileRemote(uid: string) {
   const db = getDb();
-  if (!db) return readCachedUserProfile(uid);
+  if (!db) return getCachedUserProfile(uid);
 
   const ref = doc(db, "users", uid);
-  try {
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return readCachedUserProfile(uid);
-    const profile = normalizeProfile(uid, snap.data() as RawProfile);
-    writeCachedUserProfile(profile);
-    return profile;
-  } catch {
-    return readCachedUserProfile(uid);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return getCachedUserProfile(uid);
+  const profile = normalizeProfile(uid, snap.data() as RawProfile);
+  writeCachedUserProfile(profile);
+  return profile;
+}
+
+export async function refreshUserProfile(
+  uid: string,
+  options?: {
+    force?: boolean;
+    maxAgeMs?: number;
+  },
+) {
+  const maxAgeMs = options?.maxAgeMs ?? PROFILE_CACHE_MAX_AGE_MS;
+  const cached = readCachedEnvelope(uid);
+  if (!options?.force && isFresh(cached, maxAgeMs)) {
+    return cached?.profile || null;
   }
+
+  const inflight = inflightProfileRequests.get(uid);
+  if (inflight) return inflight;
+
+  const request = fetchUserProfileRemote(uid)
+    .catch(() => getCachedUserProfile(uid))
+    .finally(() => {
+      inflightProfileRequests.delete(uid);
+    });
+
+  inflightProfileRequests.set(uid, request);
+  return request;
+}
+
+export async function getUserProfile(
+  uid: string,
+  options?: {
+    preferCache?: boolean;
+    maxAgeMs?: number;
+  },
+) {
+  const cached = getCachedUserProfile(uid);
+  if (options?.preferCache !== false && cached) return cached;
+  return refreshUserProfile(uid, { maxAgeMs: options?.maxAgeMs });
+}
+
+export async function preloadUserProfile(uid: string, maxAgeMs = PROFILE_CACHE_MAX_AGE_MS) {
+  return refreshUserProfile(uid, { maxAgeMs });
 }
 
 export async function upsertUserProfile(profile: UserProfile) {
@@ -184,7 +265,6 @@ export async function upsertUserProfile(profile: UserProfile) {
   if (!db) return;
 
   const ref = doc(db, "users", profile.uid);
-  const existing = await getDoc(ref);
   const first = direcciones[0] ?? null;
 
   await setDoc(
@@ -203,7 +283,6 @@ export async function upsertUserProfile(profile: UserProfile) {
       direccion: first?.direccion ?? "",
       ubicacion: first?.ubicacion ?? null,
       updatedAt: serverTimestamp(),
-      ...(existing.exists() ? {} : { createdAt: serverTimestamp() }),
     },
     { merge: true },
   );
