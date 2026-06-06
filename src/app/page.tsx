@@ -630,7 +630,7 @@ export default function Home() {
                   whileTap={{ scale: 0.98 }}
                   transition={{ type: "spring", stiffness: 600, damping: 35 }}
                   className={[
-                    "group w-full rounded-3xl px-4 py-4",
+                    "group cta-nudge w-full rounded-3xl px-4 py-4",
                     "outline-none focus-visible:ring-2 focus-visible:ring-brand/50",
                     "transition-transform hover:-translate-y-0.5 active:translate-y-0",
                     authLoading ? "opacity-70" : "",
@@ -672,7 +672,7 @@ export default function Home() {
                       </div>
                       <MotionButton
                         tone="ghost"
-                        className="h-10 w-full px-4 !text-foreground sm:w-auto"
+                        className="h-8 w-auto min-w-0 rounded-full !border-[rgba(230,57,70,0.22)] !bg-[rgba(230,57,70,0.16)] px-3 text-[11px] font-semibold uppercase tracking-[0.08em] !text-white hover:!bg-[rgba(230,57,70,0.22)] sm:ml-auto"
                         onClick={async () => {
                           resetShoppingSession();
                           await signOut();
@@ -688,7 +688,7 @@ export default function Home() {
                       <div className="landing-auth-cta__actions">
                         <MotionButton
                           tone="ghost"
-                          className="landing-auth-cta__button h-12 px-5 !text-foreground"
+                          className="landing-auth-cta__button h-11 px-4 !text-foreground"
                           onClick={() => {
                             setAuthCtaError(null);
                             setAuthMode("login");
@@ -699,8 +699,8 @@ export default function Home() {
                           Iniciar sesión
                         </MotionButton>
                         <MotionButton
-                          tone="soft"
-                          className="landing-auth-cta__button h-12 px-5"
+                          tone="ghost"
+                          className="landing-auth-cta__button h-11 px-4 !text-[#4285F4]"
                           onClick={() => {
                             setAuthCtaError(null);
                             setAuthMode("signup");
@@ -708,7 +708,7 @@ export default function Home() {
                           }}
                           disabled={authLoading}
                         >
-                          Crear cuenta
+                          + Crear cuenta
                         </MotionButton>
                       </div>
 
@@ -718,7 +718,7 @@ export default function Home() {
                         whileTap={{ scale: 0.985 }}
                         transition={{ type: "spring", stiffness: 600, damping: 35 }}
                         disabled={authLoading}
-                        className="landing-auth-google mt-3 inline-flex min-h-[50px] w-full items-center justify-center gap-3 rounded-[22px] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_32px_rgba(66,133,244,0.32)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="landing-auth-google mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-[18px] px-4 py-2.5 text-[0.92rem] font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <span className="landing-auth-google__icon" aria-hidden="true">
                           G
