@@ -484,42 +484,33 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
     }
   };
 
-  const mobileDockBottom = `calc(env(safe-area-inset-bottom, 0px) + ${browserBarInset + 10}px)`;
+  const mobileButtonBottom = `calc(env(safe-area-inset-bottom, 0px) + ${browserBarInset + 14}px)`;
   const mobileSheetBottom = `calc(env(safe-area-inset-bottom, 0px) + ${browserBarInset + 8}px)`;
   const mobileSheetHeight = `min(78svh, calc(100dvh - env(safe-area-inset-bottom, 0px) - ${browserBarInset + 16}px))`;
 
   return (
     <>
-      <div
-        className={[
-          "fixed z-40 border border-white/12 bg-[#FF0000] backdrop-blur-md",
-          isMobile ? "left-3 right-3 rounded-[28px]" : "bottom-0 left-0 right-0 border-t",
-        ].join(" ")}
-        style={isMobile ? { bottom: mobileDockBottom } : undefined}
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.985 }}
+        className="fixed left-1/2 z-50 inline-flex min-h-[56px] -translate-x-1/2 items-center gap-3 rounded-[22px] bg-white px-6 py-3 text-sm font-black tracking-wide text-[#FF0000] shadow-[0_18px_34px_rgba(255,0,0,0.20)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+        style={isMobile ? { bottom: mobileButtonBottom } : { bottom: "18px" }}
+        onClick={() => useCartStore.getState().toggleCart()}
+        aria-label="Abrir carrito"
       >
-        <div
-          className={[
-            "relative mx-auto w-full max-w-6xl px-4 pt-8",
-            isMobile ? "pb-4" : "pb-[max(env(safe-area-inset-bottom),22px)]",
-          ].join(" ")}
-        >
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.985 }}
-            className="absolute left-1/2 top-0 inline-flex min-h-[56px] -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-[22px] bg-white px-6 py-3 text-sm font-black tracking-wide text-[#FF0000] shadow-[0_18px_34px_rgba(255,0,0,0.20)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
-            onClick={() => useCartStore.getState().toggleCart()}
-            aria-label="Abrir carrito"
-          >
-            <span className="relative inline-flex">
-              <CartIcon />
-              {itemsCount > 0 ? (
-                <span className="absolute -right-3 -top-3 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#457B9D] px-1.5 text-[11px] font-black text-white shadow-[0_8px_18px_rgba(29,53,87,0.28)] ring-2 ring-white">
-                  {itemsCount}
-                </span>
-              ) : null}
+        <span className="relative inline-flex">
+          <CartIcon />
+          {itemsCount > 0 ? (
+            <span className="absolute -right-3 -top-3 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#457B9D] px-1.5 text-[11px] font-black text-white shadow-[0_8px_18px_rgba(29,53,87,0.28)] ring-2 ring-white">
+              {itemsCount}
             </span>
-            <span>CARRITO</span>
-          </motion.button>
+          ) : null}
+        </span>
+        <span>CARRITO</span>
+      </motion.button>
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/12 bg-[#FF0000] backdrop-blur-md">
+        <div className="relative mx-auto w-full max-w-6xl px-4 pb-[max(env(safe-area-inset-bottom),22px)] pt-8">
           <div className="h-7" />
         </div>
       </div>
