@@ -376,7 +376,14 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
     const syncViewportInset = () => {
       const visibleBottom = viewport.height + viewport.offsetTop;
       const hiddenBottom = Math.max(0, window.innerHeight - visibleBottom);
-      setBrowserBarInset(Math.round(hiddenBottom));
+      const active = document.activeElement;
+      const editingField =
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        active instanceof HTMLSelectElement ||
+        (active instanceof HTMLElement && active.isContentEditable);
+      const keyboardLikelyOpen = hiddenBottom > 160 || (editingField && hiddenBottom > 90);
+      setBrowserBarInset(keyboardLikelyOpen ? 0 : Math.round(hiddenBottom));
     };
 
     syncViewportInset();
