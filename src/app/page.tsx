@@ -59,7 +59,7 @@ function ListitaIllustration() {
         width="185"
         height="14"
         rx="7"
-        fill="rgba(31, 42, 138, 0.18)"
+        fill="rgba(69, 123, 157, 0.22)"
       />
       <rect
         x="46"
@@ -109,10 +109,10 @@ function ListitaIllustration() {
           width="180"
           height="42"
           rx="20"
-          fill="rgba(31, 42, 138, 0.14)"
+          fill="rgba(69, 123, 157, 0.16)"
         />
-        <rect x="12" y="11" width="112" height="20" rx="10" fill="#1f2a8a" />
-        <rect x="124" y="11" width="22" height="20" rx="10" fill="#2b3bb8" />
+        <rect x="12" y="11" width="112" height="20" rx="10" fill="#1D3557" />
+        <rect x="124" y="11" width="22" height="20" rx="10" fill="#457B9D" />
         <path
           d="M146 11 L168 21 L146 31 Z"
           fill="rgba(15, 23, 42, 0.80)"
@@ -120,11 +120,11 @@ function ListitaIllustration() {
         <path d="M168 21 L176 21" stroke="rgba(15, 23, 42, 0.50)" strokeWidth="3" strokeLinecap="round" />
       </g>
 
-      <circle cx="70" cy="78" r="6" fill="rgba(31, 42, 138, 0.55)" />
-      <circle cx="70" cy="102" r="6" fill="rgba(31, 42, 138, 0.55)" />
-      <circle cx="70" cy="126" r="6" fill="rgba(31, 42, 138, 0.55)" />
-      <circle cx="70" cy="150" r="6" fill="rgba(31, 42, 138, 0.55)" />
-      <circle cx="70" cy="174" r="6" fill="rgba(31, 42, 138, 0.55)" />
+      <circle cx="70" cy="78" r="6" fill="rgba(255, 0, 0, 0.55)" />
+      <circle cx="70" cy="102" r="6" fill="rgba(255, 0, 0, 0.55)" />
+      <circle cx="70" cy="126" r="6" fill="rgba(255, 0, 0, 0.55)" />
+      <circle cx="70" cy="150" r="6" fill="rgba(255, 0, 0, 0.55)" />
+      <circle cx="70" cy="174" r="6" fill="rgba(255, 0, 0, 0.55)" />
     </svg>
   );
 }
@@ -174,8 +174,8 @@ function ListitaIllustrationAlt() {
       {/* Pencil */}
       <g transform="translate(252 130) rotate(22)">
         <rect x="0" y="0" width="150" height="26" rx="13" fill="rgba(0,0,0,0.10)" />
-        <rect x="10" y="5" width="98" height="16" rx="8" fill="#E10600" />
-        <rect x="108" y="5" width="22" height="16" rx="8" fill="#3B0A16" />
+        <rect x="10" y="5" width="98" height="16" rx="8" fill="#457B9D" />
+        <rect x="108" y="5" width="22" height="16" rx="8" fill="#1D3557" />
         <path d="M130 5 L148 13 L130 21 Z" fill="rgba(0,0,0,0.78)" />
       </g>
     </svg>
@@ -213,7 +213,7 @@ function createItemWithOpts(
 }
 
 export default function Home() {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, signInGoogle, firebaseReady } = useAuth();
   const [stage, setStage] = useState<Stage>("landing");
   const [items, setItems] = useState<SuperItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -231,6 +231,7 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuCategories, setMenuCategories] = useState<Category[]>([]);
   const [floatingCategory, setFloatingCategory] = useState<{ token: string; label: string } | null>(null);
+  const [authCtaError, setAuthCtaError] = useState<string | null>(null);
   const lastUserUidRef = useRef<string | null>(null);
 
   const resetShoppingSession = () => {
@@ -428,6 +429,20 @@ export default function Home() {
     setOptionsPulse((p) => p + 1);
   };
 
+  const runGoogleSignIn = async () => {
+    if (!firebaseReady) {
+      setAuthCtaError("Falta configurar Firebase para poder continuar con Google.");
+      return;
+    }
+    setAuthCtaError(null);
+    try {
+      await signInGoogle();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setAuthCtaError(message || "No se pudo iniciar con Google. Probá de nuevo.");
+    }
+  };
+
   const userLabel = useMemo(() => {
     if (!user) return null;
     const name =
@@ -562,7 +577,7 @@ export default function Home() {
   }, [cartItems, stage]);
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="min-h-dvh bg-background text-[#F8F9FA]">
       {stage === "builder" && user ? <CartPanel /> : null}
 
       <AnimatePresence mode="wait" initial={false}>
@@ -587,13 +602,13 @@ export default function Home() {
             />
 
             <div className="relative z-10 flex flex-col gap-4">
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs">
-                <span className="font-black italic tracking-tight text-foreground">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-xs backdrop-blur-sm">
+                <span className="font-black italic tracking-tight text-white">
                   JONICO
                 </span>
-                <span className="text-foreground/65">el super de la esquina</span>
+                <span className="text-white/72">el super de la esquina</span>
               </div>
-              <h1 className="text-pretty text-3xl font-semibold tracking-tight text-foreground md:text-5xl">
+              <h1 className="text-pretty text-3xl font-semibold tracking-tight text-white md:text-5xl">
                 Hacelo simple: escribí lo que necesitás, y elegí la mejor opción.
               </h1>
             </div>
@@ -646,17 +661,17 @@ export default function Home() {
                 <div className="flex w-full max-w-3xl items-center justify-center gap-3">
                   {user ? (
                     <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between">
-                      <div className="min-w-0 text-center text-sm text-foreground/70 sm:text-left">
-                        <div className="truncate font-semibold text-foreground">
+                      <div className="min-w-0 text-center text-sm text-white/78 sm:text-left">
+                        <div className="truncate font-semibold text-white">
                           {user.displayName || user.email || "Cuenta"}
                         </div>
-                        <div className="truncate text-xs text-foreground/60">
+                        <div className="truncate text-xs text-white/62">
                           {user.email || ""}
                         </div>
                       </div>
                       <MotionButton
                         tone="ghost"
-                        className="h-10 w-full px-4 !text-foreground/80 hover:!bg-foreground/5 sm:w-auto"
+                        className="h-10 w-full px-4 !text-foreground sm:w-auto"
                         onClick={async () => {
                           resetShoppingSession();
                           await signOut();
@@ -668,43 +683,67 @@ export default function Home() {
                       </MotionButton>
                     </div>
                   ) : (
-                    <>
-                      <MotionButton
-                        tone="ghost"
-                        className="h-10 px-4 !text-foreground/80 hover:!bg-foreground/5"
-                        onClick={() => {
-                          setAuthMode("login");
-                          setAuthOpen(true);
-                        }}
+                    <div className="landing-auth-cta w-full">
+                      <div className="landing-auth-cta__actions">
+                        <MotionButton
+                          tone="ghost"
+                          className="landing-auth-cta__button h-12 px-5 !text-foreground"
+                          onClick={() => {
+                            setAuthCtaError(null);
+                            setAuthMode("login");
+                            setAuthOpen(true);
+                          }}
+                          disabled={authLoading}
+                        >
+                          Iniciar sesión
+                        </MotionButton>
+                        <MotionButton
+                          tone="soft"
+                          className="landing-auth-cta__button h-12 px-5"
+                          onClick={() => {
+                            setAuthCtaError(null);
+                            setAuthMode("signup");
+                            setAuthOpen(true);
+                          }}
+                          disabled={authLoading}
+                        >
+                          Crear cuenta
+                        </MotionButton>
+                      </div>
+
+                      <motion.button
+                        type="button"
+                        onClick={runGoogleSignIn}
+                        whileTap={{ scale: 0.985 }}
+                        transition={{ type: "spring", stiffness: 600, damping: 35 }}
                         disabled={authLoading}
+                        className="landing-auth-google mt-3 inline-flex min-h-[50px] w-full items-center justify-center gap-3 rounded-[22px] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_32px_rgba(66,133,244,0.32)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        Iniciar sesión
-                      </MotionButton>
-                      <MotionButton
-                        tone="soft"
-                        className="h-10 px-4"
-                        onClick={() => {
-                          setAuthMode("signup");
-                          setAuthOpen(true);
-                        }}
-                        disabled={authLoading}
-                      >
-                        Crear cuenta
-                      </MotionButton>
-                    </>
+                        <span className="landing-auth-google__icon" aria-hidden="true">
+                          G
+                        </span>
+                        Continuar con Google
+                      </motion.button>
+
+                      {authCtaError ? (
+                        <div className="mt-3 rounded-2xl border border-white/14 bg-white/10 px-4 py-3 text-center text-xs font-semibold text-white/84 backdrop-blur-sm">
+                          {authCtaError}
+                        </div>
+                      ) : null}
+                    </div>
                   )}
                 </div>
 
-                <div className="text-xs text-foreground/60">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-1 text-[11px] font-semibold text-foreground/70">
+                <div className="text-xs text-white/62">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-[11px] font-semibold text-white/78 backdrop-blur-sm">
                     Versión Beta {APP_VERSION}
                   </span>
                 </div>
               </div>
             </div>
 
-            <footer className="relative z-10 mt-auto pt-10 text-center text-sm font-semibold text-foreground/80">
-              <div className="mx-auto flex w-full max-w-md items-center justify-center gap-3 rounded-3xl border border-border bg-surface/55 px-4 py-3 backdrop-blur-sm">
+            <footer className="relative z-10 mt-auto pt-10 text-center text-sm font-semibold text-white/80">
+              <div className="mx-auto flex w-full max-w-md items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/8 px-4 py-3 backdrop-blur-sm">
                 <Image
                   src="/jonico-logo.png"
                   alt="Jonico"
@@ -713,11 +752,11 @@ export default function Home() {
                   className="drop-shadow-[0_6px_14px_rgba(0,0,0,0.10)]"
                 />
                 <div className="text-left leading-tight">
-                  <div className="text-sm font-black italic tracking-tight text-foreground">
+                  <div className="text-sm font-black italic tracking-tight text-white">
                     JONICO
                   </div>
-                  <div className="text-xs font-medium text-foreground/60">
-                    el Super de la Esquina · Envios gratis
+                  <div className="text-xs font-medium text-white/65">
+                    el Super de la Esquina · Envíos gratis
                   </div>
                 </div>
               </div>
@@ -779,7 +818,50 @@ export default function Home() {
               }}
             />
 
-            <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-5 pt-16 md:gap-6 md:px-6 md:pb-6 md:pt-[4.5rem]">
+            <div className="fixed inset-x-0 top-12 z-40">
+              <div className="mx-auto flex w-full max-w-6xl gap-2 px-3 py-2 md:px-6">
+                <motion.button
+                  type="button"
+                  onClick={() => setShowOffers(true)}
+                  whileTap={{ scale: 0.99 }}
+                  className="relative flex h-11 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(135deg,rgba(255,0,0,0.98),rgba(235,0,0,0.96)_58%,rgba(196,0,0,0.94))] px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+                  aria-label="Abrir ofertas del día"
+                >
+                  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.10),transparent_38%,rgba(0,0,0,0.12))]" />
+                  <Image
+                    src="/oferta.png"
+                    alt="Super Ofertas"
+                    width={520}
+                    height={180}
+                    priority
+                    className="relative z-10 h-7 w-auto max-w-full select-none object-contain brightness-110 contrast-125 drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)] md:h-8"
+                  />
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setShowOffers(false);
+                    openCategoryToken({ token: "promo", label: "Combos" });
+                  }}
+                  whileTap={{ scale: 0.99 }}
+                  className="relative flex h-11 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(135deg,rgba(255,0,0,0.98),rgba(235,0,0,0.96)_58%,rgba(196,0,0,0.94))] px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+                  aria-label="Abrir combos"
+                >
+                  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.10),transparent_38%,rgba(0,0,0,0.12))]" />
+                  <Image
+                    src="/combos.png"
+                    alt="Combos"
+                    width={520}
+                    height={180}
+                    priority
+                    className="relative z-10 h-7 w-auto max-w-full select-none object-contain brightness-110 contrast-125 drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)] md:h-8"
+                  />
+                </motion.button>
+              </div>
+            </div>
+
+            <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 pb-5 pt-32 md:gap-6 md:px-6 md:pb-6 md:pt-[8rem]">
             <QuantityModal
               open={editOpen}
               product={editProduct}
@@ -963,46 +1045,6 @@ export default function Home() {
                   }}
                 />
 
-                <div className="mt-6 flex justify-center pb-6">
-                  <div className="grid w-full max-w-[560px] grid-cols-2 gap-3 sm:gap-4">
-                    <motion.button
-                      type="button"
-                      onClick={() => setShowOffers(true)}
-                      whileTap={{ scale: 0.99 }}
-                      className="flex min-h-[108px] w-full items-center justify-center rounded-3xl border border-black/10 bg-gradient-to-br from-[#FFE86A] via-[#FFD44D] to-[#FFB84A] p-2 shadow-[0_12px_22px_rgba(0,0,0,0.10)] hover:shadow-[0_14px_26px_rgba(0,0,0,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
-                      aria-label="Abrir ofertas del día"
-                    >
-                      <Image
-                        src="/oferta.png"
-                        alt="Ofertas"
-                        width={520}
-                        height={180}
-                        priority
-                        className="h-16 w-auto max-w-full select-none object-contain sm:h-[72px]"
-                      />
-                    </motion.button>
-
-                    <motion.button
-                      type="button"
-                      onClick={() => {
-                        setShowOffers(false);
-                        openCategoryToken({ token: "promo", label: "Combos" });
-                      }}
-                      whileTap={{ scale: 0.99 }}
-                      className="flex min-h-[108px] w-full items-center justify-center overflow-hidden rounded-3xl border border-[#0b173d] bg-gradient-to-br from-[#17327C] via-[#13275F] to-[#09132E] px-2 py-1 shadow-[0_14px_28px_rgba(5,10,28,0.35)] hover:shadow-[0_18px_36px_rgba(5,10,28,0.42)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1f4ed8]"
-                      aria-label="Abrir combos"
-                    >
-                      <Image
-                        src="/combos.png"
-                        alt="Combos"
-                        width={520}
-                        height={180}
-                        priority
-                        className="h-16 w-auto max-w-full select-none object-contain sm:h-[72px]"
-                      />
-                    </motion.button>
-                  </div>
-                </div>
               </div>
             </div>
             </div>
@@ -1062,3 +1104,5 @@ export default function Home() {
     </div>
   );
 }
+
+

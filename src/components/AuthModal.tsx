@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -151,7 +151,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
           />
 
           <motion.aside
-            className="fixed left-1/2 top-1/2 z-[75] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f3f1f1] shadow-2xl"
+            className="fixed left-1/2 top-1/2 z-[75] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border app-modal-surface shadow-2xl"
             initial={{ opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 14, scale: 0.98 }}
@@ -160,11 +160,11 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
             aria-modal="true"
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <div className="text-base font-semibold text-black">{title}</div>
+              <div className="text-base font-semibold text-foreground">{title}</div>
               {!forced ? (
                 <MotionButton
                   tone="ghost"
-                  className="h-9 px-3 !text-black/75 hover:!bg-black/5"
+                  className="h-9 px-3 !text-foreground/80"
                   onClick={onClose}
                 >
                   Cerrar
@@ -175,7 +175,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
             <div className="p-5">
               <div className="space-y-3">
                 <label className="block">
-                  <div className="mb-1 text-xs font-semibold text-black/70">
+                  <div className="mb-1 text-xs font-semibold text-foreground/70">
                     {mode === "login" ? "Email o usuario" : "Email"}
                   </div>
                   <input
@@ -183,18 +183,18 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
                     onChange={(e) => setEmail(e.target.value)}
                     inputMode="email"
                     autoComplete="email"
-                    className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-base text-black outline-none placeholder:text-black/35 focus:border-black/25"
+                    className="app-input w-full rounded-2xl px-4 py-3 text-base"
                     placeholder={mode === "login" ? "tu@email.com o usuario" : "tu@email.com"}
                   />
                 </label>
                 <label className="block">
-                  <div className="mb-1 text-xs font-semibold text-black/70">Contraseña</div>
+                  <div className="mb-1 text-xs font-semibold text-foreground/70">Contraseña</div>
                   <input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     type="password"
                     autoComplete={mode === "login" ? "current-password" : "new-password"}
-                    className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-base text-black outline-none placeholder:text-black/35 focus:border-black/25"
+                    className="app-input w-full rounded-2xl px-4 py-3 text-base"
                     placeholder="••••••"
                   />
                 </label>
@@ -202,23 +202,23 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
                 {mode === "signup" ? (
                   <>
                     <label className="block">
-                      <div className="mb-1 text-xs font-semibold text-black/70">Usuario</div>
+                      <div className="mb-1 text-xs font-semibold text-foreground/70">Usuario</div>
                       <input
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         autoComplete="username"
-                        className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-base text-black outline-none placeholder:text-black/35 focus:border-black/25"
+                        className="app-input w-full rounded-2xl px-4 py-3 text-base"
                         placeholder="tuusuario"
                       />
                     </label>
                     <label className="block">
-                      <div className="mb-1 text-xs font-semibold text-black/70">DNI</div>
+                      <div className="mb-1 text-xs font-semibold text-foreground/70">DNI</div>
                       <input
                         value={dni}
                         onChange={(e) => setDni(e.target.value)}
                         inputMode="numeric"
                         autoComplete="off"
-                        className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-base text-black outline-none placeholder:text-black/35 focus:border-black/25"
+                        className="app-input w-full rounded-2xl px-4 py-3 text-base"
                         placeholder="12345678"
                       />
                     </label>
@@ -226,7 +226,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
                 ) : null}
 
                 {error ? (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                  <div className="app-error rounded-2xl px-4 py-3 text-sm font-semibold">
                     {error}
                   </div>
                 ) : null}
@@ -259,7 +259,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
                 {demoEnabled ? (
                   <MotionButton
                     tone="ghost"
-                    className="h-11 !text-black/75 hover:!bg-black/5"
+                    className="h-11 !text-foreground/80"
                     onClick={async () => {
                       setError(null);
                       try {
@@ -286,13 +286,13 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
                 ) : null}
               </div>
 
-              <div className="mt-4 text-center text-sm text-black/70">
+              <div className="mt-4 text-center text-sm text-foreground/70">
                 {mode === "login" ? (
                   <>
                     ¿No tenés cuenta?{" "}
                     <button
                       type="button"
-                      className="font-semibold text-black underline underline-offset-4"
+                      className="font-semibold text-[#457B9D] underline underline-offset-4"
                       onClick={() => onModeChange("signup")}
                     >
                       Crear cuenta
@@ -303,7 +303,7 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
                     ¿Ya tenés cuenta?{" "}
                     <button
                       type="button"
-                      className="font-semibold text-black underline underline-offset-4"
+                      className="font-semibold text-[#457B9D] underline underline-offset-4"
                       onClick={() => onModeChange("login")}
                     >
                       Iniciar sesión
@@ -318,3 +318,5 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
     </AnimatePresence>
   );
 }
+
+

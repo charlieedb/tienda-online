@@ -16,6 +16,41 @@ export type Product = {
 
 const LS_KEY = `listita.catalog.${APP_VERSION}`;
 const VERSION_CHECK_TTL_MS = 7_000;
+const EARLY_SUGGESTION_LIMIT = 6;
+const CURATED_SEARCH_TERMS = [
+  "aceite",
+  "aceituna",
+  "arroz",
+  "azucar",
+  "cafe",
+  "cereal",
+  "detergente",
+  "fideos",
+  "galletitas",
+  "harina",
+  "jabon",
+  "jugo",
+  "lavandina",
+  "leche",
+  "mayonesa",
+  "pan",
+  "pure de tomate",
+  "queso",
+  "sal",
+  "salsa",
+  "servilletas",
+  "te",
+  "vinagre",
+  "yerba",
+];
+const CURATED_EMPTY_STATE_EXAMPLES = [
+  "aceite",
+  "yerba",
+  "azucar",
+  "arroz",
+  "galletitas",
+  "lavandina",
+];
 
 function normalizeForSearch(value: string) {
   return value
@@ -47,6 +82,26 @@ function canonicalizeCategoryToken(value: string) {
   if (!token) return "";
   if (token.length > 4 && token.endsWith("s")) return token.slice(0, -1);
   return token;
+}
+
+function isUsefulAutocompleteToken(value: string) {
+  if (!value) return false;
+  if (value.length < 3 || value.length > 32) return false;
+  if (/^\d+$/.test(value)) return false;
+  if (!/[a-z]/.test(value)) return false;
+  return true;
+}
+
+function addAutocompleteCandidate(bucket: Set<string>, raw: string) {
+  const normalized = normalizeForSearch(raw);
+  if (!normalized) return;
+
+  if (isUsefulAutocompleteToken(normalized)) bucket.add(normalized);
+
+  for (const part of normalized.split(" ")) {
+    if (!isUsefulAutocompleteToken(part)) continue;
+    bucket.add(part);
+  }
 }
 
 function levenshtein(a: string, b: string) {
@@ -294,6 +349,68 @@ function suggestKeywords(input: string, universe: string[]) {
     .map(({ k }) => k);
 
   return scored;
+}
+
+function buildAutocompleteUniverse(catalog: Product[]) {
+  const set = new Set<string>();
+
+  for (const term of CURATED_SEARCH_TERMS) {
+    addAutocompleteCandidate(set, term);
+  }
+
+  for (const product of catalog) {
+    addAutocompleteCandidate(set, product.name);
+    addAutocompleteCandidate(set, product.brand ?? "");
+    for (const keyword of product.keywords ?? []) {
+      addAutocompleteCandidate(set, keyword);
+    }
+  }
+
+  return Array.from(set);
+}
+
+export async function getSearchPromptSuggestions(input: string): Promise<string[]> {
+  const token = normalizeForSearch(input);
+  if (!token || token.length < 2) return [];
+
+  const catalog = await getActiveCatalog();
+  const universe = buildAutocompleteUniverse(catalog);
+
+  const ranked = universe
+    .map((candidate) => {
+      const starts = candidate.startsWith(token);
+      const includes = !starts && candidate.includes(token);
+      if (!starts && !includes) return null;
+      const exact = candidate === token;
+      const wordStart = candidate.split(" ").some((part) => part.startsWith(token));
+      return {
+        candidate,
+        score: [
+          exact ? 0 : 1,
+          starts ? 0 : wordStart ? 1 : 2,
+          candidate.length,
+          candidate,
+        ] as const,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (!a || !b) return 0;
+      return (
+        a.score[0] - b.score[0] ||
+        a.score[1] - b.score[1] ||
+        a.score[2] - b.score[2] ||
+        a.score[3].localeCompare(b.score[3], "es", { sensitivity: "base" })
+      );
+    })
+    .slice(0, EARLY_SUGGESTION_LIMIT)
+    .map((entry) => entry?.candidate ?? "");
+
+  return ranked.filter(Boolean);
+}
+
+export function getTrendingSearchPrompts() {
+  return [...CURATED_EMPTY_STATE_EXAMPLES];
 }
 
 export async function getProductById(productId: string): Promise<Product | null> {

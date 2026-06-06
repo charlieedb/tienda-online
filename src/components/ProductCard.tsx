@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState, memo } from "react";
 import { formatArs } from "@/lib/format";
@@ -11,6 +11,7 @@ type Props = {
   tag?: "OFERTA";
   addedQty?: number | null;
   tone?: "default" | "offers";
+  compact?: boolean;
 };
 
 type ImageCacheEntry = {
@@ -69,6 +70,7 @@ function ProductCardInner({
   tag,
   addedQty = null,
   tone = "default",
+  compact = false,
 }: Props) {
   const isOut = product.active === false;
   const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ?? "";
@@ -226,19 +228,21 @@ function ProductCardInner({
     <div
       ref={cardRef}
       className={[
-        "rounded-2xl border border-border bg-surface p-3 shadow-sm transition-opacity",
+        compact
+          ? "flex h-full flex-col rounded-2xl border border-border bg-surface p-2 shadow-sm transition-opacity"
+          : "rounded-2xl border border-border bg-surface p-2.5 shadow-sm transition-opacity sm:p-3",
         isOut ? "opacity-70" : "",
       ].join(" ")}
     >
-      <div className="relative overflow-hidden rounded-2xl">
+      <div className={compact ? "relative min-h-0 flex-1 overflow-hidden rounded-2xl" : "relative overflow-hidden rounded-2xl"}>
         <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
           {typeof addedQty === "number" && addedQty > 0 ? (
-            <div className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm">
+            <div className="rounded-full bg-[#FF0000] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm">
               Agregado · x{addedQty}
             </div>
           ) : null}
           {isOut ? (
-            <div className="rounded-full bg-black/80 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm">
+            <div className="rounded-full bg-[#1D3557] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm">
               Sin stock
             </div>
           ) : null}
@@ -249,7 +253,12 @@ function ProductCardInner({
           ) : null}
         </div>
 
-        <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-white via-[#f5f1ef] to-[#ece7e4] p-4">
+        <div
+          className={[
+            "relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-white via-[#F3F6F9] to-[#E8EEF4]",
+            compact ? "h-full min-h-0 p-2" : "aspect-square p-3 sm:p-4",
+          ].join(" ")}
+        >
           {isOut ? (
             <div className="pointer-events-none absolute inset-0 z-[1] bg-black/16" />
           ) : null}
@@ -259,7 +268,7 @@ function ProductCardInner({
             className={[
               "absolute inset-0 transition-opacity duration-300",
               hasVisualImage ? "opacity-0" : "opacity-100",
-              "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.55),transparent_44%),linear-gradient(135deg,rgba(255,255,255,0.72),rgba(0,0,0,0.03))]",
+              "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.55),transparent_44%),linear-gradient(135deg,rgba(255,255,255,0.72),rgba(69,123,157,0.05))]",
             ].join(" ")}
           />
 
@@ -320,16 +329,18 @@ function ProductCardInner({
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-1 gap-2">
-        <div className="px-1">
+      <div className={compact ? "mt-1.5 grid shrink-0 grid-cols-1 gap-1" : "mt-2 grid grid-cols-1 gap-1.5 sm:mt-3 sm:gap-2"}>
+        <div className={compact ? "px-0.5" : "px-0.5 sm:px-1"}>
           <div
             className={[
-              "text-pretty text-[13px] font-semibold leading-4",
+              compact
+                ? "text-pretty text-[11px] font-semibold leading-[1rem]"
+                : "text-pretty text-[12px] font-semibold leading-[1.15rem] sm:text-[13px] sm:leading-4",
               isOut ? "text-foreground/70" : "text-foreground",
             ].join(" ")}
             style={{
               display: "-webkit-box",
-              WebkitLineClamp: 2,
+              WebkitLineClamp: compact ? 2 : 2,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
             }}
@@ -340,15 +351,23 @@ function ProductCardInner({
         </div>
         <div
           className={[
-            "flex items-center justify-between rounded-xl bg-surface-2 px-3 py-2",
+            compact
+              ? "flex items-center justify-between gap-1.5 rounded-xl bg-surface-2 px-2 py-1.5"
+              : "flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-2.5 py-2 sm:px-3",
             isOut ? "bg-surface-2/70" : "",
           ].join(" ")}
         >
-          <div>
-            <div className="text-xs font-semibold text-foreground/60">
+          <div className="min-w-0 flex-1">
+            <div className={compact ? "truncate text-[10px] font-semibold text-foreground/60" : "truncate text-[11px] font-semibold text-foreground/60 sm:text-xs"}>
               {product.brand ?? " "}
             </div>
-            <div className={[isOut ? "text-foreground/70" : "text-foreground", priceClass].join(" ")}>
+            <div
+              className={[
+                isOut ? "text-foreground/70" : "text-foreground",
+                priceClass,
+                compact ? "text-[12px] leading-[0.95rem]" : "text-[13px] leading-4 sm:text-sm",
+              ].join(" ")}
+            >
               {hasDiscount ? (
                 <span className="inline-flex items-baseline gap-2">
                   <span className={isOut ? "text-foreground/70" : "text-foreground"}>
@@ -361,12 +380,20 @@ function ProductCardInner({
               ) : (
                 formatArs(unitOriginal)
               )}{" "}
-              <span className="text-xs font-medium text-foreground/70">
+              <span className={compact ? "text-[10px] font-medium text-foreground/70" : "text-[11px] font-medium text-foreground/70 sm:text-xs"}>
                 · {product.unit.label}
               </span>
             </div>
           </div>
-          <MotionButton className="h-9 px-3" onClick={onSelect} disabled={isOut}>
+          <MotionButton
+            className={
+              compact
+                ? "h-7 shrink-0 rounded-lg px-2 text-[11px]"
+                : "h-8 shrink-0 px-2.5 text-[12px] sm:h-9 sm:px-3 sm:text-sm"
+            }
+            onClick={onSelect}
+            disabled={isOut}
+          >
             {isOut ? "Sin stock" : typeof addedQty === "number" && addedQty > 0 ? "Editar" : "Elegir"}
           </MotionButton>
         </div>
@@ -376,3 +403,4 @@ function ProductCardInner({
 }
 
 export const ProductCard = memo(ProductCardInner);
+

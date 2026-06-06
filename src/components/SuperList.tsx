@@ -1,9 +1,14 @@
-"use client";
+﻿"use client";
 
 import { AnimatePresence, motion, useMotionValue, useTransform } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { normalizeToken } from "@/lib/normalize";
-import { getProductById } from "@/lib/products";
+import {
+  getProductById,
+  getSearchPromptSuggestions,
+  getTrendingSearchPrompts,
+} from "@/lib/products";
 import { useCartStore } from "@/store/cart";
 import { formatArs } from "@/lib/format";
 import { StrikeThrough } from "@/components/StrikeThrough";
@@ -106,13 +111,17 @@ export function SuperList({
   const [value, setValue] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const blurTimeoutRef = useRef<number | null>(null);
   const listScrollRef = useRef<HTMLDivElement | null>(null);
   const [fadeTop, setFadeTop] = useState(false);
   const [fadeBottom, setFadeBottom] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [quickSuggestions, setQuickSuggestions] = useState<string[]>([]);
   const [unitsPerSelection, setUnitsPerSelection] = useState<Record<string, number>>(
     {},
   );
+  const deferredValue = useDeferredValue(value);
+  const trendingExamples = getTrendingSearchPrompts();
   const total = useCartStore((s) =>
     s.items.reduce((acc, i) => acc + i.price * i.qty, 0),
   );
@@ -139,6 +148,35 @@ export function SuperList({
     const t = setTimeout(() => setNotice(null), 2200);
     return () => clearTimeout(t);
   }, [notice]);
+
+  useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        window.clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const query = deferredValue.trim();
+
+    if (!query) return () => {
+      cancelled = true;
+    };
+
+    (async () => {
+      const suggestions = await getSearchPromptSuggestions(query);
+      if (cancelled) return;
+      const normalizedCurrent = normalizeToken(query);
+      const deduped = suggestions.filter((entry) => normalizeToken(entry) !== normalizedCurrent);
+      setQuickSuggestions(deduped);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [deferredValue]);
 
   useEffect(() => {
     let cancelled = false;
@@ -172,6 +210,36 @@ export function SuperList({
     };
   }, [items, unitsPerSelection]);
 
+  const commitItem = (
+    raw: string,
+    opts?: {
+      openOptions?: boolean;
+      source?: SuperItem["source"];
+    },
+  ) => {
+    const cleaned = raw.trim();
+    if (!cleaned) return false;
+
+    const token = normalizeToken(cleaned);
+    if (token && items.some((i) => i.token === token)) {
+      setNotice("Ese ítem ya está en la lista.");
+      setValue("");
+      setQuickSuggestions([]);
+      queueMicrotask(() => inputRef.current?.focus());
+      return false;
+    }
+
+    onAddItem(cleaned, { source: opts?.source });
+    setValue("");
+    setQuickSuggestions([]);
+    if (opts?.openOptions) onFocusOptions();
+    queueMicrotask(() => inputRef.current?.focus());
+    return true;
+  };
+
+  const showQuickSuggestions =
+    inputFocused && quickSuggestions.length > 0 && value.trim().length > 0;
+
   return (
     <div className="flex flex-col">
       <div
@@ -185,20 +253,7 @@ export function SuperList({
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            const raw = value.trim();
-            if (!raw) return;
-
-            const token = normalizeToken(raw);
-            if (token && items.some((i) => i.token === token)) {
-              setNotice("Ese ítem ya está en la lista.");
-              setValue("");
-              queueMicrotask(() => inputRef.current?.focus());
-              return;
-            }
-
-            onAddItem(raw);
-            setValue("");
-            queueMicrotask(() => inputRef.current?.focus());
+            commitItem(value);
           }}
         >
           <div className="relative mx-auto w-full max-w-[92%] sm:max-w-[88%]">
@@ -206,13 +261,25 @@ export function SuperList({
               ref={inputRef}
               value={value}
               onChange={(e) => {
-                setValue(e.target.value);
+                const nextValue = e.target.value;
+                setValue(nextValue);
+                if (!nextValue.trim()) setQuickSuggestions([]);
               }}
-              onFocus={() => setInputFocused(true)}
-              onBlur={() => setInputFocused(false)}
-              placeholder={inputFocused ? "" : "¿Qué necesitas?"}
+              onFocus={() => {
+                if (blurTimeoutRef.current) {
+                  window.clearTimeout(blurTimeoutRef.current);
+                  blurTimeoutRef.current = null;
+                }
+                setInputFocused(true);
+              }}
+              onBlur={() => {
+                blurTimeoutRef.current = window.setTimeout(() => {
+                  setInputFocused(false);
+                }, 120);
+              }}
+              placeholder={inputFocused ? "" : "¿Qué necesitás?"}
               className={[
-                "w-full rounded-2xl border border-black/10 bg-white/96 py-3.5 text-base text-black shadow-[0_18px_34px_rgba(17,24,39,0.16),0_6px_14px_rgba(255,255,255,0.7)] outline-none ring-2 ring-[#2b3bb8]/12 focus:border-[#2b3bb8]/28 focus:ring-[#2b3bb8]/24",
+                "app-input w-full rounded-2xl py-3.5 text-base text-foreground shadow-[0_18px_34px_rgba(29,53,87,0.14),0_6px_14px_rgba(255,255,255,0.72)] outline-none ring-2 ring-[rgba(69,123,157,0.10)] focus:border-[#457B9D]/50 focus:ring-[rgba(69,123,157,0.18)]",
                 value.trim().length > 0 || inputFocused
                   ? "pl-4 pr-14 text-left"
                   : "px-4 text-center placeholder:text-center",
@@ -222,23 +289,92 @@ export function SuperList({
               <button
                 type="submit"
                 aria-label="Agregar"
-                className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl bg-[#2b3bb8] text-white shadow-[0_10px_18px_rgba(0,0,0,0.10)] hover:brightness-[0.98] active:brightness-[0.96]"
+                className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl bg-[#FF0000] text-white shadow-[0_10px_18px_rgba(255,0,0,0.22)] hover:brightness-[0.98] active:brightness-[0.96]"
               >
                 <span className="text-xl leading-none">+</span>
               </button>
             ) : null}
+            <AnimatePresence initial={false}>
+              {showQuickSuggestions ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="quick-suggestions absolute inset-x-0 top-[calc(100%+0.7rem)] z-20"
+                >
+                  <div className="quick-suggestions__head">
+                    Sugerencias para escribir más rápido
+                  </div>
+                  <div className="quick-suggestions__list">
+                    {quickSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion}
+                        type="button"
+                        className="quick-suggestion-tag"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          commitItem(suggestion, { openOptions: true });
+                          setInputFocused(false);
+                        }}
+                      >
+                        <span className="quick-suggestion-chip__prefix">
+                          {suggestion.slice(0, value.trim().length)}
+                        </span>
+                        <span>{suggestion.slice(value.trim().length)}</span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </div>
         </form>
 
         {notice ? (
-          <div className="mt-2 text-xs font-semibold text-red-700">{notice}</div>
+          <div className="mt-2 text-xs font-semibold text-brand">{notice}</div>
         ) : null}
 
         <div className="relative mt-4 flex-1">
           {items.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-surface/60 p-4 text-sm text-foreground/70">
-              Empezá escribiendo un producto (una palabra) y apretá Enter.
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="empty-search-showcase rounded-[28px] border border-dashed border-border bg-surface/60 p-4 text-sm text-foreground/70"
+            >
+              <div className="empty-search-showcase__copy">
+                <div className="empty-search-showcase__title">
+                  Empezá escribiendo un producto.
+                </div>
+                <div className="empty-search-showcase__hint">
+                  Tocá una idea y la sumamos a la listita con sus opciones.
+                </div>
+              </div>
+
+              <div className="empty-search-showcase__cloud" aria-label="Ejemplos más buscados">
+                {trendingExamples.map((example, index) => (
+                  <button
+                    key={example}
+                    type="button"
+                    className="empty-search-showcase__chip"
+                    style={
+                      {
+                        "--float-delay": `${index * 0.45}s`,
+                        "--float-duration": `${5.4 + index * 0.45}s`,
+                        "--float-offset": `${10 + (index % 3) * 4}px`,
+                        "--float-rotate": `${index % 2 === 0 ? "1.4deg" : "-1.2deg"}`,
+                      } as CSSProperties
+                    }
+                    onClick={() => {
+                      commitItem(example, { openOptions: true });
+                      setInputFocused(false);
+                    }}
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
           ) : (
             <AnimatePresence initial={false}>
               <div className="relative">
@@ -294,16 +430,17 @@ export function SuperList({
         </div>
 
         <div className="mt-3 flex items-center gap-2">
-          <div className="flex-1 rounded-2xl border border-border bg-white/70 px-4 py-3 text-center font-hand text-[20px] leading-5 text-black">
+          <div className="flex-1 rounded-2xl border border-border bg-white/82 px-4 py-3 text-center font-hand text-[20px] leading-5 text-foreground">
             TOTAL: <span className="font-semibold">{formatArs(total)}</span>
           </div>
           <button
             type="button"
             onClick={() => {
               setValue("");
+              setQuickSuggestions([]);
               onClear();
             }}
-            className="rounded-2xl border border-border bg-white/70 px-4 py-3 text-center text-xs font-semibold text-black/60 hover:bg-black/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/40"
+            className="rounded-2xl border border-border bg-white/82 px-4 py-3 text-center text-xs font-semibold text-foreground/70 hover:bg-[rgba(69,123,157,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#457B9D]"
           >
             Limpiar
           </button>
@@ -359,7 +496,7 @@ function SuperListRow({
         className="absolute inset-0 flex items-center justify-end rounded-2xl px-3"
         style={{ opacity: reveal }}
       >
-        <div className="absolute inset-0 bg-gradient-to-l from-red-600/55 via-red-600/25 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-l from-[rgba(230,57,70,0.45)] via-[rgba(230,57,70,0.22)] to-transparent" />
         <button
           type="button"
           onClick={() => onRemoveItem(item.id)}
@@ -369,7 +506,7 @@ function SuperListRow({
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
-            className="h-5 w-5 text-red-700"
+            className="h-5 w-5 text-brand"
             fill="none"
             stroke="currentColor"
             strokeWidth="2.6"
@@ -438,10 +575,10 @@ function SuperListRow({
               "absolute left-3 top-1/2 -translate-y-1/2",
               "inline-flex h-6 w-6 items-center justify-center rounded-md border",
               hasSelections
-                ? "border-green-600 bg-green-600 text-white"
+                ? "border-[#1D3557] bg-[#1D3557] text-white"
                 : item.noResults
                   ? "hidden"
-                  : "border-black/25 bg-white/70 text-transparent",
+                  : "border-[rgba(29,53,87,0.24)] bg-white/82 text-transparent",
             ].join(" ")}
           >
             <svg
@@ -458,12 +595,12 @@ function SuperListRow({
           </span>
 
           <div ref={containerRef} className="relative pl-10 pr-28">
-            <div className="min-w-0 font-hand text-[20px] leading-5 text-black uppercase">
+            <div className="min-w-0 font-hand text-[20px] leading-5 text-foreground uppercase">
               <span ref={textRef} className="relative z-0 inline-block">
                 {item.offer ? (
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-x-[-6px] bottom-[0.05em] z-[-1] h-[0.9em] rounded-xl bg-[#FFF200]/75 blur-[0.2px]"
+                    className="pointer-events-none absolute inset-x-[-6px] bottom-[0.05em] z-[-1] h-[0.9em] rounded-xl bg-[rgba(230,57,70,0.22)] blur-[0.2px]"
                     style={{ transform: `rotate(${markRot}deg)` }}
                   />
                 ) : null}
@@ -472,14 +609,14 @@ function SuperListRow({
                   active={Boolean(item.noResults)}
                   from={0}
                   to={100}
-                  className={item.noResults ? "text-red-600" : undefined}
+                  className={item.noResults ? "text-brand" : undefined}
                   offsetYClassName={item.noResults ? "top-[0.62em] -translate-y-1/2" : undefined}
                 />
               </span>
             </div>
 
             {brandsCount > 1 ? (
-              <div className="mt-2 text-[11px] font-semibold text-black/55">
+              <div className="mt-2 text-[11px] font-semibold text-foreground/55">
                 {brandsCount} marcas
               </div>
             ) : null}
@@ -490,8 +627,8 @@ function SuperListRow({
               className={[
                 "absolute top-1/2 -translate-y-1/2 text-[11px] font-semibold",
                 item.noResults
-                  ? "right-3 cursor-default text-red-600/70"
-                  : "right-3 text-black/35 hover:text-black/65",
+                  ? "right-3 cursor-default text-brand/75"
+                  : "right-3 text-foreground/40 hover:text-foreground/70",
               ].join(" ")}
             >
               {item.noResults ? "muy pronto" : "elegi una opcion"}
@@ -499,8 +636,8 @@ function SuperListRow({
           ) : null}
 
           {item.added ? (
-            <span className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2 text-green-600">
-              <span className="text-[11px] font-semibold uppercase text-black/55">
+            <span className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-2 text-[#457B9D]">
+              <span className="text-[11px] font-semibold uppercase text-foreground/55">
                 {hasSelections ? `x${totalUnits} unid` : ""}
               </span>
             </span>
@@ -520,3 +657,4 @@ function SuperListRow({
     </motion.li>
   );
 }
+

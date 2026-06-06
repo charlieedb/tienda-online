@@ -41,10 +41,10 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div className="text-sm font-semibold text-black">Carrito</div>
+        <div className="text-sm font-semibold text-foreground">Carrito</div>
         <MotionButton
           tone="ghost"
-          className="h-9 px-3 !text-black/80 hover:!bg-black/5"
+          className="h-9 px-3 !text-foreground/80"
           onClick={() => clear()}
           disabled={items.length === 0}
         >
@@ -54,23 +54,23 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
 
       <div className="no-scrollbar flex-1 overflow-auto p-3">
         {items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-white/70 p-4 text-sm text-black/70">
+          <div className="rounded-2xl border border-dashed border-border bg-white/82 p-4 text-sm text-foreground/70">
             Todavía no agregaste nada.
           </div>
         ) : (
           <div className="flex flex-col gap-2">
             {items.map((i) => (
-              <div key={i.id} className="rounded-2xl border border-border bg-white/70 p-3">
+              <div key={i.id} className="rounded-2xl border border-border bg-white/82 p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-black">{i.name}</div>
-                    <div className="text-xs text-black/70">
+                    <div className="truncate text-sm font-semibold text-foreground">{i.name}</div>
+                    <div className="text-xs text-foreground/70">
                       {i.label} · {formatArs(i.price)}
                     </div>
                     {typeof i.unitPriceFinal === "number" ? (
-                      <div className="mt-1 text-[11px] text-black/60">
+                      <div className="mt-1 text-[11px] text-foreground/60">
                         Precio unitario final:{" "}
-                        <span className="font-semibold text-black/80">{formatArs(i.unitPriceFinal)}</span>
+                        <span className="font-semibold text-foreground/80">{formatArs(i.unitPriceFinal)}</span>
                         {i.variant === "pack" && (i.unitsPerPack || 0) > 1 ? (
                           <span> · {i.unitsPerPack} unid por caja</span>
                         ) : null}
@@ -79,7 +79,7 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
                   </div>
                   <MotionButton
                     tone="ghost"
-                    className="h-8 px-2 text-xs !text-black/75 hover:!bg-black/5"
+                    className="h-8 px-2 text-xs !text-foreground/80"
                     onClick={() => removeItem(i.id)}
                   >
                     Quitar
@@ -87,8 +87,8 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
                 </div>
 
                 <div className="mt-2 flex items-center justify-between">
-                  <div className="text-xs text-black/70">
-                    Subtotal: <span className="font-semibold text-black">{formatArs(i.price * i.qty)}</span>
+                  <div className="text-xs text-foreground/70">
+                    Subtotal: <span className="font-semibold text-foreground">{formatArs(i.price * i.qty)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MotionButton
@@ -99,7 +99,7 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
                     >
                       −
                     </MotionButton>
-                    <div className="w-8 text-center text-sm font-semibold text-black">{i.qty}</div>
+                    <div className="w-8 text-center text-sm font-semibold text-foreground">{i.qty}</div>
                     <MotionButton
                       tone="soft"
                       className="h-8 w-8 px-0"
@@ -132,8 +132,8 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
 
       <div className="border-t border-border px-4 pb-11 pt-5">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-black/70">Total</div>
-          <div className="text-lg font-semibold text-black">{formatArs(total)}</div>
+          <div className="text-sm text-foreground/70">Total</div>
+          <div className="text-lg font-semibold text-foreground">{formatArs(total)}</div>
         </div>
         <MotionButton className="mt-4 h-11 w-full" disabled={items.length === 0} onClick={onContinue}>
           Continuar
@@ -204,7 +204,7 @@ function CheckoutModal({
             onClick={onClose}
           />
           <motion.div
-            className="fixed left-1/2 top-1/2 z-[130] w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f7f4f4] shadow-2xl"
+            className="fixed left-1/2 top-1/2 z-[130] w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border app-modal-surface shadow-2xl"
             initial={{ opacity: 0, y: 10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -213,38 +213,38 @@ function CheckoutModal({
             aria-modal="true"
           >
             <div className="border-b border-border px-5 py-4">
-              <div className="text-sm font-semibold text-black">Finalizar pedido</div>
-              <div className="mt-1 text-xs text-black/70">
+              <div className="text-sm font-semibold text-foreground">Finalizar pedido</div>
+              <div className="mt-1 text-xs text-foreground/70">
                 Completamos tus datos desde tu perfil y podés corregirlos si hace falta.
               </div>
             </div>
             <div className="space-y-4 px-5 py-4">
               {loadingProfile ? (
-                <div className="flex items-center gap-2 rounded-2xl border border-border bg-white/70 px-4 py-3 text-xs font-semibold text-black/72">
+                <div className="app-info flex items-center gap-2 rounded-2xl px-4 py-3 text-xs font-semibold">
                   <Spinner />
                   <span>Completando tus datos desde tu perfil...</span>
                 </div>
               ) : null}
               {error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                <div className="app-error rounded-2xl px-4 py-3 text-xs">
                   {error}
                 </div>
               ) : null}
 
-              <label className="block text-xs font-semibold text-black/70">
+              <label className="block text-xs font-semibold text-foreground/70">
                 Nombre
                 <input
-                  className="mt-1 h-11 w-full rounded-2xl border border-border bg-white px-4 text-sm text-black outline-none"
+                  className="app-input mt-1 h-11 w-full rounded-2xl px-4 text-sm"
                   value={form.nombre}
                   onChange={(e) => onChange({ nombre: e.target.value })}
                   placeholder="Tu nombre"
                 />
               </label>
 
-              <label className="block text-xs font-semibold text-black/70">
+              <label className="block text-xs font-semibold text-foreground/70">
                 Teléfono
                 <input
-                  className="mt-1 h-11 w-full rounded-2xl border border-border bg-white px-4 text-sm text-black outline-none"
+                  className="app-input mt-1 h-11 w-full rounded-2xl px-4 text-sm"
                   value={form.telefono}
                   onChange={(e) => onChange({ telefono: e.target.value })}
                   placeholder="WhatsApp o teléfono"
@@ -252,20 +252,20 @@ function CheckoutModal({
                 />
               </label>
 
-              <label className="block text-xs font-semibold text-black/70">
+              <label className="block text-xs font-semibold text-foreground/70">
                 Dirección
                 <input
-                  className="mt-1 h-11 w-full rounded-2xl border border-border bg-white px-4 text-sm text-black outline-none"
+                  className="app-input mt-1 h-11 w-full rounded-2xl px-4 text-sm"
                   value={form.direccion}
                   onChange={(e) => onChange({ direccion: e.target.value })}
                   placeholder="Dirección de entrega"
                 />
               </label>
 
-              <label className="block text-xs font-semibold text-black/70">
+              <label className="block text-xs font-semibold text-foreground/70">
                 Nota
                 <input
-                  className="mt-1 h-11 w-full rounded-2xl border border-border bg-white px-4 text-sm text-black outline-none"
+                  className="app-input mt-1 h-11 w-full rounded-2xl px-4 text-sm"
                   value={form.nota}
                   onChange={(e) => onChange({ nota: e.target.value })}
                   placeholder="Aclaraciones (opcional)"
@@ -303,9 +303,9 @@ function SuccessOverlay({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-[#0d1b11]" />
+          <div className="absolute inset-0 bg-[#2B2D42]" />
           <motion.div
-            className="absolute left-1/2 top-1/2 h-[160vmax] w-[160vmax] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,#4ee082_0%,#22c55e_45%,#159947_72%,#0f6e33_100%)] shadow-[0_0_120px_rgba(34,197,94,0.35)]"
+            className="absolute left-1/2 top-1/2 h-[160vmax] w-[160vmax] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,#F8F9FA_0%,#FF3B3B_38%,#FF0000_68%,#8C0000_100%)] shadow-[0_0_120px_rgba(255,0,0,0.30)]"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             exit={{ scale: 1.08, opacity: 0 }}
@@ -345,7 +345,7 @@ function SuccessOverlay({
 
             <MotionButton
               type="button"
-              className="mt-8 h-12 min-w-40 rounded-2xl border border-white/20 !bg-white !px-8 !text-[#12803b] shadow-[0_16px_34px_rgba(0,0,0,0.16)] hover:!bg-white/95"
+              className="mt-8 h-12 min-w-40 rounded-2xl border border-white/20 !bg-white !px-8 !text-[#1D3557] shadow-[0_16px_34px_rgba(0,0,0,0.16)] hover:!bg-white/95"
               onClick={onOk}
             >
               OK
@@ -460,19 +460,19 @@ export function CartPanel() {
 
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/12 bg-[#E10600] shadow-[0_-10px_28px_rgba(113,10,18,0.28)] backdrop-blur-md">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/12 bg-[#FF0000] shadow-[0_-10px_28px_rgba(255,0,0,0.24)] backdrop-blur-md">
         <div className="relative mx-auto w-full max-w-6xl px-4 pb-[max(env(safe-area-inset-bottom),22px)] pt-8">
           <motion.button
             type="button"
             whileTap={{ scale: 0.985 }}
-            className="absolute left-1/2 top-0 inline-flex min-h-[56px] -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-[22px] bg-white px-6 py-3 text-sm font-black tracking-wide text-[#B1060F] shadow-[0_18px_34px_rgba(0,0,0,0.24)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+            className="absolute left-1/2 top-0 inline-flex min-h-[56px] -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-[22px] bg-white px-6 py-3 text-sm font-black tracking-wide text-[#FF0000] shadow-[0_18px_34px_rgba(255,0,0,0.20)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
             onClick={() => useCartStore.getState().toggleCart()}
             aria-label="Abrir carrito"
           >
             <span className="relative inline-flex">
               <CartIcon />
               {itemsCount > 0 ? (
-                <span className="absolute -right-3 -top-3 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#FFF200] px-1.5 text-[11px] font-black text-[#B1060F] shadow-[0_8px_18px_rgba(0,0,0,0.28)] ring-2 ring-white">
+                <span className="absolute -right-3 -top-3 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[#457B9D] px-1.5 text-[11px] font-black text-white shadow-[0_8px_18px_rgba(29,53,87,0.28)] ring-2 ring-white">
                   {itemsCount}
                 </span>
               ) : null}
@@ -497,18 +497,18 @@ export function CartPanel() {
 
             {isMobile ? (
               <motion.aside
-                className="fixed bottom-0 left-0 right-0 z-[100] h-[78vh] overflow-hidden rounded-t-3xl bg-gradient-to-b from-[#f7f4f4] to-[#efebeb] pb-[max(env(safe-area-inset-bottom),10px)] shadow-2xl"
+                className="fixed bottom-0 left-0 right-0 z-[100] h-[78vh] overflow-hidden rounded-t-3xl app-sheet-surface pb-[max(env(safe-area-inset-bottom),10px)] shadow-2xl"
                 initial={{ y: 40, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 40, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 500, damping: 45 }}
               >
-                <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-zinc-300" />
+                <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-[rgba(29,53,87,0.18)]" />
                 <CartContent onContinue={() => setCheckoutOpen(true)} />
               </motion.aside>
             ) : (
               <motion.aside
-                className="fixed right-4 top-4 z-[100] h-[calc(100vh-2rem)] w-[380px] overflow-hidden rounded-3xl bg-gradient-to-b from-[#f7f4f4] to-[#efebeb] shadow-2xl"
+                className="fixed right-4 top-4 z-[100] h-[calc(100vh-2rem)] w-[380px] overflow-hidden rounded-3xl app-sheet-surface shadow-2xl"
                 initial={{ x: 30, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 30, opacity: 0 }}
@@ -546,3 +546,4 @@ export function CartPanel() {
     </>
   );
 }
+

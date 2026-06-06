@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -207,32 +207,32 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
         transition={{ duration: 0.22, ease: "easeOut" }}
       >
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-          <div className="rounded-[28px] border border-black/10 bg-white/82 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-sm md:p-5">
+          <div className="app-panel rounded-[28px] p-4 backdrop-blur-sm md:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <div className="text-[11px] font-black uppercase tracking-[0.22em] text-brand/75">
                   Cuenta
                 </div>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-black md:text-3xl">
+                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
                   Configuración de tu cuenta
                 </h1>
-                <p className="mt-1 text-sm text-black/65">
+                <p className="mt-1 text-sm text-foreground/65">
                   Completá tus datos básicos y la dirección principal para pedir más rápido.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onBack}
-                className="inline-flex h-11 items-center justify-center rounded-2xl bg-black/5 px-4 text-sm font-black text-black hover:bg-black/8"
+                className="inline-flex h-11 items-center justify-center rounded-2xl bg-[rgba(69,123,157,0.10)] px-4 text-sm font-black text-foreground hover:bg-[rgba(69,123,157,0.16)]"
               >
                 Volver a la listita
               </button>
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-black/10 bg-white/82 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-sm md:p-5">
+          <div className="app-panel rounded-[28px] p-4 backdrop-blur-sm md:p-5">
             {loading && !hasBasicData ? (
-              <div className="rounded-2xl border border-dashed border-border bg-white/70 p-4 text-sm text-black/70">
+              <div className="rounded-2xl border border-dashed border-border bg-white/82 p-4 text-sm text-foreground/70">
                 <div className="flex items-center gap-2 font-semibold">
                   <Spinner />
                   <span>Cargando perfil...</span>
@@ -241,38 +241,38 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
             ) : (
               <div className="flex flex-col gap-5">
                 {loading ? (
-                  <div className="flex items-center gap-2 rounded-2xl border border-border bg-white/70 px-4 py-3 text-sm font-semibold text-black/70">
+                  <div className="flex items-center gap-2 rounded-2xl border border-border bg-white/82 px-4 py-3 text-sm font-semibold text-foreground/70">
                     <Spinner />
                     <span>Sincronizando tu perfil...</span>
                   </div>
                 ) : null}
 
-                <div className="rounded-3xl border border-black/8 bg-[#faf7f7] px-4 py-3">
-                  <div className="text-xs font-black uppercase tracking-[0.16em] text-black/55">
+                <div className="rounded-3xl border border-[rgba(29,53,87,0.08)] bg-[#F3F6F9] px-4 py-3">
+                  <div className="text-xs font-black uppercase tracking-[0.16em] text-foreground/55">
                     Cuenta actual
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-black">
+                  <div className="mt-1 text-sm font-semibold text-foreground">
                     {user?.displayName || user?.email || "Cuenta"}
                   </div>
-                  <div className="mt-0.5 text-xs text-black/60">{user?.email || ""}</div>
+                  <div className="mt-0.5 text-xs text-foreground/60">{user?.email || ""}</div>
                 </div>
 
                 {error ? (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
+                  <div className="app-error rounded-2xl p-3 text-sm font-semibold text-red-700">
                     {error}
                   </div>
                 ) : null}
 
                 {savedNotice ? (
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
+                  <div className="app-info rounded-2xl p-3 text-sm font-semibold text-emerald-700">
                     {savedNotice}
                   </div>
                 ) : null}
 
-                <div className="rounded-3xl border border-black/8 bg-[#faf7f7] p-4">
+                <div className="rounded-3xl border border-[rgba(29,53,87,0.08)] bg-[#F3F6F9] p-4">
                   <div className="mb-3">
-                    <div className="text-sm font-black text-black">Datos básicos</div>
-                    <div className="mt-1 text-xs font-semibold text-black/55">
+                    <div className="text-sm font-black text-foreground">Datos básicos</div>
+                    <div className="mt-1 text-xs font-semibold text-foreground/55">
                       Estos datos quedan guardados en tu cuenta.
                     </div>
                   </div>
@@ -280,7 +280,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Field label="Nombre">
                       <input
-                        className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                        className="app-input h-11 w-full rounded-2xl px-4 text-[16px]"
                         value={form.nombre}
                         onChange={(e) => updateForm((prev) => ({ ...prev, nombre: e.target.value }))}
                         placeholder="Tu nombre"
@@ -288,7 +288,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                     </Field>
                     <Field label="Apellido">
                       <input
-                        className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                        className="app-input h-11 w-full rounded-2xl px-4 text-[16px]"
                         value={form.apellido}
                         onChange={(e) => updateForm((prev) => ({ ...prev, apellido: e.target.value }))}
                         placeholder="Tu apellido"
@@ -296,7 +296,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                     </Field>
                     <Field label="DNI">
                       <input
-                        className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                        className="app-input h-11 w-full rounded-2xl px-4 text-[16px]"
                         value={form.dni}
                         onChange={(e) => updateForm((prev) => ({ ...prev, dni: e.target.value }))}
                         placeholder="Documento"
@@ -305,7 +305,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                     </Field>
                     <Field label="Teléfono">
                       <input
-                        className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                        className="app-input h-11 w-full rounded-2xl px-4 text-[16px]"
                         value={form.telefono}
                         onChange={(e) => updateForm((prev) => ({ ...prev, telefono: e.target.value }))}
                         placeholder="WhatsApp / celular"
@@ -315,11 +315,11 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-black/8 bg-[#faf7f7] p-4">
+                <div className="rounded-3xl border border-[rgba(29,53,87,0.08)] bg-[#F3F6F9] p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <div className="text-sm font-black text-black">Direcciones</div>
-                      <div className="mt-1 text-xs font-semibold text-black/55">
+                      <div className="text-sm font-black text-foreground">Direcciones</div>
+                      <div className="mt-1 text-xs font-semibold text-foreground/55">
                         Empezamos con una principal. Si querés, después podés sumar más.
                       </div>
                     </div>
@@ -329,7 +329,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                     {form.direcciones.map((addr, idx) => (
                       <div key={addr.id} className="rounded-3xl border border-border bg-white/88 p-3">
                         <div className="mb-2 flex items-center justify-between">
-                          <div className="text-xs font-black text-black/70">
+                          <div className="text-xs font-black text-foreground/70">
                             {idx === 0 ? "Dirección principal" : `Dirección ${idx + 1}`}
                           </div>
                           {multiAddressEnabled && form.direcciones.length > 1 ? (
@@ -341,7 +341,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                                   direcciones: prev.direcciones.filter((d) => d.id !== addr.id),
                                 }))
                               }
-                              className="rounded-xl px-2 py-1 text-xs font-black text-black/60 hover:bg-black/5"
+                              className="rounded-xl px-2 py-1 text-xs font-black text-foreground/60 hover:bg-[rgba(69,123,157,0.10)]"
                             >
                               Quitar
                             </button>
@@ -351,7 +351,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                           <Field label="Provincia">
                             <select
-                              className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                              className="app-input h-11 w-full rounded-2xl px-4 text-[16px]"
                               value={addr.provincia}
                               onChange={(e) => {
                                 const value = e.target.value;
@@ -376,7 +376,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
 
                           <Field label="Localidad">
                             <input
-                              className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50 disabled:bg-black/[0.03] disabled:text-black/45"
+                              className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-foreground outline-none focus:border-[#457B9D]/50 disabled:bg-black/[0.03] disabled:text-foreground/45"
                               value={addr.localidad}
                               disabled={!addr.provincia}
                               onChange={(e) => {
@@ -395,7 +395,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                           <Field label="Dirección">
                             <div className="relative">
                               <input
-                                className="h-11 w-full rounded-2xl border border-border bg-white px-4 pr-12 text-[16px] text-black outline-none focus:border-brand/50 disabled:bg-black/[0.03] disabled:text-black/45"
+                                className="h-11 w-full rounded-2xl border border-border bg-white px-4 pr-12 text-[16px] text-foreground outline-none focus:border-[#457B9D]/50 disabled:bg-black/[0.03] disabled:text-foreground/45"
                                 value={addr.direccion}
                                 disabled={!addr.provincia || !addr.localidad.trim()}
                                 onChange={(e) => {
@@ -422,7 +422,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                                   setMapInitialQuery(query);
                                 }}
                                 disabled={!addr.provincia || !addr.localidad.trim() || !addr.direccion.trim()}
-                                className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-xl bg-black/5 text-black/70 hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
+                                className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-xl bg-[rgba(69,123,157,0.10)] text-foreground/70 hover:bg-[rgba(69,123,157,0.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#457B9D]"
                                 aria-label="Marcar ubicación en el mapa"
                                 title="Marcar ubicación en el mapa"
                               >
@@ -439,7 +439,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                           </Field>
                         </div>
 
-                        <div className="mt-2 text-xs font-semibold text-black/70">
+                        <div className="mt-2 text-xs font-semibold text-foreground/70">
                           {addr.ubicacion
                             ? `Ubicación: ${addr.ubicacion.lat.toFixed(5)}, ${addr.ubicacion.lng.toFixed(5)}`
                             : "Sin ubicación marcada"}
@@ -465,7 +465,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                             };
                           });
                         }}
-                        className="h-10 rounded-2xl bg-black/5 px-4 text-xs font-black text-black hover:bg-black/8"
+                        className="h-10 rounded-2xl bg-[rgba(69,123,157,0.10)] px-4 text-xs font-black text-foreground hover:bg-[rgba(69,123,157,0.16)]"
                       >
                         Quiero agregar más de una
                       </button>
@@ -481,7 +481,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                             ],
                           }))
                         }
-                        className="h-10 rounded-2xl bg-[#1f2a8a] px-4 text-xs font-black text-white"
+                        className="h-10 rounded-2xl bg-[#1D3557] px-4 text-xs font-black text-white"
                       >
                         Agregar otra
                       </button>
@@ -493,7 +493,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                   <button
                     type="button"
                     onClick={onBack}
-                    className="h-11 rounded-2xl bg-black/5 px-4 text-sm font-black text-black"
+                    className="h-11 rounded-2xl bg-[rgba(69,123,157,0.10)] px-4 text-sm font-black text-foreground"
                   >
                     Cancelar
                   </button>
@@ -559,7 +559,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs font-semibold text-black/70">{label}</span>
+      <span className="text-xs font-semibold text-foreground/70">{label}</span>
       {children}
     </label>
   );
@@ -579,3 +579,6 @@ function PinIcon() {
     </svg>
   );
 }
+
+
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -125,7 +125,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
             />
 
             <motion.div
-              className="fixed left-1/2 top-1/2 z-[75] w-[min(620px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f7f4f4] shadow-2xl"
+              className="fixed left-1/2 top-1/2 z-[75] w-[min(620px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border app-modal-surface shadow-2xl"
               initial={{ opacity: 0, y: 10, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -134,19 +134,19 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
               aria-modal="true"
             >
               <div className="border-b border-border px-5 py-4">
-                <div className="text-sm font-semibold text-black">Configuración</div>
-                <div className="mt-1 text-xs text-black/70">Actualizá tus datos para el envío.</div>
+                <div className="text-sm font-semibold text-foreground">Configuración</div>
+                <div className="mt-1 text-xs text-foreground/70">Actualizá tus datos para el envío.</div>
               </div>
 
               <div className="no-scrollbar max-h-[70dvh] overflow-auto px-5 py-4">
                 {loading ? (
-                  <div className="rounded-2xl border border-dashed border-border bg-white/70 p-4 text-sm text-black/70">
-                    Cargando…
+                  <div className="rounded-2xl border border-dashed border-border bg-white/82 p-4 text-sm text-foreground/70">
+                    Cargando...
                   </div>
                 ) : (
                   <div className="flex flex-col gap-4">
                     {error ? (
-                      <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
+                      <div className="app-error rounded-2xl p-3 text-sm font-semibold text-red-700">
                         {error}
                       </div>
                     ) : null}
@@ -154,7 +154,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Field label="Nombre">
                         <input
-                          className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                          className="app-input h-11 w-full rounded-2xl px-4 text-[16px]"
                           value={form.nombre}
                           onChange={(e) => setForm((p) => ({ ...p, nombre: e.target.value }))}
                           placeholder="Tu nombre"
@@ -162,7 +162,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                       </Field>
                       <Field label="Apellido">
                         <input
-                          className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                          className="app-input h-11 w-full rounded-2xl px-4 text-[16px]"
                           value={form.apellido}
                           onChange={(e) => setForm((p) => ({ ...p, apellido: e.target.value }))}
                           placeholder="Tu apellido"
@@ -173,7 +173,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <Field label="DNI">
                         <input
-                          className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                          className="app-input h-11 w-full rounded-2xl px-4 text-[16px]"
                           value={form.dni}
                           onChange={(e) => setForm((p) => ({ ...p, dni: e.target.value }))}
                           placeholder="Documento"
@@ -182,7 +182,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                       </Field>
                       <Field label="Teléfono">
                         <input
-                          className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                          className="app-input h-11 w-full rounded-2xl px-4 text-[16px]"
                           value={form.telefono}
                           onChange={(e) => setForm((p) => ({ ...p, telefono: e.target.value }))}
                           placeholder="WhatsApp / celular"
@@ -191,11 +191,11 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                       </Field>
                     </div>
 
-                    <div className="rounded-3xl border border-border bg-white/60 p-4">
+                    <div className="rounded-3xl border border-border bg-white/82 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <div className="text-sm font-semibold text-black">Direcciones</div>
-                          <div className="mt-1 text-xs font-semibold text-black/60">
+                          <div className="text-sm font-semibold text-foreground">Direcciones</div>
+                          <div className="mt-1 text-xs font-semibold text-foreground/60">
                             Guardá una o varias direcciones para elegir al pedir.
                           </div>
                         </div>
@@ -210,7 +210,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                               ],
                             }))
                           }
-                          className="h-9 rounded-2xl bg-[#1f2a8a] px-3 text-xs font-black text-white"
+                          className="h-9 rounded-2xl bg-[#1D3557] px-3 text-xs font-black text-white"
                         >
                           Agregar otra dirección
                         </button>
@@ -220,10 +220,10 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                         {form.direcciones.map((addr, idx) => (
                           <div
                             key={addr.id}
-                            className="rounded-3xl border border-border bg-white/75 p-3"
+                            className="rounded-3xl border border-border bg-white/88 p-3"
                           >
                             <div className="mb-2 flex items-center justify-between">
-                              <div className="text-xs font-black text-black/70">
+                              <div className="text-xs font-black text-foreground/70">
                                 Dirección {idx + 1}
                               </div>
                               {form.direcciones.length > 1 ? (
@@ -235,7 +235,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                                       direcciones: p.direcciones.filter((d) => d.id !== addr.id),
                                     }))
                                   }
-                                  className="rounded-xl px-2 py-1 text-xs font-black text-black/60 hover:bg-black/5"
+                                  className="rounded-xl px-2 py-1 text-xs font-black text-foreground/60 hover:bg-[rgba(69,123,157,0.10)]"
                                 >
                                   Quitar
                                 </button>
@@ -245,7 +245,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                               <Field label="Localidad">
                                 <input
-                                  className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                                  className="app-input h-11 w-full rounded-2xl px-4 text-[16px]"
                                   value={addr.localidad}
                                   onChange={(e) => {
                                     const v = e.target.value;
@@ -263,7 +263,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                               <Field label="Dirección">
                                 <div className="relative">
                                   <input
-                                    className="h-11 w-full rounded-2xl border border-border bg-white px-4 pr-12 text-[16px] text-black outline-none focus:border-brand/50"
+                                    className="app-input h-11 w-full rounded-2xl px-4 pr-12 text-[16px]"
                                     value={addr.direccion}
                                     onChange={(e) => {
                                       const v = e.target.value;
@@ -286,7 +286,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                                       const q = `${addr.direccion}${addr.localidad ? `, ${addr.localidad}` : ""}`.trim();
                                       setMapInitialQuery(q);
                                     }}
-                                    className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-xl bg-black/5 text-black/70 hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
+                                    className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-xl bg-[rgba(69,123,157,0.10)] text-foreground/70 hover:bg-[rgba(69,123,157,0.18)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#457B9D]"
                                     aria-label="Marcar ubicación en el mapa"
                                     title="Marcar ubicación en el mapa"
                                   >
@@ -303,7 +303,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                               </Field>
                             </div>
 
-                            <div className="mt-2 text-xs font-semibold text-black/70">
+                            <div className="mt-2 text-xs font-semibold text-foreground/70">
                               {addr.ubicacion
                                 ? `Ubicación: ${addr.ubicacion.lat.toFixed(5)}, ${addr.ubicacion.lng.toFixed(5)}`
                                 : "Sin ubicación"}
@@ -321,7 +321,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                   <button
                     type="button"
                     onClick={onClose}
-                    className="h-11 rounded-2xl bg-black/5 px-4 text-sm font-black text-black"
+                    className="h-11 rounded-2xl bg-[rgba(69,123,157,0.10)] px-4 text-sm font-black text-foreground"
                   >
                     Cancelar
                   </button>
@@ -353,7 +353,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                     }}
                     className="h-11 rounded-2xl bg-brand px-4 text-sm font-black text-white disabled:opacity-60"
                   >
-                    {saving ? "Guardando…" : "Guardar"}
+                    {saving ? "Guardando..." : "Guardar"}
                   </button>
                 </div>
               </div>
@@ -383,7 +383,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs font-semibold text-black/70">{label}</span>
+      <span className="text-xs font-semibold text-foreground/70">{label}</span>
       {children}
     </label>
   );
@@ -406,3 +406,5 @@ function PinIcon() {
     </svg>
   );
 }
+
+

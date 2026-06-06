@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
@@ -54,61 +54,30 @@ export function OptionsModal({
             onClick={onClose}
           />
 
-          {/* Desktop floating modal */}
           <motion.aside
-            className="fixed left-1/2 top-1/2 z-[60] hidden h-[min(70vh,720px)] w-[min(560px,calc(100vw-3rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f3f1f1] shadow-2xl dark:bg-zinc-950 md:block"
-            initial={{ opacity: 0, y: 14, scale: 0.98 }}
+            className="fixed left-1/2 top-1/2 z-[60] flex h-[min(58svh,470px)] max-h-[calc(100svh-0.75rem)] w-[min(560px,calc(100vw-0.75rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border border-border app-modal-surface shadow-2xl sm:h-[min(61svh,500px)] sm:w-[min(560px,calc(100vw-1.25rem))] md:h-[min(70vh,720px)] md:w-[min(560px,calc(100vw-3rem))]"
+            style={{
+              paddingBottom: "max(0px, env(safe-area-inset-bottom))",
+            }}
+            initial={{ opacity: 0, y: 14, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 14, scale: 0.98 }}
+            exit={{ opacity: 0, y: 14, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 520, damping: 42 }}
             role="dialog"
             aria-modal="true"
           >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 sm:px-4 sm:py-3">
               <div>
                 <div className="text-sm font-semibold text-foreground">Opciones</div>
                 <div className="text-[11px] font-medium text-foreground/65">
                   Podés agregar varias marcas.
                 </div>
               </div>
-              <MotionButton tone="ghost" className="h-9 px-3" onClick={onClose}>
+              <MotionButton tone="ghost" className="h-8 shrink-0 px-3 sm:h-9" onClick={onClose}>
                 Cerrar
               </MotionButton>
             </div>
-            <div className="h-[calc(100%-52px)] p-4">
-              <SuggestionsPanel
-                activeToken={activeToken}
-                searchMode={searchMode}
-                onAdded={onAdded}
-                onSearchState={onSearchState}
-                pulse={pulse}
-              />
-            </div>
-          </motion.aside>
-
-          {/* Mobile bottom sheet modal */}
-          <motion.aside
-            className="fixed inset-x-3 bottom-3 z-[60] h-[78vh] overflow-hidden rounded-3xl border border-border bg-[#f3f1f1] shadow-2xl dark:bg-zinc-950 md:hidden"
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 40 }}
-            transition={{ type: "spring", stiffness: 520, damping: 44 }}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-black/15 dark:bg-white/15" />
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div>
-                <div className="text-sm font-semibold text-foreground">Opciones</div>
-                <div className="text-[11px] font-medium text-foreground/65">
-                  Podés agregar varias marcas.
-                </div>
-              </div>
-              <MotionButton tone="ghost" className="h-9 px-3" onClick={onClose}>
-                Cerrar
-              </MotionButton>
-            </div>
-            <div className="h-[calc(100%-74px)] p-4">
+            <div className="min-h-0 flex-1 p-3 sm:p-4">
               <SuggestionsPanel
                 activeToken={activeToken}
                 searchMode={searchMode}
@@ -123,3 +92,4 @@ export function OptionsModal({
     </AnimatePresence>
   );
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { MotionButton } from "@/components/MotionButton";
@@ -24,7 +24,7 @@ export function RequestLoggedModal({ open, onClose, productText }: Props) {
           />
 
           <motion.aside
-            className="fixed left-1/2 top-1/2 z-[70] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-[#f3f1f1] shadow-2xl"
+            className="fixed left-1/2 top-1/2 z-[70] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border app-modal-surface shadow-2xl"
             initial={{ opacity: 0, y: 14, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 14, scale: 0.98 }}
@@ -33,7 +33,7 @@ export function RequestLoggedModal({ open, onClose, productText }: Props) {
             aria-modal="true"
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <div className="flex items-center gap-2 text-base font-semibold text-black">
+              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-brand text-white shadow-sm">
                   <svg
                     aria-hidden="true"
@@ -53,7 +53,7 @@ export function RequestLoggedModal({ open, onClose, productText }: Props) {
               </div>
               <MotionButton
                 tone="ghost"
-                className="h-9 px-3 !text-black/75 hover:!bg-black/5"
+                className="h-9 px-3 !text-foreground/75 hover:!bg-[rgba(69,123,157,0.10)]"
                 onClick={onClose}
               >
                 Cerrar
@@ -61,15 +61,15 @@ export function RequestLoggedModal({ open, onClose, productText }: Props) {
             </div>
 
             <div className="p-5">
-              <div className="text-sm font-semibold text-black/80">
+              <div className="text-sm font-semibold text-foreground/80">
                 Todavía no vendemos este tipo de producto, pero ya lo sumamos a los solicitados.
               </div>
               {productText ? (
-                <div className="mt-3 rounded-2xl border border-border bg-white/70 px-4 py-3 text-sm font-semibold text-black">
-                  “{productText}”
+                <div className="mt-3 rounded-2xl border border-border bg-white/82 px-4 py-3 text-sm font-semibold text-foreground">
+                  "{productText}"
                 </div>
               ) : null}
-              <div className="mt-4 text-xs text-black/60">
+              <div className="mt-4 text-xs text-foreground/60">
                 Gracias por avisarnos :)
               </div>
 
@@ -83,3 +83,5 @@ export function RequestLoggedModal({ open, onClose, productText }: Props) {
     </AnimatePresence>
   );
 }
+
+

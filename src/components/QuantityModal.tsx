@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -101,7 +101,7 @@ export function QuantityModal({
           />
 
           <motion.div
-            className="fixed left-1/2 top-1/2 z-[70] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-white shadow-2xl dark:bg-zinc-950"
+            className="fixed left-1/2 top-1/2 z-[70] w-[min(520px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border app-modal-surface shadow-2xl"
             initial={{ opacity: 0, y: 10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -124,7 +124,7 @@ export function QuantityModal({
                   <button
                     type="button"
                     onClick={onDeleteSelection}
-                    className="shrink-0 rounded-xl px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-300"
+                    className="shrink-0 rounded-xl px-3 py-2 text-xs font-semibold text-[#457B9D] hover:bg-[rgba(69,123,157,0.12)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#457B9D]"
                   >
                     Eliminar
                   </button>
@@ -143,7 +143,7 @@ export function QuantityModal({
                   className={[
                     "rounded-2xl border px-3 py-3 text-left transition-colors",
                     variant === "unit"
-                      ? "border-[#1f2a8a] bg-[#2b3bb8] text-white"
+                      ? "border-[#FF0000] bg-[#FF0000] text-white"
                       : "border-border bg-surface hover:bg-surface-2",
                   ].join(" ")}
                 >
@@ -175,7 +175,7 @@ export function QuantityModal({
                     "rounded-2xl border px-3 py-3 text-left transition-colors",
                     !hasPack ? "cursor-not-allowed opacity-45" : "",
                     variant === "pack"
-                      ? "border-[#1f2a8a] bg-[#2b3bb8] text-white"
+                      ? "border-[#FF0000] bg-[#FF0000] text-white"
                       : "border-border bg-surface hover:bg-surface-2",
                   ].join(" ")}
                 >
@@ -220,7 +220,7 @@ export function QuantityModal({
                     <MotionButton
                       type="button"
                       tone="ghost"
-                      className="h-9 w-9 border border-border !bg-white px-0 !text-black hover:!bg-black/5"
+                      className="h-9 w-9 border border-border !bg-white px-0 !text-foreground hover:!bg-[rgba(69,123,157,0.08)]"
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
                       aria-label="Restar"
                     >
@@ -234,12 +234,12 @@ export function QuantityModal({
                         setQty(Math.max(1, Math.min(99, Math.trunc(n))));
                       }}
                       inputMode="numeric"
-                      className="h-9 w-14 rounded-xl border border-border bg-white text-center text-sm font-semibold text-black outline-none"
+                      className="app-input h-9 w-14 rounded-xl text-center text-sm font-semibold"
                     />
                     <MotionButton
                       type="button"
                       tone="ghost"
-                      className="h-9 w-9 border border-border !bg-white px-0 !text-black hover:!bg-black/5"
+                      className="h-9 w-9 border border-border !bg-white px-0 !text-foreground hover:!bg-[rgba(69,123,157,0.08)]"
                       onClick={() => setQty((q) => Math.min(99, q + 1))}
                       aria-label="Sumar"
                     >
@@ -290,3 +290,4 @@ export function QuantityModal({
     </AnimatePresence>
   );
 }
+

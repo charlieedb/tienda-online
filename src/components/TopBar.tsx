@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
@@ -151,7 +151,7 @@ export function TopBar({
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#E10600] text-white shadow-md">
+      <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/12 bg-[#FF0000] text-[#F8F9FA] shadow-[0_4px_12px_rgba(15,23,42,0.12)]">
         <div className="relative flex h-12 w-full items-center px-3">
           <button
             type="button"
@@ -207,7 +207,7 @@ export function TopBar({
                 <AnimatePresence>
                   {userMenuOpen ? (
                     <motion.div
-                      className="absolute right-0 top-[calc(100%+10px)] z-[70] w-48 overflow-hidden rounded-2xl border border-white/20 bg-[#1b0b0b]/95 shadow-2xl"
+                      className="absolute right-0 top-[calc(100%+10px)] z-[70] w-48 overflow-hidden rounded-2xl border border-[rgba(248,249,250,0.18)] bg-[#FF0000]/96 shadow-[0_22px_40px_rgba(255,0,0,0.28)]"
                       initial={{ opacity: 0, y: -6, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -6, scale: 0.98 }}
@@ -273,7 +273,7 @@ export function TopBar({
             />
 
             <motion.aside
-              className="fixed left-0 top-0 z-[60] h-dvh w-[min(340px,88vw)] bg-white shadow-2xl"
+              className="app-panel fixed left-0 top-0 z-[60] h-dvh w-[min(340px,88vw)] bg-white shadow-2xl"
               initial={{ x: -24, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -24, opacity: 0 }}
@@ -281,7 +281,7 @@ export function TopBar({
               role="dialog"
               aria-modal="true"
             >
-              <div className="border-b border-black/10 bg-[#E10600] px-4 py-3 text-white">
+              <div className="border-b border-white/10 bg-[#FF0000] px-4 py-3 text-[#F8F9FA]">
                 <div className="text-sm font-black italic tracking-tight">JONICO</div>
                 <div className="text-[11px] font-semibold text-white/85">Categorías</div>
               </div>
@@ -293,12 +293,12 @@ export function TopBar({
                       key={c.token}
                       type="button"
                       onClick={() => onSelectCategory(c)}
-                      className="flex items-center gap-3 rounded-2xl border border-black/10 bg-white px-3 py-3 text-left shadow-sm hover:bg-black/[0.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black/30"
+                      className="flex items-center gap-3 rounded-2xl border border-[rgba(29,53,87,0.12)] bg-white px-3 py-3 text-left shadow-sm hover:bg-[rgba(69,123,157,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#457B9D]"
                     >
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-black/5 text-black/80">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[rgba(69,123,157,0.12)] text-[#1D3557]">
                         <Icon name={c.icon} />
                       </span>
-                      <span className="text-sm font-semibold text-black">{c.label}</span>
+                      <span className="text-sm font-semibold text-foreground">{c.label}</span>
                     </button>
                   ))}
                 </div>
@@ -310,3 +310,5 @@ export function TopBar({
     </>
   );
 }
+
+

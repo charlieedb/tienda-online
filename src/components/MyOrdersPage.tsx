@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -86,16 +86,16 @@ export function MyOrdersPage({ onBack }: { onBack: () => void }) {
       transition={{ duration: 0.22, ease: "easeOut" }}
     >
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-        <div className="rounded-[28px] border border-black/10 bg-white/82 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-sm md:p-5">
+        <div className="app-panel rounded-[28px] p-4 backdrop-blur-sm md:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <div className="text-[11px] font-black uppercase tracking-[0.22em] text-brand/75">
                 Pedidos
               </div>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-black md:text-3xl">
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
                 Historial de pedidos
               </h1>
-              <p className="mt-1 text-sm text-black/65">
+              <p className="mt-1 text-sm text-foreground/65">
                 Vemos tus pedidos de los últimos 30 días, ordenados del más nuevo al más viejo.
               </p>
             </div>
@@ -117,9 +117,9 @@ export function MyOrdersPage({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-black/10 bg-white/82 p-4 shadow-[0_18px_40px_rgba(15,23,42,0.10)] backdrop-blur-sm md:p-5">
+        <div className="app-panel rounded-[28px] p-4 backdrop-blur-sm md:p-5">
           {loading ? (
-            <div className="rounded-2xl border border-dashed border-border bg-white/70 p-4 text-sm text-black/70">
+            <div className="rounded-2xl border border-dashed border-border bg-white/82 p-4 text-sm text-foreground/70">
               <div className="flex items-center gap-2 font-semibold">
                 <Spinner />
                 <span>Cargando tus pedidos...</span>
@@ -127,23 +127,23 @@ export function MyOrdersPage({ onBack }: { onBack: () => void }) {
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              <div className="rounded-3xl border border-black/8 bg-[#faf7f7] px-4 py-3">
-                <div className="text-xs font-black uppercase tracking-[0.16em] text-black/55">
+              <div className="rounded-3xl border border-[rgba(29,53,87,0.08)] bg-[#F3F6F9] px-4 py-3">
+                <div className="text-xs font-black uppercase tracking-[0.16em] text-foreground/55">
                   Resumen
                 </div>
-                <div className="mt-1 text-sm font-semibold text-black">
+                <div className="mt-1 text-sm font-semibold text-foreground">
                   {totalOrders === 1 ? "1 pedido cargado" : `${totalOrders} pedidos cargados`}
                 </div>
               </div>
 
               {error ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
+                <div className="app-error rounded-2xl p-3 text-sm font-semibold text-red-700">
                   {error}
                 </div>
               ) : null}
 
               {!error && !orders.length ? (
-                <div className="rounded-3xl border border-dashed border-border bg-white/72 p-5 text-sm font-semibold text-black/65">
+                <div className="rounded-3xl border border-dashed border-border bg-white/82 p-5 text-sm font-semibold text-foreground/65">
                   Todavía no encontramos pedidos tuyos en los últimos 30 días.
                 </div>
               ) : null}
@@ -153,50 +153,50 @@ export function MyOrdersPage({ onBack }: { onBack: () => void }) {
                   {orders.map((order) => (
                     <article
                       key={order.id}
-                      className="rounded-3xl border border-black/8 bg-[#faf7f7] p-4 shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
+                      className="rounded-3xl border border-[rgba(29,53,87,0.08)] bg-[#F3F6F9] p-4 shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
                     >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="min-w-0">
-                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-black/45">
+                          <div className="text-[11px] font-black uppercase tracking-[0.18em] text-foreground/45">
                             Pedido #{order.pedido.id.slice(0, 8)}
                           </div>
-                          <h2 className="mt-1 text-base font-black text-black">
+                          <h2 className="mt-1 text-base font-black text-foreground">
                             {statusLabel(order.status)}
                           </h2>
-                          <p className="mt-1 text-sm text-black/65">
+                          <p className="mt-1 text-sm text-foreground/65">
                             {formatDate(order.audit.createdAtIso || order.pedido.createdAtIso)}
                           </p>
                         </div>
-                        <div className="rounded-2xl border border-black/8 bg-white px-3 py-2 text-right">
-                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-black/45">
+                        <div className="rounded-2xl border border-[rgba(29,53,87,0.08)] bg-white px-3 py-2 text-right">
+                          <div className="text-[11px] font-black uppercase tracking-[0.16em] text-foreground/45">
                             Total
                           </div>
-                          <div className="mt-1 text-base font-black text-black">
+                          <div className="mt-1 text-base font-black text-foreground">
                             {formatMoney(order.totals.total)}
                           </div>
                         </div>
                       </div>
 
                       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className="rounded-2xl border border-black/6 bg-white/80 p-3">
-                          <div className="text-xs font-black uppercase tracking-[0.14em] text-black/45">
+                        <div className="rounded-2xl border border-[rgba(29,53,87,0.06)] bg-white/88 p-3">
+                          <div className="text-xs font-black uppercase tracking-[0.14em] text-foreground/45">
                             Entrega
                           </div>
-                          <div className="mt-2 text-sm font-semibold text-black">
+                          <div className="mt-2 text-sm font-semibold text-foreground">
                             {order.cliente.direccion || "Sin dirección"}
                           </div>
-                          <div className="mt-1 text-xs text-black/62">
+                          <div className="mt-1 text-xs text-foreground/65">
                             {order.cliente.telefono || "Sin teléfono"}
                           </div>
                         </div>
-                        <div className="rounded-2xl border border-black/6 bg-white/80 p-3">
-                          <div className="text-xs font-black uppercase tracking-[0.14em] text-black/45">
+                        <div className="rounded-2xl border border-[rgba(29,53,87,0.06)] bg-white/88 p-3">
+                          <div className="text-xs font-black uppercase tracking-[0.14em] text-foreground/45">
                             Items
                           </div>
-                          <div className="mt-2 text-sm font-semibold text-black">
+                          <div className="mt-2 text-sm font-semibold text-foreground">
                             {order.items.length} productos · {order.totals.totalQty} unidades
                           </div>
-                          <div className="mt-1 text-xs text-black/62">
+                          <div className="mt-1 text-xs text-foreground/65">
                             {order.items
                               .slice(0, 3)
                               .map((item) => item.nombre)
@@ -207,8 +207,8 @@ export function MyOrdersPage({ onBack }: { onBack: () => void }) {
                       </div>
 
                       {order.cliente.nota ? (
-                        <div className="mt-3 rounded-2xl border border-black/6 bg-white/80 p-3 text-sm text-black/70">
-                          <span className="font-black text-black/60">Nota:</span> {order.cliente.nota}
+                        <div className="mt-3 rounded-2xl border border-[rgba(29,53,87,0.06)] bg-white/88 p-3 text-sm text-foreground/70">
+                          <span className="font-black text-foreground/60">Nota:</span> {order.cliente.nota}
                         </div>
                       ) : null}
                     </article>
@@ -237,3 +237,4 @@ export function MyOrdersPage({ onBack }: { onBack: () => void }) {
     </motion.section>
   );
 }
+

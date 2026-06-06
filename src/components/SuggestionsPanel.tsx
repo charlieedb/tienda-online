@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -294,7 +294,7 @@ export function SuggestionsPanel({
     <motion.div
       className="flex h-full flex-col"
       initial={false}
-      animate={pulse ? { boxShadow: ["0 0 0 rgba(0,0,0,0)", "0 0 0 4px rgba(225,6,0,0.18)", "0 0 0 rgba(0,0,0,0)"] } : {}}
+      animate={pulse ? { boxShadow: ["0 0 0 rgba(0,0,0,0)", "0 0 0 4px rgba(230,57,70,0.18)", "0 0 0 rgba(0,0,0,0)"] } : {}}
       transition={{ duration: 0.7, ease: "easeOut" }}
     >
       <QuantityModal
@@ -352,8 +352,8 @@ export function SuggestionsPanel({
           onAdded({ productId: product.id, variant, qty, label });
         }}
       />
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="text-xs text-foreground/70">
             {token ? (
               <>
@@ -364,8 +364,8 @@ export function SuggestionsPanel({
             )}
           </div>
           {token ? (
-            <div className="mt-2 flex justify-center md:hidden">
-              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-3 py-1 text-[11px] font-semibold text-foreground/70">
+            <div className="min-w-0 md:hidden">
+              <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-border bg-surface/70 px-2.5 py-1 text-[10px] font-semibold text-foreground/70">
                 <span aria-hidden="true" className="text-[12px] leading-none">
                   ⇆
                 </span>
@@ -375,7 +375,7 @@ export function SuggestionsPanel({
           ) : null}
         </div>
         <motion.div
-          className="hidden md:block"
+          className="hidden shrink-0 md:block"
           initial={false}
           animate={{ opacity: token ? 1 : 0.35 }}
         >
@@ -385,13 +385,13 @@ export function SuggestionsPanel({
         </motion.div>
       </div>
 
-      <div className="mt-3 flex-1 overflow-hidden md:overflow-hidden">
+      <div className="mt-2 flex-1 overflow-hidden md:mt-3 md:overflow-hidden">
         {loading ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface p-4 text-sm text-foreground/70">
-            Buscando productos…
+            Buscando productos...
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="app-error rounded-2xl p-4 text-sm">
             {error}
           </div>
         ) : !token ? (
@@ -402,7 +402,7 @@ export function SuggestionsPanel({
           <div className="rounded-2xl border border-dashed border-border bg-surface p-4 text-sm text-foreground/70">
             <div className="text-sm font-semibold text-foreground/80">Muy pronto</div>
             <div className="mt-1 text-xs text-foreground/65">
-              Todavía no tenemos opciones para “{token}”.
+              Todavía no tenemos opciones para "{token}".
             </div>
           </div>
         ) : (
@@ -411,16 +411,17 @@ export function SuggestionsPanel({
               <div className="md:hidden">
                 <div
                   ref={mobileScrollRef}
-                  className="no-scrollbar -mr-2 overflow-x-auto overflow-y-hidden pr-2 [scrollbar-gutter:stable] [scrollbar-width:none]"
+                  className="no-scrollbar -mr-1 overflow-x-auto overflow-y-hidden pr-1 [scrollbar-gutter:stable] [scrollbar-width:none]"
                   onScroll={(e) => handleScroll(e.currentTarget)}
                 >
-                  <div className="flex snap-x snap-mandatory gap-3 pb-2">
+                  <div className="flex snap-x snap-mandatory gap-2 pb-1.5">
                     {visibleProducts.map((p) => (
-                      <div key={p.id} className="w-[82%] shrink-0 snap-center">
+                      <div key={p.id} className="h-[min(40svh,320px)] w-[72%] shrink-0 snap-center">
                         <ProductCard
                           product={p}
                           tag={p.offer ? "OFERTA" : undefined}
                           addedQty={cartById.get(`${p.id}:unit`) ?? cartById.get(`${p.id}:pack`) ?? null}
+                          compact
                           onSelect={() => openProduct(p)}
                         />
                       </div>
@@ -503,3 +504,5 @@ export function SuggestionsPanel({
     </motion.div>
   );
 }
+
+
