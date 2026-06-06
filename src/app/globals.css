@@ -570,6 +570,12 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
+.quick-suggestion-tag--hint {
+  background: rgba(69, 123, 157, 0.08);
+  border-color: rgba(69, 123, 157, 0.16);
+  color: rgba(29, 53, 87, 0.92);
+}
+
 .quick-suggestion-chip__prefix {
   color: var(--brand);
 }
@@ -579,21 +585,22 @@ body {
   flex-direction: column;
   gap: 16px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at top right, rgba(69, 123, 157, 0.1), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(245, 248, 251, 0.7));
+  border-color: transparent;
+  background: transparent;
 }
 
 .empty-search-showcase__copy {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  align-items: center;
+  text-align: center;
 }
 
 .empty-search-showcase__title {
   font-size: 1rem;
   font-weight: 800;
-  color: rgba(29, 53, 87, 0.88);
+  color: #1d3557;
 }
 
 .empty-search-showcase__hint {

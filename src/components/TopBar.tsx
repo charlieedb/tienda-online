@@ -149,6 +149,11 @@ export function TopBar({
     };
   }, [userMenuOpen]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    setUserMenuOpen(false);
+  }, [menuOpen]);
+
   return (
     <>
       <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/12 bg-[#FF0000] text-[#F8F9FA] shadow-[0_4px_12px_rgba(15,23,42,0.12)]">
@@ -170,7 +175,7 @@ export function TopBar({
           >
             <Image
               src="/jonico.png"
-              alt="JONICO"
+              alt="JOMA Express"
               width={220}
               height={56}
               priority
@@ -204,54 +209,6 @@ export function TopBar({
                   </svg>
                 </button>
 
-                <AnimatePresence>
-                  {userMenuOpen ? (
-                    <motion.div
-                      className="absolute right-0 top-[calc(100%+10px)] z-[70] w-48 overflow-hidden rounded-2xl border border-[rgba(248,249,250,0.18)] bg-[#FF0000]/96 shadow-[0_22px_40px_rgba(255,0,0,0.28)]"
-                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                      transition={{ type: "spring", stiffness: 520, damping: 40 }}
-                      role="menu"
-                    >
-                      <button
-                        type="button"
-                        className="w-full px-4 py-3 text-left text-sm font-semibold text-white hover:bg-white/10"
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          onOpenSettings();
-                        }}
-                        role="menuitem"
-                      >
-                        Configuración
-                      </button>
-                      <div className="h-px bg-white/10" />
-                      <button
-                        type="button"
-                        className="w-full px-4 py-3 text-left text-sm font-semibold text-white hover:bg-white/10"
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          onOpenOrders();
-                        }}
-                        role="menuitem"
-                      >
-                        Historial de pedidos
-                      </button>
-                      <div className="h-px bg-white/10" />
-                      <button
-                        type="button"
-                        className="w-full px-4 py-3 text-left text-sm font-semibold text-white hover:bg-white/10"
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          onSignOut();
-                        }}
-                        role="menuitem"
-                      >
-                        Cerrar sesión
-                      </button>
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
               </div>
             ) : (
               <div className="text-right text-[10px] font-semibold text-white/60 sm:text-[11px]" />
@@ -282,7 +239,7 @@ export function TopBar({
               aria-modal="true"
             >
               <div className="border-b border-white/10 bg-[#FF0000] px-4 py-3 text-[#F8F9FA]">
-                <div className="text-sm font-black italic tracking-tight">JONICO</div>
+                <div className="text-sm font-black italic tracking-tight">JOMA Express</div>
                 <div className="text-[11px] font-semibold text-white/85">Categorías</div>
               </div>
 
@@ -301,6 +258,76 @@ export function TopBar({
                       <span className="text-sm font-semibold text-foreground">{c.label}</span>
                     </button>
                   ))}
+                </div>
+              </div>
+            </motion.aside>
+          </>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {userMenuOpen ? (
+          <>
+            <motion.button
+              aria-label="Cerrar menú de usuario"
+              className="modal-backdrop-lite fixed inset-0 z-[55]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setUserMenuOpen(false)}
+            />
+
+            <motion.aside
+              className="app-panel fixed right-0 top-0 z-[60] h-dvh w-[min(340px,88vw)] bg-white shadow-2xl"
+              initial={{ x: 24, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 24, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 520, damping: 44 }}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div className="border-b border-white/10 bg-[#FF0000] px-4 py-3 text-[#F8F9FA]">
+                <div className="text-sm font-black italic tracking-tight">JOMA Express</div>
+                <div className="text-[11px] font-semibold text-white/85">
+                  {userLabel ?? "Cuenta"}
+                </div>
+              </div>
+
+              <div className="no-scrollbar h-[calc(100%-56px)] overflow-auto p-3">
+                <div className="flex flex-col gap-2" role="menu">
+                  <button
+                    type="button"
+                    className="w-full rounded-2xl border border-[rgba(29,53,87,0.12)] bg-white px-4 py-3 text-left text-sm font-semibold text-foreground shadow-sm hover:bg-[rgba(69,123,157,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#457B9D]"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      onOpenSettings();
+                    }}
+                    role="menuitem"
+                  >
+                    Configuración
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-2xl border border-[rgba(29,53,87,0.12)] bg-white px-4 py-3 text-left text-sm font-semibold text-foreground shadow-sm hover:bg-[rgba(69,123,157,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#457B9D]"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      onOpenOrders();
+                    }}
+                    role="menuitem"
+                  >
+                    Historial de pedidos
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full rounded-2xl border border-[rgba(230,57,70,0.14)] bg-white px-4 py-3 text-left text-sm font-semibold text-[#C1121F] shadow-sm hover:bg-[rgba(230,57,70,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C1121F]"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      onSignOut();
+                    }}
+                    role="menuitem"
+                  >
+                    Cerrar sesión
+                  </button>
                 </div>
               </div>
             </motion.aside>

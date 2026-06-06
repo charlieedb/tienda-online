@@ -299,31 +299,25 @@ function SuccessOverlay({
       {open ? (
         <motion.div
           className="fixed inset-0 z-[160] overflow-hidden"
-          initial={{ opacity: 1 }}
+          initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="absolute inset-0 bg-[#2B2D42]" />
-          <motion.div
-            className="absolute left-1/2 top-1/2 h-[160vmax] w-[160vmax] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,#F8F9FA_0%,#FF3B3B_38%,#FF0000_68%,#8C0000_100%)] shadow-[0_0_120px_rgba(255,0,0,0.30)]"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 1.08, opacity: 0 }}
-            transition={{ duration: 0.7, ease: [0.2, 0.9, 0.2, 1] }}
-          />
+          <div className="absolute inset-0 bg-[#148146]" />
 
           <motion.div
             className="relative z-10 flex min-h-dvh flex-col items-center justify-center px-6 text-center text-white"
-            initial={{ opacity: 0, scale: 0.96, y: 18 }}
+            initial={{ opacity: 0, scale: 0.985, y: 18 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            transition={{ delay: 0.34, duration: 0.34, ease: "easeOut" }}
+            transition={{ delay: 0.36, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
             <motion.div
-              className="mb-5 flex h-24 w-24 items-center justify-center rounded-full border border-white/25 bg-white/12 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-md"
-              initial={{ scale: 0.7, opacity: 0 }}
+              className="mb-5 flex h-24 w-24 items-center justify-center rounded-full border border-white/20 bg-white/12 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-md"
+              initial={{ scale: 0.82, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.42, duration: 0.32, ease: "easeOut" }}
+              transition={{ delay: 0.5, duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
             >
               <svg aria-hidden="true" viewBox="0 0 24 24" className="h-12 w-12" fill="none">
                 <path
@@ -345,7 +339,7 @@ function SuccessOverlay({
 
             <MotionButton
               type="button"
-              className="mt-8 h-12 min-w-40 rounded-2xl border border-white/20 !bg-white !px-8 !text-[#1D3557] shadow-[0_16px_34px_rgba(0,0,0,0.16)] hover:!bg-white/95"
+              className="mt-8 h-12 min-w-40 rounded-2xl border border-white/20 !bg-white !px-8 !text-[#1B5E3A] shadow-[0_16px_34px_rgba(0,0,0,0.14)] hover:!bg-white/95"
               onClick={onOk}
             >
               OK
@@ -357,7 +351,7 @@ function SuccessOverlay({
   );
 }
 
-export function CartPanel() {
+export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void }) {
   const { user } = useAuth();
   const open = useCartStore((s) => s.open);
   const items = useCartStore((s) => s.items);
@@ -371,6 +365,31 @@ export function CartPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [form, setForm] = useState<CheckoutForm>({ nombre: "", telefono: "", direccion: "", nota: "" });
+  const [browserBarInset, setBrowserBarInset] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return () => {};
+
+    const viewport = window.visualViewport;
+    if (!viewport) return () => {};
+
+    const syncViewportInset = () => {
+      const visibleBottom = viewport.height + viewport.offsetTop;
+      const hiddenBottom = Math.max(0, window.innerHeight - visibleBottom);
+      setBrowserBarInset(Math.round(hiddenBottom));
+    };
+
+    syncViewportInset();
+    viewport.addEventListener("resize", syncViewportInset);
+    viewport.addEventListener("scroll", syncViewportInset);
+    window.addEventListener("orientationchange", syncViewportInset);
+
+    return () => {
+      viewport.removeEventListener("resize", syncViewportInset);
+      viewport.removeEventListener("scroll", syncViewportInset);
+      window.removeEventListener("orientationchange", syncViewportInset);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -458,10 +477,25 @@ export function CartPanel() {
     }
   };
 
+  const mobileDockBottom = `calc(env(safe-area-inset-bottom, 0px) + ${browserBarInset + 10}px)`;
+  const mobileSheetBottom = `calc(env(safe-area-inset-bottom, 0px) + ${browserBarInset + 8}px)`;
+  const mobileSheetHeight = `min(78svh, calc(100dvh - env(safe-area-inset-bottom, 0px) - ${browserBarInset + 16}px))`;
+
   return (
     <>
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/12 bg-[#FF0000] shadow-[0_-10px_28px_rgba(255,0,0,0.24)] backdrop-blur-md">
-        <div className="relative mx-auto w-full max-w-6xl px-4 pb-[max(env(safe-area-inset-bottom),22px)] pt-8">
+      <div
+        className={[
+          "fixed z-40 border border-white/12 bg-[#FF0000] backdrop-blur-md",
+          isMobile ? "left-3 right-3 rounded-[28px]" : "bottom-0 left-0 right-0 border-t",
+        ].join(" ")}
+        style={isMobile ? { bottom: mobileDockBottom } : undefined}
+      >
+        <div
+          className={[
+            "relative mx-auto w-full max-w-6xl px-4 pt-8",
+            isMobile ? "pb-4" : "pb-[max(env(safe-area-inset-bottom),22px)]",
+          ].join(" ")}
+        >
           <motion.button
             type="button"
             whileTap={{ scale: 0.985 }}
@@ -497,11 +531,12 @@ export function CartPanel() {
 
             {isMobile ? (
               <motion.aside
-                className="fixed bottom-0 left-0 right-0 z-[100] h-[78vh] overflow-hidden rounded-t-3xl app-sheet-surface pb-[max(env(safe-area-inset-bottom),10px)] shadow-2xl"
+                className="fixed left-0 right-0 z-[100] overflow-hidden rounded-t-3xl app-sheet-surface pb-[max(env(safe-area-inset-bottom),10px)] shadow-2xl"
                 initial={{ y: 40, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 40, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 500, damping: 45 }}
+                style={{ bottom: mobileSheetBottom, height: mobileSheetHeight }}
               >
                 <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-[rgba(29,53,87,0.18)]" />
                 <CartContent onContinue={() => setCheckoutOpen(true)} />
@@ -538,9 +573,7 @@ export function CartPanel() {
         open={successOpen}
         onOk={() => {
           setSuccessOpen(false);
-          if (typeof window !== "undefined") {
-            window.location.assign("/");
-          }
+          onOrderCompleted?.();
         }}
       />
     </>

@@ -578,7 +578,14 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh bg-background text-[#F8F9FA]">
-      {stage === "builder" && user ? <CartPanel /> : null}
+      {stage === "builder" && user ? (
+        <CartPanel
+          onOrderCompleted={() => {
+            resetShoppingSession();
+            setStage("landing");
+          }}
+        />
+      ) : null}
 
       <AnimatePresence mode="wait" initial={false}>
         {stage === "landing" ? (
@@ -602,12 +609,6 @@ export default function Home() {
             />
 
             <div className="relative z-10 flex flex-col gap-4">
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/12 bg-white/8 px-3 py-1 text-xs backdrop-blur-sm">
-                <span className="font-black italic tracking-tight text-white">
-                  JONICO
-                </span>
-                <span className="text-white/72">el super de la esquina</span>
-              </div>
               <h1 className="text-pretty text-3xl font-semibold tracking-tight text-white md:text-5xl">
                 Hacelo simple: escribí lo que necesitás, y elegí la mejor opción.
               </h1>
@@ -746,14 +747,14 @@ export default function Home() {
               <div className="mx-auto flex w-full max-w-md items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/8 px-4 py-3 backdrop-blur-sm">
                 <Image
                   src="/jonico-logo.png"
-                  alt="Jonico"
+                  alt="JOMA Express"
                   width={30}
                   height={30}
                   className="drop-shadow-[0_6px_14px_rgba(0,0,0,0.10)]"
                 />
                 <div className="text-left leading-tight">
                   <div className="text-sm font-black italic tracking-tight text-white">
-                    JONICO
+                    JOMA Express
                   </div>
                   <div className="text-xs font-medium text-white/65">
                     el Super de la Esquina · Envíos gratis

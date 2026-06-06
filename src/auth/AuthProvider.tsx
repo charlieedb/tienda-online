@@ -32,8 +32,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useMemo(() => getAuthClient(), []);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => auth?.currentUser ?? null);
+  const [loading, setLoading] = useState(() => Boolean(auth && !auth.currentUser));
 
   useEffect(() => {
     if (!auth) {

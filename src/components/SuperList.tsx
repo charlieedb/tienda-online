@@ -6,6 +6,7 @@ import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { normalizeToken } from "@/lib/normalize";
 import {
   getProductById,
+  type SearchPromptSuggestion,
   getSearchPromptSuggestions,
   getTrendingSearchPrompts,
 } from "@/lib/products";
@@ -116,7 +117,7 @@ export function SuperList({
   const [fadeTop, setFadeTop] = useState(false);
   const [fadeBottom, setFadeBottom] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [quickSuggestions, setQuickSuggestions] = useState<string[]>([]);
+  const [quickSuggestions, setQuickSuggestions] = useState<SearchPromptSuggestion[]>([]);
   const [unitsPerSelection, setUnitsPerSelection] = useState<Record<string, number>>(
     {},
   );
@@ -168,9 +169,7 @@ export function SuperList({
     (async () => {
       const suggestions = await getSearchPromptSuggestions(query);
       if (cancelled) return;
-      const normalizedCurrent = normalizeToken(query);
-      const deduped = suggestions.filter((entry) => normalizeToken(entry) !== normalizedCurrent);
-      setQuickSuggestions(deduped);
+      setQuickSuggestions(suggestions);
     })();
 
     return () => {
@@ -214,6 +213,7 @@ export function SuperList({
     raw: string,
     opts?: {
       openOptions?: boolean;
+      restoreFocus?: boolean;
       source?: SuperItem["source"];
     },
   ) => {
@@ -225,7 +225,9 @@ export function SuperList({
       setNotice("Ese ítem ya está en la lista.");
       setValue("");
       setQuickSuggestions([]);
-      queueMicrotask(() => inputRef.current?.focus());
+      if (opts?.restoreFocus !== false) {
+        queueMicrotask(() => inputRef.current?.focus());
+      }
       return false;
     }
 
@@ -233,7 +235,9 @@ export function SuperList({
     setValue("");
     setQuickSuggestions([]);
     if (opts?.openOptions) onFocusOptions();
-    queueMicrotask(() => inputRef.current?.focus());
+    if (opts?.restoreFocus !== false) {
+      queueMicrotask(() => inputRef.current?.focus());
+    }
     return true;
   };
 
@@ -309,19 +313,35 @@ export function SuperList({
                   <div className="quick-suggestions__list">
                     {quickSuggestions.map((suggestion) => (
                       <button
-                        key={suggestion}
+                        key={`${suggestion.kind}:${suggestion.value}`}
                         type="button"
-                        className="quick-suggestion-tag"
+                        className={[
+                          "quick-suggestion-tag",
+                          suggestion.kind === "did_you_mean" ? "quick-suggestion-tag--hint" : "",
+                        ].join(" ")}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
-                          commitItem(suggestion, { openOptions: true });
+                          commitItem(suggestion.value, {
+                            openOptions: true,
+                            restoreFocus: false,
+                          });
                           setInputFocused(false);
+                          inputRef.current?.blur();
                         }}
                       >
-                        <span className="quick-suggestion-chip__prefix">
-                          {suggestion.slice(0, value.trim().length)}
-                        </span>
-                        <span>{suggestion.slice(value.trim().length)}</span>
+                        {suggestion.kind === "did_you_mean" ? (
+                          <span>
+                            <span className="quick-suggestion-chip__prefix">Quisiste decir </span>
+                            <span>{suggestion.label.replace(/^Quisiste decir\s+/i, "")}</span>
+                          </span>
+                        ) : (
+                          <>
+                            <span className="quick-suggestion-chip__prefix">
+                              {suggestion.label.slice(0, value.trim().length)}
+                            </span>
+                            <span>{suggestion.label.slice(value.trim().length)}</span>
+                          </>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -343,12 +363,7 @@ export function SuperList({
               className="empty-search-showcase rounded-[28px] border border-dashed border-border bg-surface/60 p-4 text-sm text-foreground/70"
             >
               <div className="empty-search-showcase__copy">
-                <div className="empty-search-showcase__title">
-                  Empezá escribiendo un producto.
-                </div>
-                <div className="empty-search-showcase__hint">
-                  Tocá una idea y la sumamos a la listita con sus opciones.
-                </div>
+                <div className="empty-search-showcase__title">Sugerencias</div>
               </div>
 
               <div className="empty-search-showcase__cloud" aria-label="Ejemplos más buscados">
@@ -368,6 +383,7 @@ export function SuperList({
                     onClick={() => {
                       commitItem(example, { openOptions: true });
                       setInputFocused(false);
+                      inputRef.current?.blur();
                     }}
                   >
                     {example}

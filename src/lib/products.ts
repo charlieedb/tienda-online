@@ -52,6 +52,12 @@ const CURATED_EMPTY_STATE_EXAMPLES = [
   "lavandina",
 ];
 
+export type SearchPromptSuggestion = {
+  kind: "typed" | "suggested" | "did_you_mean";
+  label: string;
+  value: string;
+};
+
 function normalizeForSearch(value: string) {
   return value
     .toLowerCase()
@@ -102,6 +108,14 @@ function addAutocompleteCandidate(bucket: Set<string>, raw: string) {
     if (!isUsefulAutocompleteToken(part)) continue;
     bucket.add(part);
   }
+}
+
+function toSuggestionDisplay(value: string) {
+  return value
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function levenshtein(a: string, b: string) {
@@ -369,8 +383,9 @@ function buildAutocompleteUniverse(catalog: Product[]) {
   return Array.from(set);
 }
 
-export async function getSearchPromptSuggestions(input: string): Promise<string[]> {
-  const token = normalizeForSearch(input);
+export async function getSearchPromptSuggestions(input: string): Promise<SearchPromptSuggestion[]> {
+  const raw = input.trim();
+  const token = normalizeForSearch(raw);
   if (!token || token.length < 2) return [];
 
   const catalog = await getActiveCatalog();
@@ -404,9 +419,42 @@ export async function getSearchPromptSuggestions(input: string): Promise<string[
       );
     })
     .slice(0, EARLY_SUGGESTION_LIMIT)
-    .map((entry) => entry?.candidate ?? "");
+    .map((entry) => entry?.candidate ?? "")
+    .filter(Boolean);
 
-  return ranked.filter(Boolean);
+  const suggestions: SearchPromptSuggestion[] = [
+    {
+      kind: "typed",
+      label: raw,
+      value: raw,
+    },
+  ];
+
+  const seen = new Set<string>([token]);
+  const keywordUniverse = buildKeywordUniverse(catalog);
+  const correction = suggestKeywords(token, keywordUniverse)[0];
+
+  if (correction && normalizeForSearch(correction) !== token) {
+    suggestions.push({
+      kind: "did_you_mean",
+      label: `Quisiste decir ${toSuggestionDisplay(correction)}`,
+      value: correction,
+    });
+    seen.add(normalizeForSearch(correction));
+  }
+
+  for (const candidate of ranked) {
+    const normalizedCandidate = normalizeForSearch(candidate);
+    if (!normalizedCandidate || seen.has(normalizedCandidate)) continue;
+    suggestions.push({
+      kind: "suggested",
+      label: candidate,
+      value: candidate,
+    });
+    seen.add(normalizedCandidate);
+  }
+
+  return suggestions.slice(0, EARLY_SUGGESTION_LIMIT + 2);
 }
 
 export function getTrendingSearchPrompts() {
