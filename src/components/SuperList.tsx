@@ -234,7 +234,10 @@ export function SuperList({
     onAddItem(cleaned, { source: opts?.source });
     setValue("");
     setQuickSuggestions([]);
-    if (opts?.openOptions) onFocusOptions();
+    if (opts?.openOptions) {
+      inputRef.current?.blur();
+      onFocusOptions();
+    }
     if (opts?.restoreFocus !== false) {
       queueMicrotask(() => inputRef.current?.focus());
     }
@@ -381,7 +384,10 @@ export function SuperList({
                       } as CSSProperties
                     }
                     onClick={() => {
-                      commitItem(example, { openOptions: true });
+                      commitItem(example, {
+                        openOptions: true,
+                        restoreFocus: false,
+                      });
                       setInputFocused(false);
                       inputRef.current?.blur();
                     }}
