@@ -442,7 +442,7 @@ body {
 }
 
 .app-input::placeholder {
-  color: rgba(43, 45, 66, 0.38);
+  color: rgba(15, 23, 42, 0.9);
 }
 
 .app-input:focus {
@@ -604,7 +604,7 @@ body {
 .empty-search-showcase {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   overflow: hidden;
   border-color: transparent;
   background: transparent;
@@ -613,15 +613,24 @@ body {
 .empty-search-showcase__copy {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   align-items: center;
   text-align: center;
+  margin-top: -18px;
+  margin-bottom: 2px;
 }
 
 .empty-search-showcase__title {
-  font-size: 1rem;
-  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 400;
   color: #1d3557;
+  background: linear-gradient(180deg, rgba(255, 224, 102, 0.92), rgba(255, 214, 10, 0.82));
+  box-shadow: inset 0 -1px 0 rgba(214, 158, 46, 0.18);
 }
 
 .empty-search-showcase__hint {
@@ -633,7 +642,7 @@ body {
 .empty-search-showcase__cloud {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-start;
 }
 
@@ -658,16 +667,16 @@ body {
 
 .empty-search-showcase__chip {
   display: inline-flex;
-  min-height: 44px;
+  min-height: 36px;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(69, 123, 157, 0.14);
   border-radius: 999px;
-  padding: 0.72rem 1rem;
+  padding: 0.52rem 0.82rem;
   background: rgba(255, 255, 255, 0.9);
   color: rgba(29, 53, 87, 0.88);
-  font-size: 0.92rem;
-  font-weight: 700;
+  font-size: 0.82rem;
+  font-weight: 500;
   box-shadow:
     0 12px 24px rgba(29, 53, 87, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
