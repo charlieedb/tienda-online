@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { MotionButton } from "@/components/MotionButton";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -366,6 +366,60 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
   const [checkoutError, setCheckoutError] = useState("");
   const [form, setForm] = useState<CheckoutForm>({ nombre: "", telefono: "", direccion: "", nota: "" });
   const [browserBarInset, setBrowserBarInset] = useState(0);
+  const successAudioContextRef = useRef<AudioContext | null>(null);
+
+  const primeSuccessAudio = async () => {
+    if (typeof window === "undefined") return;
+    const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextCtor) return;
+    if (!successAudioContextRef.current) {
+      successAudioContextRef.current = new AudioContextCtor();
+    }
+    if (successAudioContextRef.current.state === "suspended") {
+      try {
+        await successAudioContextRef.current.resume();
+      } catch {
+        // Ignore browsers that refuse to resume here.
+      }
+    }
+  };
+
+  const playSuccessSound = async () => {
+    try {
+      await primeSuccessAudio();
+      const ctx = successAudioContextRef.current;
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const master = ctx.createGain();
+      master.connect(ctx.destination);
+      master.gain.setValueAtTime(0.0001, now);
+      master.gain.exponentialRampToValueAtTime(0.05, now + 0.012);
+      master.gain.exponentialRampToValueAtTime(0.0001, now + 1.05);
+
+      const partials = [
+        { freq: 1318.5, gain: 1, duration: 0.95 },
+        { freq: 2637, gain: 0.42, duration: 0.78 },
+        { freq: 3951, gain: 0.18, duration: 0.58 },
+      ];
+
+      for (const partial of partials) {
+        const osc = ctx.createOscillator();
+        const partialGain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(partial.freq, now);
+        partialGain.gain.setValueAtTime(0.0001, now);
+        partialGain.gain.exponentialRampToValueAtTime(0.07 * partial.gain, now + 0.01);
+        partialGain.gain.exponentialRampToValueAtTime(0.0001, now + partial.duration);
+        osc.connect(partialGain);
+        partialGain.connect(master);
+        osc.start(now);
+        osc.stop(now + partial.duration + 0.02);
+      }
+    } catch {
+      // Sound is optional.
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return () => {};
@@ -397,6 +451,14 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
       window.removeEventListener("orientationchange", syncViewportInset);
     };
   }, []);
+
+  useEffect(() => {
+    if (!successOpen) return;
+    const timer = window.setTimeout(() => {
+      playSuccessSound();
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [successOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -457,6 +519,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
     setSubmitting(true);
     setCheckoutError("");
     try {
+      await primeSuccessAudio();
       const catalog = await getActiveCatalog();
       const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
 
