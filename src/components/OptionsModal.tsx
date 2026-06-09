@@ -66,16 +66,20 @@ export function OptionsModal({
             role="dialog"
             aria-modal="true"
           >
-            <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2 sm:px-4 sm:py-3">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 sm:px-4 sm:py-3">
               <div>
                 <div className="text-sm font-semibold text-foreground">Opciones</div>
                 <div className="text-[11px] font-medium text-foreground/65">
                   Podés agregar varias marcas.
                 </div>
               </div>
-              <MotionButton tone="ghost" className="h-8 shrink-0 px-3 sm:h-9" onClick={onClose}>
-                Cerrar
-              </MotionButton>
+                <MotionButton
+                  tone="ghost"
+                  className="h-8 shrink-0 !border-[rgba(255,0,0,0.18)] !bg-[rgba(255,0,0,0.08)] px-3 !text-[#d10000] hover:!bg-[rgba(255,0,0,0.12)] sm:h-9"
+                  onClick={onClose}
+                >
+                  Cerrar
+                </MotionButton>
             </div>
             <div className="min-h-0 flex-1 p-3 sm:p-4">
               <SuggestionsPanel

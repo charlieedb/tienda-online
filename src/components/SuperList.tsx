@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { AnimatePresence, motion, useMotionValue, useTransform } from "framer-motion";
-import type { CSSProperties } from "react";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { normalizeToken } from "@/lib/normalize";
 import {
@@ -118,11 +117,14 @@ export function SuperList({
   const [fadeBottom, setFadeBottom] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [quickSuggestions, setQuickSuggestions] = useState<SearchPromptSuggestion[]>([]);
+  const [popularSuggestionsPinned, setPopularSuggestionsPinned] = useState(false);
+  const [popularSuggestionsDismissed, setPopularSuggestionsDismissed] = useState(false);
   const [unitsPerSelection, setUnitsPerSelection] = useState<Record<string, number>>(
     {},
   );
   const deferredValue = useDeferredValue(value);
   const trendingExamples = getTrendingSearchPrompts();
+  const trimmedValue = value.trim();
   const total = useCartStore((s) =>
     s.items.reduce((acc, i) => acc + i.price * i.qty, 0),
   );
@@ -142,6 +144,13 @@ export function SuperList({
 
   useEffect(() => {
     queueMicrotask(() => updateFades());
+  }, [items.length]);
+
+  useEffect(() => {
+    if (items.length === 0) {
+      setPopularSuggestionsPinned(false);
+      setPopularSuggestionsDismissed(false);
+    }
   }, [items.length]);
 
   useEffect(() => {
@@ -244,13 +253,47 @@ export function SuperList({
     return true;
   };
 
-  const showQuickSuggestions =
-    inputFocused && quickSuggestions.length > 0 && value.trim().length > 0;
+  const shouldShowPopularSuggestions =
+    trimmedValue.length === 0 &&
+    !popularSuggestionsDismissed &&
+    (items.length === 0 || popularSuggestionsPinned);
+
+  const visibleSuggestions =
+    trimmedValue.length > 0
+      ? quickSuggestions.slice(0, 6).map((suggestion) => ({
+          key: `${suggestion.kind}:${suggestion.value}`,
+          value: suggestion.value,
+          label:
+            suggestion.kind === "did_you_mean"
+              ? suggestion.label
+              : suggestion.label,
+          accent:
+            suggestion.kind === "did_you_mean"
+              ? "Quisiste decir"
+              : "+",
+          hint: suggestion.kind === "did_you_mean",
+          added: items.some((item) => item.token === normalizeToken(suggestion.value)),
+          opensOptions: true,
+          popular: false,
+        }))
+      : shouldShowPopularSuggestions
+        ? trendingExamples.slice(0, 6).map((example) => ({
+            key: `trend:${example}`,
+            value: example,
+            label: example,
+            accent: "+",
+            hint: false,
+            added: items.some((item) => item.token === normalizeToken(example)),
+            opensOptions: false,
+            popular: true,
+          }))
+        : [];
+  const showSuggestionsPanel = inputFocused && visibleSuggestions.length > 0;
 
   return (
     <div className="flex flex-col">
       <div
-        className="flex min-h-[50vh] max-h-[78vh] flex-col rounded-3xl border border-border paper-bloc shadow-sm md:max-h-[72vh]"
+        className="flex min-h-[50vh] max-h-[78vh] flex-col rounded-[34px] border border-white/70 paper-bloc shadow-[0_30px_70px_rgba(29,53,87,0.12)] md:max-h-[72vh]"
         style={{
           padding: "var(--paper-pad)",
         }}
@@ -277,16 +320,23 @@ export function SuperList({
                   window.clearTimeout(blurTimeoutRef.current);
                   blurTimeoutRef.current = null;
                 }
+                if (items.length === 0) {
+                  setPopularSuggestionsDismissed(false);
+                }
                 setInputFocused(true);
               }}
               onBlur={() => {
                 blurTimeoutRef.current = window.setTimeout(() => {
+                  if (popularSuggestionsPinned && trimmedValue.length === 0) {
+                    setPopularSuggestionsPinned(false);
+                    setPopularSuggestionsDismissed(true);
+                  }
                   setInputFocused(false);
                 }, 120);
               }}
               placeholder={inputFocused ? "" : "¿Qué necesitás?"}
               className={[
-                "app-input w-full rounded-2xl py-3.5 text-base text-foreground shadow-[0_18px_34px_rgba(29,53,87,0.14),0_6px_14px_rgba(255,255,255,0.72)] outline-none ring-2 ring-[rgba(69,123,157,0.10)] focus:border-[#457B9D]/50 focus:ring-[rgba(69,123,157,0.18)]",
+                "app-input w-full rounded-[26px] border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,250,252,0.94))] py-3.5 text-base text-foreground shadow-[0_22px_40px_rgba(29,53,87,0.12),0_8px_16px_rgba(255,255,255,0.78)] outline-none ring-1 ring-[rgba(69,123,157,0.08)] focus:border-[#457B9D]/45 focus:ring-[rgba(69,123,157,0.16)]",
                 value.trim().length > 0 || inputFocused
                   ? "pl-4 pr-14 text-left"
                   : "px-4 text-center placeholder:text-center",
@@ -296,55 +346,50 @@ export function SuperList({
               <button
                 type="submit"
                 aria-label="Agregar"
-                className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl bg-[#FF0000] text-white shadow-[0_10px_18px_rgba(255,0,0,0.22)] hover:brightness-[0.98] active:brightness-[0.96]"
+                className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-[20px] bg-[linear-gradient(135deg,#ff0000,#d70000)] text-white shadow-[0_14px_22px_rgba(255,0,0,0.22)] hover:brightness-[0.99] active:brightness-[0.96]"
               >
                 <span className="text-xl leading-none">+</span>
               </button>
             ) : null}
             <AnimatePresence initial={false}>
-              {showQuickSuggestions ? (
+              {showSuggestionsPanel ? (
                 <motion.div
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="quick-suggestions absolute inset-x-0 top-[calc(100%+0.7rem)] z-20"
+                  key="suggestions-panel"
+                  initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.985 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="quick-suggestions quick-suggestions--floating absolute inset-x-0 top-[calc(100%+0.55rem)] z-20"
                 >
-                  <div className="quick-suggestions__head">
-                    Sugerencias para escribir más rápido
-                  </div>
-                  <div className="quick-suggestions__list">
-                    {quickSuggestions.map((suggestion) => (
+                  <div className="quick-suggestions__grid" aria-label="Sugerencias rápidas">
+                    {visibleSuggestions.map((suggestion) => (
                       <button
-                        key={`${suggestion.kind}:${suggestion.value}`}
+                        key={suggestion.key}
                         type="button"
                         className={[
-                          "quick-suggestion-tag",
-                          suggestion.kind === "did_you_mean" ? "quick-suggestion-tag--hint" : "",
+                          "quick-suggestion-mini",
+                          suggestion.hint ? "quick-suggestion-mini--hint" : "",
+                          suggestion.added ? "quick-suggestion-mini--added" : "",
                         ].join(" ")}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
+                          if (suggestion.popular) {
+                            setPopularSuggestionsPinned(true);
+                          }
                           commitItem(suggestion.value, {
-                            openOptions: true,
-                            restoreFocus: false,
+                            openOptions: suggestion.opensOptions,
+                            restoreFocus: !suggestion.opensOptions,
                           });
-                          setInputFocused(false);
-                          inputRef.current?.blur();
+                          if (suggestion.opensOptions) {
+                            setInputFocused(false);
+                            inputRef.current?.blur();
+                          }
                         }}
                       >
-                        {suggestion.kind === "did_you_mean" ? (
-                          <span>
-                            <span className="quick-suggestion-chip__prefix">Quisiste decir </span>
-                            <span>{suggestion.label.replace(/^Quisiste decir\s+/i, "")}</span>
-                          </span>
-                        ) : (
-                          <>
-                            <span className="quick-suggestion-chip__prefix">
-                              {suggestion.label.slice(0, value.trim().length)}
-                            </span>
-                            <span>{suggestion.label.slice(value.trim().length)}</span>
-                          </>
-                        )}
+                        <span className="quick-suggestion-mini__plus">
+                          {suggestion.added ? "✓" : suggestion.accent}
+                        </span>
+                        <span className="quick-suggestion-mini__label">{suggestion.label}</span>
                       </button>
                     ))}
                   </div>
@@ -360,43 +405,11 @@ export function SuperList({
 
         <div className="relative mt-4 flex-1">
           {items.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="empty-search-showcase rounded-[28px] border border-dashed border-border bg-surface/60 p-4 text-sm text-foreground/70"
-            >
-              <div className="empty-search-showcase__copy">
-                <div className="empty-search-showcase__title">Sugerencias</div>
+            <div className="flex h-full min-h-[180px] items-center justify-center rounded-[28px] border border-dashed border-[rgba(69,123,157,0.12)] bg-white/16">
+              <div className="text-center text-sm text-foreground/42">
+                La listita aparece acá.
               </div>
-
-              <div className="empty-search-showcase__cloud" aria-label="Ejemplos más buscados">
-                {trendingExamples.map((example, index) => (
-                  <button
-                    key={example}
-                    type="button"
-                    className="empty-search-showcase__chip"
-                    style={
-                      {
-                        "--float-delay": `${index * 0.45}s`,
-                        "--float-duration": `${5.4 + index * 0.45}s`,
-                        "--float-offset": `${10 + (index % 3) * 4}px`,
-                        "--float-rotate": `${index % 2 === 0 ? "1.4deg" : "-1.2deg"}`,
-                      } as CSSProperties
-                    }
-                    onClick={() => {
-                      commitItem(example, {
-                        openOptions: true,
-                        restoreFocus: false,
-                      });
-                      setInputFocused(false);
-                      inputRef.current?.blur();
-                    }}
-                  >
-                    {example}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
+            </div>
           ) : (
             <AnimatePresence initial={false}>
               <div className="relative">
@@ -452,8 +465,8 @@ export function SuperList({
         </div>
 
         <div className="mt-3 flex items-center gap-2">
-          <div className="flex-1 rounded-2xl border border-border bg-white/82 px-4 py-3 text-center font-hand text-[20px] leading-5 text-foreground">
-            TOTAL: <span className="font-semibold">{formatArs(total)}</span>
+          <div className="flex-1 rounded-2xl border border-[#457B9D] bg-[#457B9D] px-4 py-3 text-center text-[17px] font-semibold leading-5 tracking-[-0.02em] text-white shadow-[0_14px_28px_rgba(69,123,157,0.24)]">
+            TOTAL: <span className="font-bold">{formatArs(total)}</span>
           </div>
           <button
             type="button"
@@ -617,7 +630,7 @@ function SuperListRow({
           </span>
 
           <div ref={containerRef} className="relative pl-10 pr-28">
-            <div className="min-w-0 font-hand text-[20px] leading-5 text-foreground uppercase">
+            <div className="min-w-0 text-[17px] font-semibold leading-5 tracking-[-0.02em] text-foreground uppercase">
               <span ref={textRef} className="relative z-0 inline-block">
                 {item.offer ? (
                   <span
@@ -647,13 +660,22 @@ function SuperListRow({
           {!item.added ? (
             <span
               className={[
-                "absolute top-1/2 -translate-y-1/2 text-[11px] font-semibold",
+                "absolute right-3 top-1/2 flex -translate-y-1/2 flex-col items-end text-[11px] font-semibold leading-tight",
                 item.noResults
-                  ? "right-3 cursor-default text-brand/75"
-                  : "right-3 text-foreground/40 hover:text-foreground/70",
+                  ? "cursor-default text-brand/75"
+                  : "text-foreground/40 hover:text-foreground/70",
               ].join(" ")}
             >
-              {item.noResults ? "muy pronto" : "elegi una opcion"}
+              {item.noResults ? (
+                "muy pronto"
+              ) : (
+                <>
+                  <span>elegi una opcion</span>
+                  <span className="mt-0.5 text-[9px] font-normal text-[#E63946]">
+                    desliza para eliminar
+                  </span>
+                </>
+              )}
             </span>
           ) : null}
 

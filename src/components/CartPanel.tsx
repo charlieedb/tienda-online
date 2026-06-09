@@ -40,11 +40,16 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div className="text-sm font-semibold text-foreground">Carrito</div>
+      <div className="flex items-center justify-between border-b border-black/6 px-4 py-3">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/45">
+            Tu pedido
+          </div>
+          <div className="mt-1 text-sm font-semibold tracking-[-0.02em] text-foreground">Carrito</div>
+        </div>
         <MotionButton
           tone="ghost"
-          className="h-9 px-3 !text-foreground/80"
+          className="h-9 rounded-full border-white/70 bg-white/72 px-3 !text-foreground/80 shadow-none"
           onClick={() => clear()}
           disabled={items.length === 0}
         >
@@ -58,51 +63,39 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
             Todavía no agregaste nada.
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2.5">
             {items.map((i) => (
-              <div key={i.id} className="rounded-2xl border border-border bg-white/82 p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-foreground">{i.name}</div>
-                    <div className="text-xs text-foreground/70">
-                      {i.label} · {formatArs(i.price)}
-                    </div>
-                    {typeof i.unitPriceFinal === "number" ? (
-                      <div className="mt-1 text-[11px] text-foreground/60">
-                        Precio unitario final:{" "}
-                        <span className="font-semibold text-foreground/80">{formatArs(i.unitPriceFinal)}</span>
-                        {i.variant === "pack" && (i.unitsPerPack || 0) > 1 ? (
-                          <span> · {i.unitsPerPack} unid por caja</span>
-                        ) : null}
-                      </div>
-                    ) : null}
+              <div
+                key={i.id}
+                className="rounded-[24px] border border-white/72 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,247,250,0.92))] p-3 shadow-[0_14px_28px_rgba(29,53,87,0.06)]"
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold tracking-[-0.02em] text-foreground">
+                    {i.name}
                   </div>
-                  <MotionButton
-                    tone="ghost"
-                    className="h-8 px-2 text-xs !text-foreground/80"
-                    onClick={() => removeItem(i.id)}
-                  >
-                    Quitar
-                  </MotionButton>
+                  <div className="mt-1 text-xs text-foreground/58">
+                    {formatArs(typeof i.unitPriceFinal === "number" ? i.unitPriceFinal : i.price)} x unidad
+                  </div>
                 </div>
 
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="text-xs text-foreground/70">
-                    Subtotal: <span className="font-semibold text-foreground">{formatArs(i.price * i.qty)}</span>
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <div className="text-base font-semibold tracking-[-0.02em] text-foreground">
+                    {formatArs(i.price)}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="rounded-full bg-white/72 p-1 shadow-[0_10px_18px_rgba(29,53,87,0.06)]">
+                    <div className="flex items-center gap-1">
                     <MotionButton
                       tone="soft"
-                      className="h-8 w-8 px-0"
+                      className="h-8 w-8 rounded-full bg-[rgba(232,238,244,0.9)] px-0 shadow-none"
                       onClick={() => decItem(i.id)}
                       aria-label="Restar"
                     >
                       −
                     </MotionButton>
-                    <div className="w-8 text-center text-sm font-semibold text-foreground">{i.qty}</div>
+                    <div className="w-9 text-center text-sm font-semibold text-foreground">{i.qty}</div>
                     <MotionButton
                       tone="soft"
-                      className="h-8 w-8 px-0"
+                      className="h-8 w-8 rounded-full bg-[rgba(232,238,244,0.9)] px-0 shadow-none"
                       onClick={() =>
                         addItem(
                           {
@@ -122,6 +115,7 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
                     >
                       +
                     </MotionButton>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -130,12 +124,12 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
         )}
       </div>
 
-      <div className="border-t border-border px-4 pb-11 pt-5">
+      <div className="border-t border-black/6 px-4 pb-11 pt-5">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-foreground/70">Total</div>
-          <div className="text-lg font-semibold text-foreground">{formatArs(total)}</div>
+          <div className="text-sm text-foreground/62">Total</div>
+          <div className="text-xl font-semibold tracking-[-0.03em] text-foreground">{formatArs(total)}</div>
         </div>
-        <MotionButton className="mt-4 h-11 w-full" disabled={items.length === 0} onClick={onContinue}>
+        <MotionButton className="mt-4 h-11 w-full rounded-full" disabled={items.length === 0} onClick={onContinue}>
           Continuar
         </MotionButton>
       </div>
@@ -204,7 +198,7 @@ function CheckoutModal({
             onClick={onClose}
           />
           <motion.div
-            className="fixed left-1/2 top-1/2 z-[130] w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border app-modal-surface shadow-2xl"
+            className="fixed left-1/2 top-1/2 z-[130] w-[min(560px,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[32px] border border-white/70 app-modal-surface shadow-[0_34px_80px_rgba(15,23,42,0.22)]"
             initial={{ opacity: 0, y: 10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -212,9 +206,9 @@ function CheckoutModal({
             role="dialog"
             aria-modal="true"
           >
-            <div className="border-b border-border px-5 py-4">
-              <div className="text-sm font-semibold text-foreground">Finalizar pedido</div>
-              <div className="mt-1 text-xs text-foreground/70">
+            <div className="border-b border-black/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(246,249,252,0.82))] px-5 py-4">
+              <div className="text-[15px] font-semibold tracking-[-0.02em] text-foreground">Finalizar pedido</div>
+              <div className="mt-1 text-xs text-foreground/62">
                 Completamos tus datos desde tu perfil y podés corregirlos si hace falta.
               </div>
             </div>
@@ -272,11 +266,11 @@ function CheckoutModal({
                 />
               </label>
             </div>
-            <div className="flex gap-3 border-t border-border px-5 py-4">
-              <MotionButton type="button" tone="ghost" className="h-11 flex-1" onClick={onClose}>
+            <div className="flex gap-3 border-t border-black/6 px-5 py-4">
+              <MotionButton type="button" tone="ghost" className="h-11 flex-1 rounded-full" onClick={onClose}>
                 Cancelar
               </MotionButton>
-              <MotionButton type="button" className="h-11 flex-1" onClick={onSubmit} disabled={!canSubmit}>
+              <MotionButton type="button" className="h-11 flex-1 rounded-full" onClick={onSubmit} disabled={!canSubmit}>
                 {submitting ? "Enviando..." : "Enviar pedido"}
               </MotionButton>
             </div>
@@ -305,6 +299,7 @@ function SuccessOverlay({
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
           <div className="absolute inset-0 bg-[#148146]" />
+          <div className="absolute inset-0 opacity-[0.16]" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.28), transparent 22%), radial-gradient(circle at 80% 18%, rgba(255,255,255,0.18), transparent 20%), radial-gradient(circle at 50% 100%, rgba(255,255,255,0.14), transparent 28%)" }} />
 
           <motion.div
             className="relative z-10 flex min-h-dvh flex-col items-center justify-center px-6 text-center text-white"
@@ -314,7 +309,7 @@ function SuccessOverlay({
             transition={{ delay: 0.36, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           >
             <motion.div
-              className="mb-5 flex h-24 w-24 items-center justify-center rounded-full border border-white/20 bg-white/12 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-md"
+              className="mb-5 flex h-24 w-24 items-center justify-center rounded-full border border-white/18 bg-white/12 shadow-[0_22px_54px_rgba(0,0,0,0.12)] backdrop-blur-md"
               initial={{ scale: 0.82, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
@@ -331,7 +326,7 @@ function SuccessOverlay({
             </motion.div>
 
             <div className="max-w-md">
-              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Pedido enviado</h2>
+              <h2 className="text-3xl font-black tracking-[-0.04em] sm:text-4xl">Pedido enviado</h2>
               <p className="mt-3 text-sm font-medium text-white/88 sm:text-base">
                 Recibimos tu pedido correctamente. En breve lo vamos a preparar.
               </p>
@@ -339,7 +334,7 @@ function SuccessOverlay({
 
             <MotionButton
               type="button"
-              className="mt-8 h-12 min-w-40 rounded-2xl border border-white/20 !bg-white !px-8 !text-[#1B5E3A] shadow-[0_16px_34px_rgba(0,0,0,0.14)] hover:!bg-white/95"
+              className="mt-8 h-12 min-w-40 rounded-full border border-white/16 !bg-white !px-8 !text-[#1B5E3A] shadow-[0_16px_34px_rgba(0,0,0,0.14)] hover:!bg-white/95"
               onClick={onOk}
             >
               OK
@@ -556,7 +551,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
       <motion.button
         type="button"
         whileTap={{ scale: 0.985 }}
-        className="fixed left-1/2 z-50 inline-flex min-h-[56px] -translate-x-1/2 items-center gap-3 rounded-[22px] bg-white px-6 py-3 text-sm font-black tracking-wide text-[#FF0000] shadow-[0_18px_34px_rgba(255,0,0,0.20)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+        className="fixed left-1/2 z-50 inline-flex min-h-[56px] -translate-x-1/2 items-center gap-3 rounded-[24px] border border-white/74 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,249,250,0.94))] px-6 py-3 text-sm font-black tracking-wide text-[#FF0000] shadow-[0_22px_44px_rgba(29,53,87,0.16)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 backdrop-blur-sm"
         style={isMobile ? { bottom: mobileButtonBottom } : { bottom: "18px" }}
         onClick={() => useCartStore.getState().toggleCart()}
         aria-label="Abrir carrito"
@@ -572,7 +567,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
         <span>CARRITO</span>
       </motion.button>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/12 bg-[#FF0000] backdrop-blur-md">
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-white/12 bg-[#FF0000]">
         <div className="relative mx-auto w-full max-w-6xl px-4 pb-[max(env(safe-area-inset-bottom),22px)] pt-8">
           <div className="h-7" />
         </div>
@@ -592,7 +587,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
 
             {isMobile ? (
               <motion.aside
-                className="fixed left-0 right-0 z-[100] overflow-hidden rounded-t-3xl app-sheet-surface pb-[max(env(safe-area-inset-bottom),10px)] shadow-2xl"
+                className="fixed left-0 right-0 z-[100] overflow-hidden rounded-t-[32px] app-sheet-surface pb-[max(env(safe-area-inset-bottom),10px)] shadow-[0_-26px_70px_rgba(15,23,42,0.22)]"
                 initial={{ y: 40, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: 40, opacity: 0 }}
@@ -604,7 +599,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
               </motion.aside>
             ) : (
               <motion.aside
-                className="fixed right-4 top-4 z-[100] h-[calc(100vh-2rem)] w-[380px] overflow-hidden rounded-3xl app-sheet-surface shadow-2xl"
+                className="fixed right-4 top-4 z-[100] h-[calc(100vh-2rem)] w-[380px] overflow-hidden rounded-[32px] app-sheet-surface shadow-[0_30px_80px_rgba(15,23,42,0.22)]"
                 initial={{ x: 30, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 30, opacity: 0 }}

@@ -237,7 +237,7 @@ function ProductCardInner({
       <div className={compact ? "relative min-h-0 flex-1 overflow-hidden rounded-2xl" : "relative overflow-hidden rounded-2xl"}>
         <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
           {typeof addedQty === "number" && addedQty > 0 ? (
-            <div className="rounded-full bg-[#FF0000] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm">
+            <div className="rounded-full bg-[#23A55A] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm">
               Agregado · x{addedQty}
             </div>
           ) : null}
@@ -358,14 +358,11 @@ function ProductCardInner({
           ].join(" ")}
         >
           <div className="min-w-0 flex-1">
-            <div className={compact ? "truncate text-[10px] font-semibold text-foreground/60" : "truncate text-[11px] font-semibold text-foreground/60 sm:text-xs"}>
-              {product.brand ?? " "}
-            </div>
             <div
               className={[
                 isOut ? "text-foreground/70" : "text-foreground",
                 priceClass,
-                compact ? "text-[12px] leading-[0.95rem]" : "text-[13px] leading-4 sm:text-sm",
+                compact ? "text-[14px] leading-[1rem]" : "text-[13px] leading-4 sm:text-sm",
               ].join(" ")}
             >
               {hasDiscount ? (

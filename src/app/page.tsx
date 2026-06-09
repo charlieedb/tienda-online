@@ -21,7 +21,6 @@ import { APP_VERSION } from "@/lib/appVersion";
 import type { Category } from "@/components/TopBar";
 
 type Stage = "landing" | "builder" | "settings" | "orders";
-
 function canonicalizeCategoryToken(value: string) {
   const token = normalizeToken(value);
   if (!token) return "";
@@ -591,7 +590,7 @@ export default function Home() {
         {stage === "landing" ? (
           <motion.main
             key="landing"
-            className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 pb-10 pt-10"
+            className="relative mx-auto flex h-dvh w-full max-w-5xl flex-col overflow-hidden px-5 pb-6 pt-8 md:pb-8 md:pt-10"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -608,13 +607,16 @@ export default function Home() {
               }}
             />
 
-            <div className="relative z-10 flex flex-col gap-4">
-              <h1 className="text-pretty text-3xl font-semibold tracking-tight text-white md:text-5xl">
+            <div className="relative z-10 flex flex-col gap-3">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/14 bg-white/10 px-3 py-1 text-[11px] font-medium tracking-[0.08em] text-white/78 backdrop-blur-md">
+                PEDIDOS RAPIDOS
+              </div>
+              <h1 className="max-w-4xl text-pretty text-3xl font-semibold tracking-[-0.04em] text-white md:text-5xl md:leading-[1.04]">
                 Hacelo simple: escribí lo que necesitás, y elegí la mejor opción.
               </h1>
             </div>
 
-            <div className="relative z-10 mt-6 flex items-center justify-center">
+            <div className="relative z-10 mt-5 flex items-center justify-center md:mt-6">
               <div className="flex w-full max-w-3xl flex-col items-center justify-center gap-3 md:gap-4">
                 <motion.button
                   type="button"
@@ -630,21 +632,22 @@ export default function Home() {
                   whileTap={{ scale: 0.98 }}
                   transition={{ type: "spring", stiffness: 600, damping: 35 }}
                   className={[
-                    "group cta-nudge w-full rounded-3xl px-4 py-4",
+                    "group cta-nudge relative w-full overflow-hidden rounded-[34px] border border-white/14 bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0.08))] px-4 py-4 shadow-[0_28px_60px_rgba(7,14,27,0.22)] backdrop-blur-[18px]",
                     "outline-none focus-visible:ring-2 focus-visible:ring-brand/50",
                     "transition-transform hover:-translate-y-0.5 active:translate-y-0",
                     authLoading ? "opacity-70" : "",
                   ].join(" ")}
                   aria-label="Arma tu lista"
                 >
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_28%),linear-gradient(135deg,transparent,rgba(255,255,255,0.06)_45%,transparent_75%)]" />
                   <div className="flex w-full flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
-                    <div className="shrink-0 drop-shadow-[0_10px_18px_rgba(15,23,42,0.10)]">
+                    <div className="shrink-0 drop-shadow-[0_14px_24px_rgba(15,23,42,0.14)]">
                       <ListitaIllustrationAlt />
                     </div>
 
-                    <div className="flex min-w-0 flex-col items-center gap-3 text-center sm:items-start sm:text-left">
-                      <div className="flex flex-col items-center gap-1 sm:flex-row sm:gap-5">
-                        <div className="flex items-center justify-center sm:justify-start">
+                    <div className="flex min-w-0 flex-col items-center gap-2 text-center sm:items-start sm:text-left">
+                      <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-5">
+                        <div className="flex flex-col items-center justify-center gap-2 sm:items-start sm:justify-start">
                           <img
                             src="/arma.png"
                             alt="Arma tu listita"
@@ -653,6 +656,10 @@ export default function Home() {
                             decoding="async"
                             fetchPriority="high"
                           />
+                          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium text-white/76 backdrop-blur-sm">
+                            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#FFD166]" />
+                            Tocá para empezar
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -661,8 +668,8 @@ export default function Home() {
 
                 <div className="flex w-full max-w-3xl items-center justify-center gap-3">
                   {user ? (
-                    <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between">
-                      <div className="min-w-0 text-center text-sm text-white/78 sm:text-left">
+                    <div className="flex w-full items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1 text-left text-sm text-white/78">
                         <div className="truncate font-semibold text-white">
                           {user.displayName || user.email || "Cuenta"}
                         </div>
@@ -672,7 +679,7 @@ export default function Home() {
                       </div>
                       <MotionButton
                         tone="ghost"
-                        className="h-8 w-auto min-w-0 rounded-full !border-[rgba(230,57,70,0.22)] !bg-[rgba(230,57,70,0.16)] px-3 text-[11px] font-semibold uppercase tracking-[0.08em] !text-white hover:!bg-[rgba(230,57,70,0.22)] sm:ml-auto"
+                        className="h-8 shrink-0 w-auto min-w-0 rounded-full !border-[rgba(230,57,70,0.22)] !bg-[rgba(230,57,70,0.16)] px-3 text-[11px] font-semibold uppercase tracking-[0.08em] !text-white hover:!bg-[rgba(230,57,70,0.22)]"
                         onClick={async () => {
                           resetShoppingSession();
                           await signOut();
@@ -688,7 +695,7 @@ export default function Home() {
                       <div className="landing-auth-cta__actions">
                         <MotionButton
                           tone="ghost"
-                          className="landing-auth-cta__button h-11 px-4 !text-foreground"
+                          className="landing-auth-cta__button h-10 px-3 !text-foreground"
                           onClick={() => {
                             setAuthCtaError(null);
                             setAuthMode("login");
@@ -700,7 +707,7 @@ export default function Home() {
                         </MotionButton>
                         <MotionButton
                           tone="ghost"
-                          className="landing-auth-cta__button h-11 px-4 !text-[#4285F4]"
+                          className="landing-auth-cta__button h-10 px-3 !text-[#4285F4]"
                           onClick={() => {
                             setAuthCtaError(null);
                             setAuthMode("signup");
@@ -718,7 +725,7 @@ export default function Home() {
                         whileTap={{ scale: 0.985 }}
                         transition={{ type: "spring", stiffness: 600, damping: 35 }}
                         disabled={authLoading}
-                        className="landing-auth-google mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-[18px] px-4 py-2.5 text-[0.92rem] font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="landing-auth-google mt-2.5 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-[16px] px-4 py-2 text-[0.88rem] font-semibold text-white transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         <span className="landing-auth-google__icon" aria-hidden="true">
                           G
@@ -743,7 +750,7 @@ export default function Home() {
               </div>
             </div>
 
-            <footer className="relative z-10 mt-auto pt-10 text-center text-sm font-semibold text-white/80">
+            <footer className="relative z-10 mt-auto pt-6 text-center text-sm font-semibold text-white/80 md:pt-8">
               <div className="mx-auto flex w-full max-w-md items-center justify-center gap-3 rounded-3xl border border-white/10 bg-white/8 px-4 py-3 backdrop-blur-sm">
                 <Image
                   src="/jonico-logo.png"
