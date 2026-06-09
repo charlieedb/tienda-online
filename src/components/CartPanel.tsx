@@ -8,6 +8,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { submitCheckoutOrder } from "@/lib/checkoutOrders";
 import { formatArs } from "@/lib/format";
 import { getActiveCatalog, type Product } from "@/lib/products";
+import { notifyTelegramOrder } from "@/lib/telegramOrders";
 import { getCachedUserProfile, refreshUserProfile } from "@/lib/userProfile";
 import { useCartStore } from "@/store/cart";
 
@@ -518,7 +519,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
       const catalog = await getActiveCatalog();
       const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
 
-      await submitCheckoutOrder({
+      const orderResult = await submitCheckoutOrder({
         user,
         customer: {
           nombre,
@@ -529,6 +530,12 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
         cartItems: items,
         productsById,
       });
+
+      try {
+        await notifyTelegramOrder(orderResult.telegramPayload);
+      } catch (telegramError) {
+        console.error("Telegram order notification failed", telegramError);
+      }
 
       clearCart();
       closeCart();

@@ -46,3 +46,24 @@ service cloud.firestore {
   }
 }
 ```
+
+### Avisos por Telegram de pedidos nuevos
+
+La tienda puede avisar cada pedido nuevo por Telegram a un chat personal.
+
+1. Creá el bot con `@BotFather`.
+2. Abrí un chat con ese bot y mandale cualquier mensaje.
+3. Configurá en `.env.local` o en Vercel:
+
+```bash
+TELEGRAM_BOT_TOKEN="tu_token"
+TELEGRAM_CHAT_ID="tu_chat_id"
+```
+
+Podés obtener el `chat_id` consultando:
+
+```bash
+https://api.telegram.org/bot<TU_TOKEN>/getUpdates
+```
+
+La notificación se envía después de guardar el pedido en Firestore. Si Telegram falla, el pedido igual queda confirmado.

@@ -5,6 +5,7 @@ import type { User } from "firebase/auth";
 import { getDb } from "@/lib/firebase";
 import type { CartItem } from "@/store/cart";
 import type { Product } from "@/lib/products";
+import type { TelegramOrderPayload } from "@/lib/telegramOrders";
 
 type CheckoutCustomer = {
   nombre: string;
@@ -140,5 +141,35 @@ export async function submitCheckoutOrder(params: {
   };
 
   await setDoc(orderRef, payload, { merge: true });
-  return { id: orderRef.id };
+
+  const telegramPayload: TelegramOrderPayload = {
+    pedido: {
+      id: orderRef.id,
+      createdAtIso: nowIso,
+      source: "tienda-online-next",
+    },
+    cliente: {
+      nombre: payload.cliente.nombre,
+      telefono: payload.cliente.telefono,
+      direccion: payload.cliente.direccion,
+      nota: payload.cliente.nota,
+    },
+    items: items.map((item) => ({
+      codigo: item.codigo,
+      nombre: item.nombre,
+      descuentoPct: item.descuentoPct,
+      cantidadUnidades: item.cantidadUnidades,
+      cantidadCajas: item.cantidadCajas,
+      unidadesPorCaja: item.unidadesPorCaja,
+    })),
+    totals: {
+      distinct: payload.totals.distinct,
+      totalQty: payload.totals.totalQty,
+      total: payload.totals.total,
+      subtotal: payload.totals.subtotal,
+      discountTotal: payload.totals.discountTotal,
+    },
+  };
+
+  return { id: orderRef.id, telegramPayload };
 }
