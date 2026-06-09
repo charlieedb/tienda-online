@@ -827,22 +827,41 @@ export default function Home() {
             />
 
             <div className="fixed inset-x-0 top-12 z-40">
-              <div className="mx-auto flex w-full max-w-6xl gap-2 px-3 py-2 md:px-6">
+              <div className="mx-auto w-full max-w-6xl px-3 py-2 md:px-6">
+                <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+                <motion.button
+                  type="button"
+                  onClick={() => {
+                    setShowOffers(false);
+                    setMenuOpen(true);
+                  }}
+                  whileTap={{ scale: 0.99 }}
+                  className="relative flex h-11 w-[min(214px,62vw)] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FF0000] px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+                  aria-label="Ver todas las categorías"
+                >
+                  <Image
+                    src="/vertodo.png"
+                    alt="Ver todo"
+                    width={520}
+                    height={180}
+                    priority
+                    className="relative z-10 h-7 w-auto max-w-full select-none object-contain brightness-110 contrast-125 md:h-8"
+                  />
+                </motion.button>
                 <motion.button
                   type="button"
                   onClick={() => setShowOffers(true)}
                   whileTap={{ scale: 0.99 }}
-                  className="relative flex h-11 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(135deg,rgba(255,0,0,0.98),rgba(235,0,0,0.96)_58%,rgba(196,0,0,0.94))] px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+                  className="relative flex h-11 w-[min(214px,62vw)] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FF0000] px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
                   aria-label="Abrir ofertas del día"
                 >
-                  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.10),transparent_38%,rgba(0,0,0,0.12))]" />
                   <Image
                     src="/oferta.png"
                     alt="Super Ofertas"
                     width={520}
                     height={180}
                     priority
-                    className="relative z-10 h-7 w-auto max-w-full select-none object-contain brightness-110 contrast-125 drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)] md:h-8"
+                    className="relative z-10 h-7 w-auto max-w-full select-none object-contain brightness-110 contrast-125 md:h-8"
                   />
                 </motion.button>
 
@@ -853,19 +872,19 @@ export default function Home() {
                     openCategoryToken({ token: "promo", label: "Combos" });
                   }}
                   whileTap={{ scale: 0.99 }}
-                  className="relative flex h-11 min-w-0 flex-1 items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(135deg,rgba(255,0,0,0.98),rgba(235,0,0,0.96)_58%,rgba(196,0,0,0.94))] px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
+                  className="relative flex h-11 w-[min(214px,62vw)] shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#FF0000] px-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
                   aria-label="Abrir combos"
                 >
-                  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.10),transparent_38%,rgba(0,0,0,0.12))]" />
                   <Image
                     src="/combos.png"
                     alt="Combos"
                     width={520}
                     height={180}
                     priority
-                    className="relative z-10 h-7 w-auto max-w-full select-none object-contain brightness-110 contrast-125 drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)] md:h-8"
+                    className="relative z-10 h-7 w-auto max-w-full select-none object-contain brightness-110 contrast-125 md:h-8"
                   />
                 </motion.button>
+                </div>
               </div>
             </div>
 

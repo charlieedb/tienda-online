@@ -27,6 +27,29 @@ type Props = {
 
 const INITIAL_VISIBLE_PRODUCTS = 30;
 const LOAD_MORE_STEP = 30;
+const FEATURED_STAR_PRODUCT_ORDER = ["1", "1/1", "2", "2/2"] as const;
+
+function normalizeForFeaturedSearch(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function getFeaturedStarPriority(productId: string, token: string | null) {
+  const normalizedToken = normalizeForFeaturedSearch(token ?? "");
+  const shouldPromote =
+    normalizedToken.includes("speed") || normalizedToken.includes("energizante");
+
+  if (!shouldPromote) return null;
+
+  const index = FEATURED_STAR_PRODUCT_ORDER.indexOf(
+    productId as (typeof FEATURED_STAR_PRODUCT_ORDER)[number],
+  );
+
+  return index >= 0 ? index : null;
+}
 
 export function SuggestionsPanel({
   activeToken,
@@ -185,10 +208,26 @@ export function SuggestionsPanel({
       const as = a.active === false ? 0 : 1;
       const bs = b.active === false ? 0 : 1;
       if (as !== bs) return bs - as; // in-stock first
+
+      const featuredA = getFeaturedStarPriority(a.id, token);
+      const featuredB = getFeaturedStarPriority(b.id, token);
+
+      if (as === 1) {
+        if (featuredA !== null && featuredB !== null) return featuredA - featuredB;
+        if (featuredA !== null) return -1;
+        if (featuredB !== null) return 1;
+      }
+
+      if (as === 0) {
+        if (featuredA !== null && featuredB === null) return 1;
+        if (featuredA === null && featuredB !== null) return -1;
+        if (featuredA !== null && featuredB !== null) return featuredA - featuredB;
+      }
+
       return a.name.localeCompare(b.name, "es", { sensitivity: "base" });
     });
     return list;
-  }, [products]);
+  }, [products, token]);
 
   useEffect(() => {
     sortedProductsRef.current = sortedProducts;
