@@ -156,13 +156,13 @@ export function TopBar({
 
   return (
     <>
-      <header className="fixed left-0 right-0 top-0 z-50 w-full border-b border-white/12 bg-[#FF0000] text-[#F8F9FA] shadow-[0_4px_12px_rgba(15,23,42,0.12)]">
-        <div className="relative flex h-12 w-full items-center px-3">
+      <header className="app-topbar fixed left-0 right-0 top-0 z-50 w-full border-b border-white/12 bg-[#FF0000] text-[#F8F9FA] shadow-[0_4px_12px_rgba(15,23,42,0.12)]">
+        <div className="app-topbar__inner relative mx-auto flex h-12 w-full max-w-6xl items-center px-3 md:h-16 md:px-6">
           <button
             type="button"
             onClick={onToggleMenu}
             aria-label="Menú"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+            className="app-topbar__toggle inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 md:h-11 md:w-11"
           >
             <Icon name="hamburger" />
           </button>
@@ -171,7 +171,7 @@ export function TopBar({
             type="button"
             onClick={onGoHome}
             aria-label="Ir al inicio"
-            className="absolute left-1/2 -translate-x-1/2 rounded-xl px-2 py-1 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+            className="app-topbar__brand absolute left-1/2 -translate-x-1/2 rounded-xl px-2 py-1 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
           >
             <Image
               src="/jonico.png"
@@ -179,18 +179,18 @@ export function TopBar({
               width={220}
               height={56}
               priority
-              className="h-7 w-auto max-w-[160px] select-none object-contain sm:h-8 sm:max-w-[200px]"
-              sizes="(max-width: 640px) 160px, 200px"
+              className="h-7 w-auto max-w-[160px] select-none object-contain sm:h-8 sm:max-w-[200px] md:h-10 md:max-w-[220px]"
+              sizes="(max-width: 640px) 160px, (max-width: 1024px) 200px, 220px"
             />
           </button>
 
-          <div className="ml-auto flex min-w-[72px] justify-end">
+          <div className="app-topbar__user-wrap ml-auto flex min-w-[72px] justify-end md:min-w-[88px]">
             {userLabel ? (
-              <div ref={userMenuRef} className="relative">
+              <div ref={userMenuRef} className="app-topbar__user-shell relative">
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((v) => !v)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-white/90 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
+                  className="app-topbar__user inline-flex h-10 w-10 items-center justify-center rounded-xl text-white/90 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60 md:h-11 md:w-11"
                   aria-label="Abrir menú de usuario"
                   title={userLabel ?? "Cuenta"}
                 >
@@ -230,7 +230,7 @@ export function TopBar({
             />
 
             <motion.aside
-              className="app-panel fixed left-0 top-0 z-[60] h-dvh w-[min(340px,88vw)] bg-white shadow-2xl"
+              className="app-panel app-topbar__drawer fixed left-0 top-0 z-[60] h-dvh w-[min(340px,88vw)] bg-white shadow-2xl"
               initial={{ x: -24, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -24, opacity: 0 }}
@@ -278,7 +278,7 @@ export function TopBar({
             />
 
             <motion.aside
-              className="app-panel fixed right-0 top-0 z-[60] h-dvh w-[min(340px,88vw)] bg-white shadow-2xl"
+              className="app-panel app-topbar__drawer app-topbar__drawer--right fixed right-0 top-0 z-[60] h-dvh w-[min(340px,88vw)] bg-white shadow-2xl"
               initial={{ x: 24, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 24, opacity: 0 }}

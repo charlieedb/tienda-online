@@ -20,8 +20,8 @@ const hand = Patrick_Hand({
 });
 
 export const metadata: Metadata = {
-  title: "Listita de Súper",
-  description: "Armá tu listita y agregá al carrito",
+  title: "JOMA Express",
+  description: "Armá tu lista o recorré la tienda completa desde mobile o PC.",
   icons: {
     icon: "/favicon.png",
     shortcut: "/favicon.png",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#E10600",
+  themeColor: "#d62828",
 };
 
 export default function RootLayout({

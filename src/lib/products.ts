@@ -5,9 +5,11 @@ export type Product = {
   id: string;
   name: string;
   brand?: string;
+  category?: string;
   imageUrl?: string;
   unit: { label: string; price: number };
   pack?: { qty: number; label: string; price: number };
+  sortPrice: number;
   keywords: string[];
   active: boolean;
   offer?: boolean;

@@ -23,9 +23,11 @@ type Product = {
   id: string;
   name: string;
   brand?: string;
+  category?: string;
   imageUrl?: string;
   unit: { label: string; price: number };
   pack?: { qty: number; label: string; price: number };
+  sortPrice: number;
   keywords: string[];
   active: boolean;
   offer?: boolean;
@@ -85,11 +87,12 @@ function mapRowToProduct(row: SourceRow): Product | null {
       }
     : undefined;
 
-  const brand = String(row.Linea ?? "").trim() || undefined;
+  const category = String(row.Linea ?? "").trim() || undefined;
+  const brand = category;
   const keywordsBase = [
     row._nNombre ? String(row._nNombre) : nombre,
     row._nCodigo ? String(row._nCodigo) : codigo,
-    row._nLinea ? String(row._nLinea) : brand ?? "",
+    row._nLinea ? String(row._nLinea) : category ?? "",
   ]
     .flatMap((v) => normalizeForSearch(v).split(" "))
     .filter(Boolean);
@@ -121,9 +124,11 @@ function mapRowToProduct(row: SourceRow): Product | null {
     id: codigo,
     name: nombre,
     brand,
+    category,
     imageUrl,
     unit: { label: "unidad", price: unitPrice },
     pack,
+    sortPrice: Math.max(unitPrice, 0),
     keywords,
     active,
     offer,

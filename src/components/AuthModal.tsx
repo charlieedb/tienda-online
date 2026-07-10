@@ -20,6 +20,7 @@ type Props = {
   onClose: () => void;
   onModeChange: (mode: Mode) => void;
   forced?: boolean;
+  onUseDemo?: () => void;
 };
 
 function friendlyAuthError(message: string) {
@@ -36,7 +37,7 @@ function friendlyAuthError(message: string) {
   return "No se pudo completar. Probá de nuevo.";
 }
 
-export function AuthModal({ open, mode, onClose, onModeChange, forced = false }: Props) {
+export function AuthModal({ open, mode, onClose, onModeChange, forced = false, onUseDemo }: Props) {
   useBodyScrollLock(open);
 
   const { signInEmail, signUpEmail, signInGoogle, firebaseReady } = useAuth();
@@ -45,11 +46,12 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
     [mode],
   );
 
-  const demoEnabled =
+  const demoEnabled = Boolean(onUseDemo) || (
     process.env.NODE_ENV !== "production" &&
     process.env.NEXT_PUBLIC_ENABLE_DEMO_AUTH === "1" &&
     Boolean(process.env.NEXT_PUBLIC_DEMO_EMAIL) &&
-    Boolean(process.env.NEXT_PUBLIC_DEMO_PASSWORD);
+    Boolean(process.env.NEXT_PUBLIC_DEMO_PASSWORD)
+  );
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -261,6 +263,11 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false }:
                     tone="ghost"
                     className="h-11 !text-foreground/80"
                     onClick={async () => {
+                      if (onUseDemo) {
+                        onUseDemo();
+                        onClose();
+                        return;
+                      }
                       setError(null);
                       try {
                         setBusy(true);
