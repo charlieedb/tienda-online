@@ -1,8 +1,7 @@
 import type { CatalogManifest, CatalogProvider, Product } from "./types";
 
-const STORAGE_BASE = "https://firebasestorage.googleapis.com/v0/b/app-presu.firebasestorage.app/o/catalogo%2F";
-const VERSION_URL = `${STORAGE_BASE}version.json?alt=media`;
-const PRODUCTS_URL = `${STORAGE_BASE}productos.json?alt=media`;
+const VERSION_URL = "/api/catalog-version";
+const PRODUCTS_URL = "/api/catalog-products";
 const CACHE_VERSION_KEY = "joma.catalog.version";
 const CACHE_PRODUCTS_KEY = "joma.catalog.products";
 
@@ -61,7 +60,7 @@ export function createRemoteCatalog(): CatalogProvider {
       } catch { /* caché no disponible */ }
 
       try {
-        const versionResponse = await fetch(`${VERSION_URL}&t=${Date.now()}`, { cache: "no-store" });
+        const versionResponse = await fetch(`${VERSION_URL}?t=${Date.now()}`, { cache: "no-store" });
         if (!versionResponse.ok) throw new Error("No pudimos verificar la versión del catálogo.");
         const versionData = await versionResponse.json() as { version?: number };
         catalogVersion = Number(versionData.version || 0);
@@ -77,7 +76,7 @@ export function createRemoteCatalog(): CatalogProvider {
         return cachedRows.map((raw, index) => normalizeProduct(raw, index, {}));
       }
 
-      const productsResponse = await fetch(`${PRODUCTS_URL}&v=${catalogVersion}`, { cache: "no-store" });
+      const productsResponse = await fetch(`${PRODUCTS_URL}?v=${catalogVersion}`, { cache: "no-store" });
       if (!productsResponse.ok) throw new Error("No pudimos descargar el catálogo actualizado.");
       const data = await productsResponse.json() as RawProduct[] | { items?: RawProduct[] };
       const rows = Array.isArray(data) ? data : data.items ?? [];
