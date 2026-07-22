@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { localCatalog } from "@/catalog/localCatalog";
+import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { CatalogManifest, Category, Product } from "@/catalog/types";
 import { useCartStore } from "@/store/cart";
 import { CartView } from "@/components/CartView";
@@ -40,7 +40,7 @@ function CategoryGrid({ categories, onSelect }: { categories: Category[]; onSele
   </button>)}</div>;
 }
 
-function StoreApp() {
+function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog> }) {
   const [tab, setTab] = useState<Tab>("home");
   const [manifest, setManifest] = useState<CatalogManifest | null>(null);
   const [featured, setFeatured] = useState<Product[]>([]);
@@ -62,25 +62,25 @@ function StoreApp() {
   const loadInitial = () => {
     const controller = new AbortController();
     setInitialLoading(true); setInitialError("");
-    Promise.all([localCatalog.getManifest(controller.signal), localCatalog.getFeaturedProducts(controller.signal)])
+    Promise.all([catalog.getManifest(controller.signal), catalog.getFeaturedProducts(controller.signal)])
       .then(([nextManifest, products]) => { setManifest(nextManifest); setFeatured(products); })
       .catch((error) => { if (!controller.signal.aborted) setInitialError(error instanceof Error ? error.message : "Error inesperado."); })
       .finally(() => { if (!controller.signal.aborted) setInitialLoading(false); });
     return controller;
   };
 
-  useEffect(() => { const controller = loadInitial(); return () => controller.abort(); }, []);
+  useEffect(() => { const controller = loadInitial(); return () => controller.abort(); }, [catalog]);
 
   useEffect(() => {
     if (!selectedCategory) { setCategoryProducts([]); return; }
     const controller = new AbortController();
     setCategoryLoading(true); setCategoryError("");
-    localCatalog.getCategoryProducts(selectedCategory.id, controller.signal)
+    catalog.getCategoryProducts(selectedCategory.id, controller.signal)
       .then(setCategoryProducts)
       .catch((error) => { if (!controller.signal.aborted) setCategoryError(error instanceof Error ? error.message : "Error inesperado."); })
       .finally(() => { if (!controller.signal.aborted) setCategoryLoading(false); });
     return () => controller.abort();
-  }, [selectedCategory]);
+  }, [catalog, selectedCategory]);
 
   useEffect(() => {
     if (tab === "search") window.setTimeout(() => searchRef.current?.focus(), 80);
@@ -92,13 +92,13 @@ function StoreApp() {
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       setSearchLoading(true); setSearchError("");
-      localCatalog.searchProducts(value, controller.signal)
+      catalog.searchProducts(value, controller.signal)
         .then(setSearchResults)
         .catch((error) => { if (!controller.signal.aborted) setSearchError(error instanceof Error ? error.message : "Error inesperado."); })
         .finally(() => { if (!controller.signal.aborted) setSearchLoading(false); });
     }, 260);
     return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [query]);
+  }, [catalog, query]);
 
   const goTo = (next: Tab) => { setTab(next); if (next !== "categories") setSelectedCategory(null); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCategory = (category: Category) => { setSelectedCategory(category); setTab("categories"); window.scrollTo({ top: 0, behavior: "smooth" }); };
@@ -143,7 +143,9 @@ function StoreApp() {
 
 export function App() {
   const { user, loading } = useAuth();
+  const catalog = useMemo(() => user ? createRemoteCatalog() : null, [user]);
   if (loading) return <AuthLoading/>;
   if (!user) return <AuthWelcome/>;
-  return <StoreApp/>;
+  if (!catalog) return <AuthLoading/>;
+  return <StoreApp catalog={catalog}/>;
 }
