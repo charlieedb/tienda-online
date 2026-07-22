@@ -33,9 +33,8 @@ function ProductList({ products, eagerCount = 0 }: { products: Product[]; eagerC
 }
 
 function CategoryGrid({ categories, onSelect }: { categories: Category[]; onSelect: (category: Category) => void }) {
-  return <div className="category-grid">{categories.map((category) => <button type="button" className="category-card" style={{ "--category-color": category.color } as React.CSSProperties} onClick={() => onSelect(category)} key={category.id}>
-    <span className="category-art"><img src={category.image} alt="" width="104" height="104" loading="lazy"/></span>
-    <span className="category-copy"><strong>{category.name}</strong><small>{category.description}</small><em>{category.count} productos</em></span>
+  return <div className="category-grid">{categories.map((category) => <button type="button" className="category-card" onClick={() => onSelect(category)} key={category.id}>
+    <span className="category-copy"><strong>{category.name}</strong><em>{category.count} {category.count === 1 ? "producto disponible" : "productos disponibles"}</em></span>
     <span className="category-arrow"><Icon name="arrow"/></span>
   </button>)}</div>;
 }

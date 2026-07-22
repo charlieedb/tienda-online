@@ -106,7 +106,7 @@ export function createRemoteCatalog(): CatalogProvider {
       description: `${items.filter((item) => item.active).length} disponibles`,
       color: "#d92822",
       image: items.find((item) => item.imageUrl)?.imageUrl || "/joma-express.png",
-      count: items.length,
+      count: items.filter((item) => item.active).length,
     })).sort((a, b) => a.name.localeCompare(b.name, "es"));
     return { version: catalogVersion, featuredCount: products.filter((item) => item.offer).length, categories };
   };
