@@ -40,7 +40,9 @@ function CategoryGrid({ categories, onSelect }: { categories: Category[]; onSele
 }
 
 function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog> }) {
+  const { signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("home");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [manifest, setManifest] = useState<CatalogManifest | null>(null);
   const [featured, setFeatured] = useState<Product[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -86,6 +88,13 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
   }, [tab]);
 
   useEffect(() => {
+    if (!menuOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  }, [menuOpen]);
+
+  useEffect(() => {
     const value = query.trim();
     if (value.length < 2) { setSearchResults([]); setSearchLoading(false); setSearchError(""); return; }
     const controller = new AbortController();
@@ -99,21 +108,25 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [catalog, query]);
 
-  const goTo = (next: Tab) => { setTab(next); if (next !== "categories") setSelectedCategory(null); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const goTo = (next: Tab) => { setMenuOpen(false); setTab(next); if (next !== "categories") setSelectedCategory(null); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCategory = (category: Category) => { setSelectedCategory(category); setTab("categories"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCombos = () => openCategory(manifest?.categories.find((category) => category.id === "combos") ?? { id: "combos", name: "Combos", description: "Promociones de la app", color: "#d92822", image: "/joma-express.png", count: 0 });
 
   return <div className="store-app">
-    <header className="app-header">
-      <button type="button" className="brand-lockup" onClick={() => goTo("home")} aria-label="JOMA Express. Ir al inicio"><img src="/joma-express.png" alt="JOMA Express" width="561" height="257"/></button>
-      <button type="button" className={`profile-button ${tab === "profile" ? "is-active" : ""}`} onClick={() => goTo("profile")} aria-label="Abrir mis datos"><Icon name="user"/></button>
-    </header>
+    <div className="top-shell">
+      <header className="app-header">
+        <button type="button" className={`menu-button ${menuOpen ? "is-active" : ""}`} onClick={() => setMenuOpen((open) => !open)} aria-label="Abrir menú" aria-expanded={menuOpen}><Icon name="menu"/></button>
+        <button type="button" className="brand-lockup" onClick={() => goTo("home")} aria-label="JOMA Express. Ir al inicio"><img src="/joma-express.png" alt="JOMA Express" width="561" height="257"/></button>
+        <button type="button" className={`header-cart ${tab === "cart" ? "is-active" : ""}`} onClick={() => goTo("cart")} aria-label={`Abrir carrito. ${itemCount} productos`}><Icon name="cart"/>{itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}</button>
+      </header>
+      <div className="search-dock"><label className="top-search"><Icon name="search"/><input ref={searchRef} value={query} onFocus={() => { if (tab !== "search") goTo("search"); }} onChange={(event) => { setQuery(event.target.value); if (tab !== "search") setTab("search"); }} placeholder="¿Qué necesitás?" aria-label="Buscar productos"/><span className={searchLoading ? "tiny-spinner" : ""}/></label></div>
+      <AnimatePresence>{menuOpen ? <><motion.button type="button" className="drawer-scrim" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.nav className="header-menu" aria-label="Menú principal" initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ duration: .24, ease: [0.22, 1, 0.36, 1] }}><div className="drawer-head"><button type="button" className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><Icon name="close"/></button><img src="/joma-express.png" alt="JOMA Express" width="561" height="257"/></div><div className="drawer-content"><button type="button" onClick={() => goTo("profile")}><Icon name="user"/><span><strong>Perfil</strong><small>Mis datos y dirección</small></span><Icon name="arrow"/></button><hr/><button type="button" onClick={() => goTo("categories")}><Icon name="grid"/><span><strong>Categorías</strong><small>Explorar productos</small></span><Icon name="arrow"/></button><button type="button" className="drawer-logout" onClick={() => { setMenuOpen(false); void signOut(); }}><Icon name="logout"/><span><strong>Cerrar sesión</strong><small>Salir de esta cuenta</small></span><Icon name="arrow"/></button></div></motion.nav></> : null}</AnimatePresence>
+    </div>
 
     <main id="main-content" className={itemCount ? "has-mini-cart" : ""}>
       <AnimatePresence mode="wait" initial={false}>
         {tab === "home" ? <motion.div className="view" key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <section className="hero-card"><div><h1>Tu compra diaria,<br/><em>sin vueltas.</em></h1><div className="hero-actions"><button type="button" onClick={() => goTo("categories")}>Ver categorías <Icon name="arrow"/></button><button type="button" className="is-secondary" onClick={openCombos}>Ver combos <Icon name="arrow"/></button></div></div></section>
-          <section className="quick-search"><button type="button" onClick={() => goTo("search")}><Icon name="search"/><span><strong>¿Qué necesitás?</strong><small>Buscá por producto o marca</small></span><Icon name="arrow"/></button></section>
           <section><div className="section-heading"><div><span>Elegidos para vos</span><h2>Destacados</h2></div><button type="button" onClick={() => goTo("categories")}>Ver todo</button></div>
             {initialLoading ? <ProductSkeletons/> : initialError ? <ErrorState message={initialError} retry={loadInitial}/> : <ProductList products={featured} eagerCount={3}/>}</section>
         </motion.div> : null}
@@ -123,7 +136,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
         </motion.div> : null}
 
         {tab === "search" ? <motion.div className="view" key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <section><div className="page-intro search-intro"><span>Encontralo rápido</span><h1>Buscar</h1></div><label className="search-field"><Icon name="search"/><input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Producto, marca o categoría" aria-label="Buscar productos"/><kbd>{searchLoading ? <span className="tiny-spinner"/> : null}</kbd></label>
+          <section><button className="back-button search-home-button" type="button" onClick={() => goTo("home")}><Icon name="arrow"/> Volver al inicio</button>
           {query.length < 2 ? <div className="search-start"><p>Probá con</p><div>{["Aceite","Yerba","Gaseosa","Limpieza"].map((term) => <button type="button" onClick={() => setQuery(term)} key={term}>{term}</button>)}</div></div> : searchError ? <ErrorState message={searchError} retry={() => setQuery((value) => `${value} `)}/> : !searchLoading && !searchResults.length ? <div className="empty-state compact-empty"><div className="empty-icon"><Icon name="search"/></div><h2>Sin coincidencias</h2><p>Probá con otra palabra o revisá cómo está escrito.</p></div> : <><div className="result-count">{searchResults.length} {searchResults.length === 1 ? "resultado" : "resultados"}</div><ProductList products={searchResults}/></>}</section>
         </motion.div> : null}
 
@@ -134,9 +147,6 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
 
     {itemCount && tab !== "cart" ? <button type="button" className="mini-cart" onClick={() => goTo("cart")} aria-label={`Abrir carrito. Subtotal ${money.format(cartTotal)}`}><span>Subtotal</span><strong>{money.format(cartTotal)}</strong></button> : null}
 
-    <nav className="bottom-nav" aria-label="Navegación principal">{([
-      ["home","home","Inicio"],["categories","grid","Categorías"],["search","search","Buscar"],["cart","cart","Carrito"],
-    ] as const).map(([id, icon, label]) => <button type="button" className={tab === id ? "is-active" : ""} onClick={() => goTo(id)} aria-current={tab === id ? "page" : undefined} key={id}><span><Icon name={icon}/>{id === "cart" && itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}</span><small>{label}</small></button>)}</nav>
   </div>;
 }
 

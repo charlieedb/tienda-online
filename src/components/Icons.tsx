@@ -1,10 +1,13 @@
 import type { SVGProps } from "react";
 
-type IconName = "home" | "grid" | "search" | "cart" | "arrow" | "minus" | "plus" | "trash" | "refresh" | "spark" | "user" | "check";
+type IconName = "home" | "grid" | "menu" | "close" | "logout" | "search" | "cart" | "arrow" | "minus" | "plus" | "trash" | "refresh" | "spark" | "user" | "check";
 
 const paths: Record<IconName, React.ReactNode> = {
   home: <><path d="m3 10.8 9-7.2 9 7.2"/><path d="M5 9.8V21h14V9.8M9 21v-7h6v7"/></>,
   grid: <><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
+  menu: <><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></>,
+  close: <><path d="m6 6 12 12"/><path d="M18 6 6 18"/></>,
+  logout: <><path d="M10 5H5v14h5"/><path d="M14 8l4 4-4 4"/><path d="M9 12h9"/></>,
   search: <><circle cx="11" cy="11" r="7"/><path d="m16.2 16.2 4.3 4.3"/></>,
   cart: <><path d="M3 4h2l2.2 10.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 1.9-1.4L21 8H6"/><circle cx="10" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></>,
   arrow: <><path d="m9 18 6-6-6-6"/></>,
