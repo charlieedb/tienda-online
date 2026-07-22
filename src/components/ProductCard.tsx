@@ -63,7 +63,7 @@ function ProductCardInner({ product, eager = false }: { product: Product; eager?
   return <motion.article className={`product-card ${!available ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
     <div className="product-media">
       <ProductImage product={product} eager={eager} />
-      {product.stockReal !== undefined ? <div className={`product-stock ${product.stockReal <= 0 ? "is-empty" : ""}`}><span>Stock</span><strong>{stockNumber.format(product.stockReal)}</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div>}
+      {product.stockReal !== undefined ? <div className={`product-stock ${product.stockReal <= 0 ? "is-empty" : ""}`}><span>Stock disponible:</span> <strong>{stockNumber.format(product.stockReal)} unidades</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div>}
     </div>
     <div className="product-content">
       <div className="product-copy">
