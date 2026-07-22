@@ -13,6 +13,9 @@ function number(value: unknown) { const parsed = Number(value); return Number.is
 function normalize(value: string) { return value.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); }
 function slug(value: string) { return normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "sin-categoria"; }
 function bool(value: unknown) { return value === true || ["1", "true", "si", "sí"].includes(text(value).toLowerCase()); }
+function sortProducts(a: Product, b: Product) {
+  return Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, "es", { sensitivity: "base", numeric: true });
+}
 
 function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay): Product {
   const code = text(raw["Código"] ?? raw.Codigo ?? raw.codigo ?? raw["C��digo"]);
@@ -113,11 +116,11 @@ export function createRemoteCatalog(): CatalogProvider {
 
   return {
     getManifest: () => manifest(),
-    getFeaturedProducts: async () => (await loadProducts()).filter((item) => item.offer).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, "es")),
-    getCategoryProducts: async (categoryId) => (await loadProducts()).filter((item) => item.categoryId === categoryId),
+    getFeaturedProducts: async () => (await loadProducts()).filter((item) => item.offer).sort(sortProducts),
+    getCategoryProducts: async (categoryId) => (await loadProducts()).filter((item) => item.categoryId === categoryId).sort(sortProducts),
     searchProducts: async (query) => {
       const terms = normalize(query).split(/\s+/).filter(Boolean);
-      return (await loadProducts()).filter((item) => terms.every((term) => normalize(item.keywords.join(" ")).includes(term))).slice(0, 80);
+      return (await loadProducts()).filter((item) => terms.every((term) => normalize(item.keywords.join(" ")).includes(term))).sort(sortProducts).slice(0, 80);
     },
     getCatalogVersion: async () => (await manifest()).version,
   };
