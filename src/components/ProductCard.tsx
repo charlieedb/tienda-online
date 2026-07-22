@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import type { Product } from "@/catalog/types";
 import { useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
+import { getProductImageUrl } from "@/lib/productImages";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 
@@ -11,6 +12,8 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
   const [visible, setVisible] = useState(eager);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [resolvedUrl, setResolvedUrl] = useState(product.imageUrl ?? "");
+  const [resolved, setResolved] = useState(Boolean(product.imageUrl));
 
   useEffect(() => {
     if (visible || !host.current) return;
@@ -23,11 +26,23 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
     return () => observer.disconnect();
   }, [visible]);
 
+  useEffect(() => {
+    if (!visible || resolved) return;
+    let active = true;
+    getProductImageUrl(product.id).then((url) => {
+      if (!active) return;
+      setResolvedUrl(url);
+      setResolved(true);
+      if (!url) setFailed(true);
+    });
+    return () => { active = false; };
+  }, [product.id, resolved, visible]);
+
   return <div className={`product-image ${loaded ? "is-loaded" : ""}`} ref={host}>
     <div className="image-skeleton" aria-hidden="true" />
-    {visible && product.imageUrl && !failed ? <img src={product.imageUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} /> : null}
-    {failed || !product.imageUrl ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
-    {product.offer ? <span className="offer-badge">-{Math.round(product.offerDiscount ?? 0)}%</span> : null}
+    {visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} /> : null}
+    {resolved && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
+    {product.offer ? <span className="offer-badge">{product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
   </div>;
 }
 
