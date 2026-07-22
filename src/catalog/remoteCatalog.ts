@@ -26,13 +26,14 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const packPrice = promoPackUnit > 0 ? promoPackUnit * packQty : explicitPackPrice || unitPrice * packQty;
   const offerDiscount = number(raw.descOferta ?? raw.descuentoPct ?? raw.descuento);
   const offer = bool(raw.oferta ?? raw.Oferta ?? raw.Promo ?? raw.promo) || promoPackUnit > 0;
+  const isCombo = bool(raw.esCombo) || normalize(category).includes("promo");
 
   return {
     id: code || `${slug(name)}-${index}`,
     name,
     brand: category.toUpperCase() === "AA" ? "Exclusivos" : category,
     category,
-    categoryId: slug(category),
+    categoryId: isCombo ? "combos" : slug(category),
     imageUrl: text(raw.imagenURL ?? raw.imgUrl ?? raw.ImgUrl ?? raw.foto) || undefined,
     unit: { label: "1 unidad", price: unitPrice },
     pack: packQty > 1 ? { qty: packQty, label: `Caja x${packQty}`, price: packPrice } : undefined,
@@ -98,18 +99,18 @@ export function createRemoteCatalog(): CatalogProvider {
     }
     const categories = [...groups.entries()].map(([id, items]) => ({
       id,
-      name: items[0]?.category === "AA" ? "Exclusivos" : items[0]?.category || "Sin categoría",
+      name: id === "combos" ? "Combos" : items[0]?.category === "AA" ? "Exclusivos" : items[0]?.category || "Sin categoría",
       description: `${items.filter((item) => item.active).length} disponibles`,
       color: "#d92822",
       image: items.find((item) => item.imageUrl)?.imageUrl || "/joma-express.png",
       count: items.length,
     })).sort((a, b) => a.name.localeCompare(b.name, "es"));
-    return { version: catalogVersion, featuredCount: Math.min(12, products.length), categories };
+    return { version: catalogVersion, featuredCount: products.filter((item) => item.offer).length, categories };
   };
 
   return {
     getManifest: () => manifest(),
-    getFeaturedProducts: async () => (await loadProducts()).filter((item) => item.active).sort((a, b) => Number(b.offer) - Number(a.offer)).slice(0, 12),
+    getFeaturedProducts: async () => (await loadProducts()).filter((item) => item.offer).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, "es")),
     getCategoryProducts: async (categoryId) => (await loadProducts()).filter((item) => item.categoryId === categoryId),
     searchProducts: async (query) => {
       const terms = normalize(query).split(/\s+/).filter(Boolean);

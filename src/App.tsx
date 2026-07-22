@@ -102,7 +102,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
 
   const goTo = (next: Tab) => { setTab(next); if (next !== "categories") setSelectedCategory(null); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCategory = (category: Category) => { setSelectedCategory(category); setTab("categories"); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const openCombos = () => openCategory({ id: "combos", name: "Combos", description: "Opciones listas para ahorrar", color: "#d92822", image: "/demo-products/fideos.webp", count: 2 });
+  const openCombos = () => openCategory(manifest?.categories.find((category) => category.id === "combos") ?? { id: "combos", name: "Combos", description: "Promociones de la app", color: "#d92822", image: "/joma-express.png", count: 0 });
 
   return <div className="store-app">
     <header className="app-header">
