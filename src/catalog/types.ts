@@ -10,6 +10,7 @@ export type Product = {
   sortPrice: number;
   keywords: string[];
   active: boolean;
+  stockReal?: number;
   offer?: boolean;
   offerDiscount?: number;
   featured?: boolean;

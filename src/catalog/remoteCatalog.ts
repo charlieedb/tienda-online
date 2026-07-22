@@ -27,6 +27,8 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const offerDiscount = number(raw.descOferta ?? raw.descuentoPct ?? raw.descuento);
   const offer = bool(raw.oferta ?? raw.Oferta ?? raw.Promo ?? raw.promo) || promoPackUnit > 0;
   const isCombo = bool(raw.esCombo) || normalize(category).includes("promo");
+  const stockValue = raw.stockReal;
+  const parsedStock = stockValue === null || stockValue === undefined || stockValue === "" ? undefined : Number(stockValue);
 
   return {
     id: code || `${slug(name)}-${index}`,
@@ -40,6 +42,7 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     sortPrice: unitPrice,
     keywords: [code, name, category, text(raw.codigoBarra)].filter(Boolean),
     active: !bool(raw.sinStock ?? raw.SinStock),
+    stockReal: parsedStock !== undefined && Number.isFinite(parsedStock) ? parsedStock : undefined,
     offer,
     offerDiscount: offerDiscount || undefined,
   };

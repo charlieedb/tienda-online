@@ -6,6 +6,7 @@ import { Icon } from "./Icons";
 import { getProductImageUrl } from "@/lib/productImages";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+const stockNumber = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 
 function ProductImage({ product, eager }: { product: Product; eager: boolean }) {
   const host = useRef<HTMLDivElement>(null);
@@ -60,7 +61,10 @@ function ProductCardInner({ product, eager = false }: { product: Product; eager?
   const add = () => addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1 }, 1);
 
   return <motion.article className={`product-card ${!available ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
-    <ProductImage product={product} eager={eager} />
+    <div className="product-media">
+      <ProductImage product={product} eager={eager} />
+      {product.stockReal !== undefined ? <div className={`product-stock ${product.stockReal <= 0 ? "is-empty" : ""}`}><span>Stock</span><strong>{stockNumber.format(product.stockReal)}</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div>}
+    </div>
     <div className="product-content">
       <div className="product-copy">
         <div className="eyebrow-row"><span>{product.brand}</span>{!available ? <strong>Sin stock</strong> : null}</div>
