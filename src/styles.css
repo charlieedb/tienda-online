@@ -172,6 +172,34 @@ main.has-mini-cart { padding-bottom: 72px; }
 .cart-summary span { font-size: 12px; color: #d4cdc5; }
 .cart-summary strong { font-size: 23px; font-variant-numeric: tabular-nums; }
 .cart-summary p { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.14); color: #aaa39b; font-size: 11px; line-height: 1.4; }
+.checkout-button { width: 100%; min-height: 50px; margin-top: 15px; border: 0; border-radius: 14px; color: var(--brand-dark); background: white; font-size: 13px; font-weight: 900; cursor: pointer; }
+.checkout-backdrop { position: fixed; z-index: 80; inset: 0; border: 0; background: rgba(29,20,18,.48); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+.checkout-sheet { position: fixed; z-index: 90; left: 50%; bottom: 0; width: min(100%, 560px); max-height: min(88dvh, 760px); display: flex; flex-direction: column; overflow: hidden; color: var(--ink); border-radius: 20px 20px 0 0; background: #fffdf9; transform: translateX(-50%); box-shadow: 0 -10px 30px rgba(46,27,23,.22); }
+.checkout-head { flex: 0 0 auto; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--line); }
+.checkout-head > div { display: grid; gap: 2px; }
+.checkout-head span { color: var(--brand); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
+.checkout-head h2 { margin: 0; font-size: 22px; letter-spacing: -.03em; }
+.checkout-head button { width: 42px; height: 42px; display: grid; place-items: center; border: 0; border-radius: 12px; color: var(--muted); background: var(--soft); cursor: pointer; }
+.checkout-head button svg { width: 20px; }
+.checkout-body { overflow-y: auto; display: grid; gap: 12px; padding: 16px 18px; overscroll-behavior: contain; }
+.checkout-body label { display: grid; gap: 6px; color: #554f48; font-size: 11px; font-weight: 800; }
+.checkout-body label em { color: var(--muted); font-style: normal; font-weight: 650; }
+.checkout-body input, .checkout-body textarea { width: 100%; min-height: 48px; padding: 11px 13px; border: 1px solid #ddd5cb; border-radius: 12px; outline: 0; color: var(--ink); background: white; font-size: 16px; resize: vertical; }
+.checkout-body input:focus, .checkout-body textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(217,40,34,.12); }
+.checkout-notice, .checkout-error { padding: 11px 12px; border-radius: 11px; font-size: 11px; line-height: 1.4; font-weight: 700; }
+.checkout-notice { display: flex; align-items: center; gap: 8px; color: #276141; background: #eaf7ef; }
+.checkout-error { color: #992f29; background: #fff0ee; }
+.checkout-actions { flex: 0 0 auto; display: grid; grid-template-columns: 1fr 1.25fr; gap: 9px; padding: 12px 18px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: #fffdf9; }
+.checkout-actions button { min-height: 48px; border-radius: 13px; font-size: 12px; font-weight: 850; cursor: pointer; }
+.checkout-actions button:disabled { opacity: .6; cursor: wait; }
+.checkout-cancel { color: var(--ink); border: 1px solid var(--line); background: white; }
+.checkout-submit { display: flex; align-items: center; justify-content: center; gap: 7px; color: white; border: 0; background: var(--brand); }
+.order-success { min-height: calc(100dvh - var(--top-shell-h) - env(safe-area-inset-top) - 40px); display: grid; place-content: center; justify-items: center; padding: 30px 18px; text-align: center; }
+.success-check { width: 68px; height: 68px; display: grid; place-items: center; color: white; border-radius: 50%; background: var(--green); }
+.success-check svg { width: 32px; }
+.order-success h2 { margin: 18px 0 7px; font-size: 26px; }
+.order-success p { max-width: 34ch; margin: 0 0 10px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.order-success .primary-action { max-width: 280px; }
 
 .profile-page { padding-top: 18px; }
 .profile-intro { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 15px; margin-bottom: 20px; }

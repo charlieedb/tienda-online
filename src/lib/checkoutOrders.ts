@@ -4,7 +4,7 @@ import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import { getDb } from "@/lib/firebase";
 import type { CartItem } from "@/store/cart";
-import type { Product } from "@/lib/products";
+import type { Product } from "@/catalog/types";
 import type { TelegramOrderPayload } from "@/lib/telegramOrders";
 
 type CheckoutCustomer = {
@@ -37,9 +37,9 @@ export async function submitCheckoutOrder(params: {
 
   const items = params.cartItems.map((item) => {
     const product = params.productsById.get(item.productId);
-    const unitPrice = Number(product?.unit?.price || 0);
-    const packPrice = Number(product?.pack?.price || 0);
-    const unidadesPorCaja = Number(product?.pack?.qty || 0);
+    const unitPrice = Number(product?.unit?.price || item.unitPriceFinal || (item.variant === "unit" ? item.price : 0) || 0);
+    const packPrice = Number(product?.pack?.price || (item.variant === "pack" ? item.price : 0) || 0);
+    const unidadesPorCaja = Number(product?.pack?.qty || item.unitsPerPack || 0);
     const descuentoPct = product?.offer ? Number(product.offerDiscount || 0) : 0;
     const qty = Number(item.qty || 0);
     const cantidadCajas = item.variant === "pack" ? qty : 0;

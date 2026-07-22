@@ -62,8 +62,6 @@ function buildLegacyLine(item: TelegramOrderItem) {
   const codigosSpeed = new Set(["1", "1/1", "2", "2/2"]);
   const esSpeed = codigosSpeed.has(codigoOriginal);
   const etiquetaUnid = esPromo ? "promo" : "unid.";
-  let etiquetaCaja = esPromo ? "promo" : "caja";
-  if (esSpeed) etiquetaCaja = "pack";
 
   let linea = "";
 
@@ -174,6 +172,9 @@ export async function notifyTelegramOrder(payload: TelegramOrderPayload) {
   };
 
   if (!response.ok || data.ok !== true) {
+    if (data.error === "TELEGRAM_NOT_CONFIGURED") {
+      throw new Error("El envío por Telegram todavía no está configurado.");
+    }
     throw new Error(data.error || "No se pudo enviar el aviso por Telegram.");
   }
 
