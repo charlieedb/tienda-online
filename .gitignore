@@ -19,6 +19,13 @@
 
 # production
 /build
+/dist
+
+# local visual review artifacts
+/*-320.png
+/*-390.png
+/*-430.png
+/vite-review*.log
 
 # misc
 .DS_Store

@@ -1,0 +1,6 @@
+[
+  {"id":"coca-cola","name":"Coca-Cola sabor original","brand":"Coca-Cola","category":"Bebidas","categoryId":"bebidas","imageUrl":"/demo-products/cola.webp","unit":{"label":"2,25 L","price":4100},"pack":{"qty":6,"label":"Caja x6","price":23400},"sortPrice":4100,"keywords":["gaseosa","coca","cola"],"active":true,"featured":true,"featuredOrder":3},
+  {"id":"sprite","name":"Sprite lima limón","brand":"Sprite","category":"Bebidas","categoryId":"bebidas","imageUrl":"/demo-products/sprite.webp","unit":{"label":"2,25 L","price":3900},"pack":{"qty":6,"label":"Caja x6","price":22000},"sortPrice":3900,"keywords":["gaseosa","sprite","limon"],"active":true,"featured":true,"featuredOrder":6},
+  {"id":"agua-villavicencio","name":"Agua mineral sin gas","brand":"Villavicencio","category":"Bebidas","categoryId":"bebidas","imageUrl":"/demo-products/agua.webp","unit":{"label":"1,5 L","price":1350},"pack":{"qty":6,"label":"Pack x6","price":7500},"sortPrice":1350,"keywords":["agua","mineral","villavicencio"],"active":true,"featured":true,"featuredOrder":9},
+  {"id":"jugo-baggio","name":"Jugo multifruta","brand":"Baggio","category":"Bebidas","categoryId":"bebidas","imageUrl":"/demo-products/jugo.webp","unit":{"label":"1 L","price":1750},"pack":{"qty":8,"label":"Caja x8","price":12800},"sortPrice":1750,"keywords":["jugo","multifruta","baggio"],"active":false}
+]

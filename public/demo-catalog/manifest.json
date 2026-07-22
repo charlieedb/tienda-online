@@ -1,0 +1,9 @@
+{
+  "version": 154,
+  "featuredCount": 9,
+  "categories": [
+    { "id": "almacen", "name": "Almacén", "description": "Infaltables de todos los días", "color": "#f6b73c", "image": "/demo-products/arroz.webp", "count": 5 },
+    { "id": "bebidas", "name": "Bebidas", "description": "Frías, ricas y listas", "color": "#4f9cf9", "image": "/demo-products/agua.webp", "count": 4 },
+    { "id": "limpieza", "name": "Limpieza", "description": "Todo para cuidar tu casa", "color": "#55b98b", "image": "/demo-products/detergente.webp", "count": 4 }
+  ]
+}

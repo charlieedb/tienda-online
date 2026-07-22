@@ -1,21 +1,13 @@
-import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+import eslint from "@eslint/js";
+import tseslint from "typescript-eslint";
 
-const eslintConfig = defineConfig([
-  ...nextVitals,
-  ...nextTs,
-  // Override default ignores of eslint-config-next.
-  globalIgnores([
-    // Default ignores of eslint-config-next:
-    ".next/**",
-    ".next_*/*",
-    ".next_*/*/**",
-    ".next_listita/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-  ]),
-]);
-
-export default eslintConfig;
+export default tseslint.config(
+  { ignores: ["dist/**", "node_modules/**", "src/app/**", "src/components/store/**"] },
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    files: ["src/main.tsx", "src/App.tsx", "src/catalog/**/*.ts", "src/auth/AuthProvider.tsx", "src/components/{Icons,ProductCard,CartView,ProfileView,AuthWelcome}.tsx", "src/store/cart.ts", "src/lib/{appVersion,firebase,env,userProfile}.ts"],
+    languageOptions: { parserOptions: { project: "./tsconfig.json" } },
+    rules: { "@typescript-eslint/no-explicit-any": "error" },
+  },
+);

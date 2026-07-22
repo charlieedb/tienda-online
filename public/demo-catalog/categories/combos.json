@@ -1,0 +1,4 @@
+[
+  {"id":"combo-almacen","name":"Combo esenciales de almacén","brand":"JOMA Combos","category":"Combos","categoryId":"combos","imageUrl":"/demo-products/fideos.webp","unit":{"label":"1 combo","price":11800},"pack":{"qty":2,"label":"Caja x2 combos","price":22000},"sortPrice":11800,"keywords":["combo","almacen","arroz","fideos","aceite"],"active":true,"offer":true,"offerDiscount":12},
+  {"id":"combo-limpieza","name":"Combo limpieza del hogar","brand":"JOMA Combos","category":"Combos","categoryId":"combos","imageUrl":"/demo-products/detergente.webp","unit":{"label":"1 combo","price":9600},"pack":{"qty":2,"label":"Caja x2 combos","price":18000},"sortPrice":9600,"keywords":["combo","limpieza","detergente","lavandina"],"active":true,"offer":true,"offerDiscount":10}
+]

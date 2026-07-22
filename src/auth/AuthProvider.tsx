@@ -106,22 +106,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       firebaseReady: Boolean(auth),
       signInEmail: async (email, password) => {
-        if (!auth) throw new Error("Firebase no estÃ¡ configurado.");
+        if (!auth) throw new Error("Firebase no está configurado.");
         await setPersistence(auth, browserLocalPersistence);
         return signInWithEmailAndPassword(auth, email, password);
       },
       signInEmailSession: async (email, password) => {
-        if (!auth) throw new Error("Firebase no estÃ¡ configurado.");
+        if (!auth) throw new Error("Firebase no está configurado.");
         await setPersistence(auth, browserSessionPersistence);
         return signInWithEmailAndPassword(auth, email, password);
       },
       signUpEmail: async (email, password) => {
-        if (!auth) throw new Error("Firebase no estÃ¡ configurado.");
+        if (!auth) throw new Error("Firebase no está configurado.");
         await setPersistence(auth, browserLocalPersistence);
         return createUserWithEmailAndPassword(auth, email, password);
       },
       signInGoogle: async () => {
-        if (!auth) throw new Error("Firebase no estÃ¡ configurado.");
+        if (!auth) throw new Error("Firebase no está configurado.");
         const provider = new GoogleAuthProvider();
         try {
           await signInWithPopup(auth, provider);

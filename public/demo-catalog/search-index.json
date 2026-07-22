@@ -1,0 +1,15 @@
+[
+  {"id":"arroz-gallo","categoryId":"almacen","text":"arroz largo fino gallo almacen"},
+  {"id":"aceite-natura","categoryId":"almacen","text":"aceite girasol natura almacen"},
+  {"id":"yerba-playadito","categoryId":"almacen","text":"yerba mate suave playadito almacen"},
+  {"id":"fideos-matarazzo","categoryId":"almacen","text":"fideos pasta spaghetti matarazzo almacen"},
+  {"id":"azucar-ledesma","categoryId":"almacen","text":"azucar clasica ledesma almacen"},
+  {"id":"coca-cola","categoryId":"bebidas","text":"coca cola gaseosa original bebidas"},
+  {"id":"sprite","categoryId":"bebidas","text":"sprite gaseosa lima limon bebidas"},
+  {"id":"agua-villavicencio","categoryId":"bebidas","text":"agua mineral villavicencio bebidas"},
+  {"id":"jugo-baggio","categoryId":"bebidas","text":"jugo multifruta baggio bebidas"},
+  {"id":"detergente-magistral","categoryId":"limpieza","text":"detergente limon magistral limpieza"},
+  {"id":"lavandina-ayudin","categoryId":"limpieza","text":"lavandina clasica ayudín limpieza"},
+  {"id":"limpiador-cif","categoryId":"limpieza","text":"limpiador cremoso cif limpieza"},
+  {"id":"rollo-cocina","categoryId":"limpieza","text":"rollo cocina papel sussex limpieza"}
+]

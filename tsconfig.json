@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
+    "allowJs": false,
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
@@ -13,22 +13,28 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "src/main.tsx",
+    "src/App.tsx",
+    "src/vite-env.d.ts",
+    "src/catalog/**/*.ts",
+    "src/components/Icons.tsx",
+    "src/components/ProductCard.tsx",
+    "src/components/CartView.tsx",
+    "src/components/ProfileView.tsx",
+    "src/components/AuthWelcome.tsx",
+    "src/auth/AuthProvider.tsx",
+    "src/lib/firebase.ts",
+    "src/lib/env.ts",
+    "src/lib/userProfile.ts",
+    "src/store/cart.ts",
+    "src/lib/appVersion.ts",
+    "vite.config.ts"
   ],
   "exclude": ["node_modules"]
 }
