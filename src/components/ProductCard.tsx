@@ -43,7 +43,7 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
     <div className="image-skeleton" aria-hidden="true" />
     {visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} /> : null}
     {resolved && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
-    {product.offer ? <span className="offer-badge">{product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
+    {product.offer ? <span className="offer-badge">{product.offerCondition === "pack" ? "Oferta por caja" : product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
   </div>;
 }
 
@@ -58,7 +58,7 @@ function ProductCardInner({ product, eager = false }: { product: Product; eager?
   const option = variant === "pack" && product.pack ? product.pack : product.unit;
   const available = product.active;
 
-  const add = () => addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1 }, 1);
+  const add = () => addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1 }, 1);
 
   return <motion.article className={`product-card ${!available ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
     <div className="product-media">
@@ -71,7 +71,11 @@ function ProductCardInner({ product, eager = false }: { product: Product; eager?
         <h3>{product.name}</h3>
         <p>{option.label}</p>
       </div>
-      <div className="product-price">{money.format(option.price)}</div>
+      <div className={`product-price ${option.listPrice && option.listPrice > option.price ? "has-offer" : ""}`}>
+        {option.listPrice && option.listPrice > option.price ? <span>{money.format(option.listPrice)}</span> : null}
+        <strong>{money.format(option.price)}</strong>
+        {option.discountPct ? <small>Ahorrás {Math.round(option.discountPct)}%</small> : null}
+      </div>
       {product.pack ? <div className="variant-switch" role="group" aria-label={`Presentación de ${product.name}`}>
         <button type="button" className={variant === "unit" ? "is-active" : ""} onClick={() => setVariant("unit")} aria-pressed={variant === "unit"}>Unidad</button>
         <button type="button" className={variant === "pack" ? "is-active" : ""} onClick={() => setVariant("pack")} aria-pressed={variant === "pack"}>Caja</button>

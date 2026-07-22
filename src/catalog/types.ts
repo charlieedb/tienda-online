@@ -5,14 +5,15 @@ export type Product = {
   category?: string;
   categoryId: string;
   imageUrl?: string;
-  unit: { label: string; price: number };
-  pack?: { qty: number; label: string; price: number };
+  unit: { label: string; price: number; listPrice?: number; discountPct?: number };
+  pack?: { qty: number; label: string; price: number; listPrice?: number; discountPct?: number };
   sortPrice: number;
   keywords: string[];
   active: boolean;
   stockReal?: number;
   offer?: boolean;
   offerDiscount?: number;
+  offerCondition?: "pack";
   featured?: boolean;
   featuredOrder?: number;
 };

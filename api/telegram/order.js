@@ -11,7 +11,9 @@ function orderLine(item) {
   let quantity = `${units} unid.`;
   if (boxes > 0) quantity = `${boxes} ${boxes === 1 ? "caja" : "cajas"}${unitsPerBox ? ` (${units} unid.)` : ""}`;
   if (code.toLowerCase().startsWith("p")) quantity = `${Math.max(1, boxes || units)} ${boxes + units === 1 ? "promo" : "promos"}`;
-  return `- ${escapeHtml(quantity)} ${escapeHtml(name)}${code.toLowerCase().startsWith("h") ? ` (${escapeHtml(code)})` : ""}`;
+  const discount = Number(item.descuentoPct) || 0;
+  const discountText = discount > 0 ? ` <i>− ${escapeHtml(Number.isInteger(discount) ? discount : discount.toFixed(2))}% dto.</i>` : "";
+  return `- ${escapeHtml(quantity)} ${escapeHtml(name)}${code.toLowerCase().startsWith("h") ? ` (${escapeHtml(code)})` : ""}${discountText}`;
 }
 
 function buildMessage(payload) {

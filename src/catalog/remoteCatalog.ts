@@ -13,6 +13,10 @@ function number(value: unknown) { const parsed = Number(value); return Number.is
 function normalize(value: string) { return value.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); }
 function slug(value: string) { return normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "sin-categoria"; }
 function bool(value: unknown) { return value === true || ["1", "true", "si", "sí"].includes(text(value).toLowerCase()); }
+function roundPrice(value: number) { return Math.round((value + Number.EPSILON) * 100) / 100; }
+function discountBetween(listPrice: number, finalPrice: number) {
+  return listPrice > 0 && finalPrice < listPrice ? roundPrice((1 - finalPrice / listPrice) * 100) : 0;
+}
 function sortProducts(a: Product, b: Product) {
   return Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, "es", { sensitivity: "base", numeric: true });
 }
@@ -26,8 +30,13 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const unitPrice = number(overlay.precioUnidad ?? raw.Precio ?? raw.precio ?? raw.PrecioMostrador);
   const promoPackUnit = number(overlay.precioUnitarioPromoCaja ?? raw.precioUnitarioPromoCaja);
   const explicitPackPrice = number(overlay.precioCaja ?? raw.PrecioCaja ?? raw.precioCaja ?? raw.Precio_Caja);
-  const packPrice = promoPackUnit > 0 ? promoPackUnit * packQty : explicitPackPrice || unitPrice * packQty;
+  const packListPrice = explicitPackPrice || unitPrice * packQty;
   const offerDiscount = number(raw.descOferta ?? raw.descuentoPct ?? raw.descuento);
+  const unitFinalPrice = offerDiscount > 0 ? roundPrice(unitPrice * (1 - offerDiscount / 100)) : unitPrice;
+  const packPrice = promoPackUnit > 0
+    ? roundPrice(promoPackUnit * packQty)
+    : offerDiscount > 0 ? roundPrice(packListPrice * (1 - offerDiscount / 100)) : packListPrice;
+  const packDiscount = discountBetween(packListPrice, packPrice);
   const offer = bool(raw.oferta ?? raw.Oferta ?? raw.Promo ?? raw.promo) || promoPackUnit > 0;
   const isCombo = bool(raw.esCombo) || normalize(category).includes("promo");
   const stockValue = raw.stockReal;
@@ -40,14 +49,15 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     category,
     categoryId: isCombo ? "combos" : slug(category),
     imageUrl: text(raw.imagenURL ?? raw.imgUrl ?? raw.ImgUrl ?? raw.foto) || undefined,
-    unit: { label: "1 unidad", price: unitPrice },
-    pack: packQty > 1 ? { qty: packQty, label: `Caja x${packQty}`, price: packPrice } : undefined,
+    unit: { label: "1 unidad", price: unitFinalPrice, listPrice: offerDiscount > 0 ? unitPrice : undefined, discountPct: offerDiscount || undefined },
+    pack: packQty > 1 ? { qty: packQty, label: `Caja x${packQty}`, price: packPrice, listPrice: packDiscount > 0 ? packListPrice : undefined, discountPct: packDiscount || undefined } : undefined,
     sortPrice: unitPrice,
     keywords: [code, name, category, text(raw.codigoBarra)].filter(Boolean),
     active: !bool(raw.sinStock ?? raw.SinStock),
     stockReal: parsedStock !== undefined && Number.isFinite(parsedStock) ? parsedStock : undefined,
     offer,
-    offerDiscount: offerDiscount || undefined,
+    offerDiscount: offerDiscount || packDiscount || undefined,
+    offerCondition: promoPackUnit > 0 ? "pack" : undefined,
   };
 }
 

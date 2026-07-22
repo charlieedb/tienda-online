@@ -40,14 +40,14 @@ export async function submitCheckoutOrder(params: {
     const unitPrice = Number(product?.unit?.price || item.unitPriceFinal || (item.variant === "unit" ? item.price : 0) || 0);
     const packPrice = Number(product?.pack?.price || (item.variant === "pack" ? item.price : 0) || 0);
     const unidadesPorCaja = Number(product?.pack?.qty || item.unitsPerPack || 0);
-    const descuentoPct = product?.offer ? Number(product.offerDiscount || 0) : 0;
+    const descuentoPct = Number(item.discountPct || (product?.offer ? product.offerDiscount : 0) || 0);
     const qty = Number(item.qty || 0);
     const cantidadCajas = item.variant === "pack" ? qty : 0;
     const cantidadUnidades =
       item.variant === "pack"
         ? qty * Math.max(1, unidadesPorCaja || 1)
         : qty;
-    const precioListaCaja = item.variant === "pack" ? packPrice || item.price : unitPrice || item.price;
+    const precioListaCaja = Number(item.listPrice || (item.variant === "pack" ? packPrice : unitPrice) || item.price);
     const precioFinalCaja = Number(item.price || 0);
     const divisor = item.variant === "pack" ? Math.max(1, unidadesPorCaja || 1) : 1;
     const precioLista = roundMoney(precioListaCaja / divisor);
