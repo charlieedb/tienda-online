@@ -17,7 +17,7 @@
 }
 
 * { box-sizing: border-box; }
-html { min-width: 320px; background: #f7f4ef; scroll-behavior: smooth; }
+html { min-width: 320px; background: var(--brand-dark); scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; min-height: 100dvh; background: #f7f4ef; }
 button, input { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -234,6 +234,7 @@ main.has-mini-cart { padding-bottom: 72px; }
 .mini-cart span { color: rgba(255,255,255,.78); font-size: 9px; font-weight: 750; line-height: 1; }
 .mini-cart strong { font-size: 13px; line-height: 1; font-variant-numeric: tabular-nums; }
 .bottom-nav { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom)); padding: 7px max(10px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(10px, env(safe-area-inset-left)); display: grid; grid-template-columns: repeat(4, 1fr); background: rgba(200, 27, 22, .97); border-top: 1px solid rgba(126, 14, 11, .42); box-shadow: 0 -8px 24px rgba(125, 18, 14, .16); backdrop-filter: blur(16px) saturate(135%); -webkit-backdrop-filter: blur(16px) saturate(135%); }
+.bottom-nav::after { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 100%; height: 120px; background: #c81b16; pointer-events: none; }
 .bottom-nav::before { content: ""; position: absolute; left: 0; right: 0; top: -18px; height: 18px; pointer-events: none; background: linear-gradient(to top, rgba(39,18,16,.18), rgba(39,18,16,.07) 46%, rgba(39,18,16,0)); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); -webkit-mask-image: linear-gradient(to top, #000 12%, rgba(0,0,0,.7) 58%, transparent 100%); mask-image: linear-gradient(to top, #000 12%, rgba(0,0,0,.7) 58%, transparent 100%); }
 .bottom-nav button { min-width: 0; min-height: 58px; display: grid; place-content: center; justify-items: center; gap: 3px; border: 0; border-radius: 15px; color: rgba(255,255,255,.78); background: transparent; cursor: pointer; }
 .bottom-nav button > span { position: relative; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 10px; }
