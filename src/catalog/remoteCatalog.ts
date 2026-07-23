@@ -22,7 +22,7 @@ function sortProducts(a: Product, b: Product) {
 }
 
 function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay): Product {
-  const code = text(raw["Código"] ?? raw.Codigo ?? raw.codigo ?? raw["C��digo"]);
+  const code = text(raw["Código"] ?? raw.Codigo ?? raw.codigo);
   const name = text(raw.Nombre ?? raw.nombre) || "Producto sin nombre";
   const category = text(raw.Linea ?? raw.linea ?? raw.Categoria ?? raw.categoria) || "Sin categoría";
   const packQty = Math.max(1, Math.trunc(number(raw.Presentacion ?? raw.presentacion) || 1));
@@ -109,8 +109,9 @@ export function createRemoteCatalog(): CatalogProvider {
 
   const manifest = async (): Promise<CatalogManifest> => {
     const products = await loadProducts();
+    const visibleProducts = products.filter((item) => item.active);
     const groups = new Map<string, Product[]>();
-    for (const product of products) {
+    for (const product of visibleProducts) {
       const list = groups.get(product.categoryId) ?? [];
       list.push(product); groups.set(product.categoryId, list);
     }
@@ -122,16 +123,16 @@ export function createRemoteCatalog(): CatalogProvider {
       image: items.find((item) => item.imageUrl)?.imageUrl || "/joma-express.png",
       count: items.filter((item) => item.active).length,
     })).sort((a, b) => a.name.localeCompare(b.name, "es"));
-    return { version: catalogVersion, featuredCount: products.filter((item) => item.offer).length, categories };
+    return { version: catalogVersion, featuredCount: visibleProducts.filter((item) => item.offer).length, categories };
   };
 
   return {
     getManifest: () => manifest(),
-    getFeaturedProducts: async () => (await loadProducts()).filter((item) => item.offer).sort(sortProducts),
-    getCategoryProducts: async (categoryId) => (await loadProducts()).filter((item) => item.categoryId === categoryId).sort(sortProducts),
+    getFeaturedProducts: async () => (await loadProducts()).filter((item) => item.active && item.offer).sort(sortProducts),
+    getCategoryProducts: async (categoryId) => (await loadProducts()).filter((item) => item.active && item.categoryId === categoryId).sort(sortProducts),
     searchProducts: async (query) => {
       const terms = normalize(query).split(/\s+/).filter(Boolean);
-      return (await loadProducts()).filter((item) => terms.every((term) => normalize(item.keywords.join(" ")).includes(term))).sort(sortProducts).slice(0, 80);
+      return (await loadProducts()).filter((item) => item.active && terms.every((term) => normalize(item.keywords.join(" ")).includes(term))).sort(sortProducts).slice(0, 80);
     },
     getCatalogVersion: async () => (await manifest()).version,
   };
