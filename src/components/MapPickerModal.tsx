@@ -1,37 +1,9 @@
-"use client";
-
 import { AnimatePresence, motion } from "framer-motion";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { LatLng } from "@/lib/userProfile";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
-
-declare global {
-  interface Window {
-    L?: LeafletGlobal;
-  }
-}
-
-type LeafletPoint = { lat: number; lng: number };
-type LeafletMap = {
-  setView: (coords: [number, number], zoom: number) => LeafletMap;
-  getZoom: () => number;
-  on: (event: "click", handler: (event: { latlng: LeafletPoint }) => void) => void;
-  remove: () => void;
-};
-type LeafletMarker = {
-  setLatLng: (coords: [number, number]) => void;
-};
-type LeafletGlobal = {
-  map: (
-    element: HTMLDivElement,
-    options: { zoomControl: boolean; attributionControl: boolean },
-  ) => LeafletMap;
-  tileLayer: (
-    url: string,
-    options: { maxZoom: number; attribution: string },
-  ) => { addTo: (map: LeafletMap) => void };
-  marker: (coords: [number, number]) => { addTo: (map: LeafletMap) => LeafletMarker };
-};
+import type { LatLng } from "@/lib/userProfile";
 
 async function geocode(query: string): Promise<LatLng | null> {
   const q = query.trim();
@@ -40,13 +12,13 @@ async function geocode(query: string): Promise<LatLng | null> {
     "https://nominatim.openstreetmap.org/search?" +
     new URLSearchParams({ format: "json", q, limit: "1" }).toString();
   const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error("No se pudo consultar la dirección.");
   const data = (await res.json()) as Array<{ lat: string; lon: string }>;
-  const first = data?.[0];
+  const first = data[0];
   if (!first) return null;
   const lat = Number(first.lat);
   const lng = Number(first.lon);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  return { lat, lng };
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
 }
 
 export function MapPickerModal({
@@ -62,239 +34,182 @@ export function MapPickerModal({
   center: LatLng | null;
   initialQuery: string;
   onClose: () => void;
-  onPick: (p: LatLng) => void;
+  onPick: (point: LatLng) => void;
 }) {
   useBodyScrollLock(open);
 
   const mapDivRef = useRef<HTMLDivElement | null>(null);
-  const leafletMapRef = useRef<LeafletMap | null>(null);
-  const markerRef = useRef<LeafletMarker | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
   const [picked, setPicked] = useState<LatLng | null>(initial);
-  const [leafletReady, setLeafletReady] = useState(false);
   const [query, setQuery] = useState(initialQuery);
   const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const lastAutoQueryRef = useRef<string>("");
+  const [locating, setLocating] = useState(false);
+  const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    if (!open) return;
-    if (window.L) {
-      setLeafletReady(true);
-      return;
-    }
-    const existing = document.querySelector<HTMLScriptElement>('script[data-leaflet-map="true"]');
-    const script = existing ?? document.createElement("script");
-    const onLoad = () => setLeafletReady(true);
-    script.addEventListener("load", onLoad);
-    if (!existing) {
-      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-      script.async = true;
-      script.dataset.leafletMap = "true";
-      document.head.appendChild(script);
-    }
-    return () => script.removeEventListener("load", onLoad);
-  }, [open]);
+  const baseCenter = useMemo(
+    () => picked ?? center ?? initial ?? { lat: -34.6037, lng: -58.3816 },
+    [picked, center, initial],
+  );
 
-  useEffect(() => {
-    if (!open) return;
-    queueMicrotask(() => {
-      setPicked(initial);
-      setQuery(initialQuery);
-      setSearchError(null);
-    });
-    lastAutoQueryRef.current = "";
-  }, [open, initial, initialQuery]);
-
-  const baseCenter = useMemo<LatLng>(() => {
-    return initial ?? picked ?? { lat: -34.6037, lng: -58.3816 };
-  }, [initial, picked]);
-
-  const desiredCenter = useMemo<LatLng>(() => {
-    return center ?? baseCenter;
-  }, [center, baseCenter]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (initial) return;
-    if (picked) return;
-    if (!center) return;
-    queueMicrotask(() => {
-      setPicked(center);
-    });
-  }, [open, initial, picked, center]);
-
-  const setMarker = (p: LatLng) => {
-    if (!leafletMapRef.current || !window.L) return;
-    const L = window.L;
-    if (!markerRef.current) markerRef.current = L.marker([p.lat, p.lng]).addTo(leafletMapRef.current);
-    else markerRef.current.setLatLng([p.lat, p.lng]);
+  const placeMarker = (point: LatLng, zoom = 16) => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (markerRef.current) markerRef.current.setLatLng([point.lat, point.lng]);
+    else markerRef.current = L.marker([point.lat, point.lng]).addTo(map);
+    map.setView([point.lat, point.lng], zoom);
   };
 
   useEffect(() => {
     if (!open) return;
-    if (!leafletReady) return;
-    if (!mapDivRef.current) return;
-    if (!window.L) return;
+    setPicked(initial);
+    setQuery(initialQuery);
+    setMessage("");
 
-    const L = window.L;
-
-    if (!leafletMapRef.current) {
-      const map = L.map(mapDivRef.current, { zoomControl: true, attributionControl: true }).setView(
-        [desiredCenter.lat, desiredCenter.lng],
+    const frame = requestAnimationFrame(() => {
+      if (!mapDivRef.current || mapRef.current) return;
+      const map = L.map(mapDivRef.current, { zoomControl: true }).setView(
+        [baseCenter.lat, baseCenter.lng],
         14,
       );
-
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "&copy; OpenStreetMap",
       }).addTo(map);
-
-      map.on("click", (e) => {
-        const p = { lat: e.latlng.lat, lng: e.latlng.lng };
-        setPicked(p);
-        setMarker(p);
+      map.on("click", (event) => {
+        const point = { lat: event.latlng.lat, lng: event.latlng.lng };
+        setPicked(point);
+        if (markerRef.current) markerRef.current.setLatLng(event.latlng);
+        else markerRef.current = L.marker(event.latlng).addTo(map);
       });
+      mapRef.current = map;
+      if (initial) placeMarker(initial);
+      setTimeout(() => map.invalidateSize(), 0);
+    });
 
-      leafletMapRef.current = map;
-    } else {
-      leafletMapRef.current.setView([desiredCenter.lat, desiredCenter.lng], leafletMapRef.current.getZoom() || 14);
-    }
-
-    if (picked) setMarker(picked);
-  }, [open, leafletReady, desiredCenter.lat, desiredCenter.lng, picked]);
-
-  useEffect(() => {
-    if (open) return;
-    const m = leafletMapRef.current;
-    if (m) {
-      m.remove();
-      leafletMapRef.current = null;
-      markerRef.current = null;
-    }
+    return () => cancelAnimationFrame(frame);
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
-    const nextQuery = initialQuery.trim();
-    if (!nextQuery) return;
-    if (lastAutoQueryRef.current === nextQuery) return;
-    lastAutoQueryRef.current = nextQuery;
+    if (open) return;
+    mapRef.current?.remove();
+    mapRef.current = null;
+    markerRef.current = null;
+  }, [open]);
 
-    let cancelled = false;
-    const runAutoSearch = async () => {
-      setSearching(true);
-      setSearchError(null);
-      try {
-        const point = await geocode(nextQuery);
-        if (!point || cancelled) return;
-        if (leafletMapRef.current) {
-          leafletMapRef.current.setView([point.lat, point.lng], 15);
-        }
-        setPicked(point);
-        setMarker(point);
-      } catch {
-        if (!cancelled) {
-          setSearchError("No se pudo orientar el mapa con esa dirección.");
-        }
-      } finally {
-        if (!cancelled) setSearching(false);
+  const searchAddress = async () => {
+    if (!query.trim() || searching) return;
+    setSearching(true);
+    setMessage("");
+    try {
+      const point = await geocode(query);
+      if (!point) {
+        setMessage("No encontré esa dirección. Probá agregando localidad y provincia.");
+        return;
       }
-    };
+      setPicked(point);
+      placeMarker(point);
+    } catch {
+      setMessage("No se pudo buscar la dirección. Intentá nuevamente.");
+    } finally {
+      setSearching(false);
+    }
+  };
 
-    void runAutoSearch();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, initialQuery]);
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation || locating) {
+      if (!navigator.geolocation) setMessage("Este dispositivo no permite obtener la ubicación.");
+      return;
+    }
+    setLocating(true);
+    setMessage("Obteniendo tu ubicación…");
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const point = { lat: coords.latitude, lng: coords.longitude };
+        setPicked(point);
+        placeMarker(point, 17);
+        setMessage("Ubicación encontrada. Podés ajustar el punto tocando el mapa.");
+        setLocating(false);
+      },
+      () => {
+        setMessage("No pudimos acceder a tu ubicación. Revisá el permiso del navegador.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
+    );
+  };
 
   return (
     <AnimatePresence>
       {open ? (
         <>
           <motion.button
-            aria-label="Cerrar"
+            type="button"
+            aria-label="Cerrar mapa"
             className="modal-backdrop-lite fixed inset-0 z-[130]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
-
-          <motion.div
-            className="fixed left-1/2 top-1/2 z-[140] w-[min(760px,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-white shadow-2xl"
-            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+          <motion.section
+            className="fixed left-1/2 top-1/2 z-[140] w-[min(720px,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl bg-white"
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 520, damping: 40 }}
+            exit={{ opacity: 0, y: 8, scale: 0.98 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             role="dialog"
             aria-modal="true"
+            aria-labelledby="map-picker-title"
           >
-            <div className="border-b border-border px-5 py-4">
-              <div className="flex items-start justify-between gap-4">
+            <header className="border-b border-border px-4 py-3">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-black">Marcar ubicación</div>
-                  <div className="mt-1 text-xs text-black/70">Buscá una dirección o tocá el mapa.</div>
+                  <h2 id="map-picker-title" className="text-base font-semibold text-black">Punto de entrega</h2>
+                  <p className="mt-0.5 text-sm text-black/70">Buscá la dirección o tocá el punto exacto en el mapa.</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-xl px-3 py-2 text-xs font-semibold text-black/70 hover:bg-black/5"
-                >
+                <button type="button" onClick={onClose} className="rounded-xl px-3 py-2 text-sm font-semibold text-black/70 hover:bg-black/5">
                   Cerrar
                 </button>
               </div>
-
-              <div className="mt-3 flex items-center gap-2">
+              <div className="mt-3 flex gap-2">
                 <input
-                  className="h-11 w-full rounded-2xl border border-border bg-white px-4 text-[16px] text-black outline-none focus:border-brand/50"
+                  className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 text-[16px] font-normal text-black outline-none focus:border-brand"
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar dirección…"
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") void searchAddress();
+                  }}
+                  placeholder="Calle, número y localidad"
                 />
                 <button
                   type="button"
-                  onClick={async () => {
-                    if (searching) return;
-                    setSearching(true);
-                    setSearchError(null);
-                    try {
-                      const p = await geocode(query);
-                      if (!p) {
-                        setSearchError("No encontré esa dirección. Probá con más detalle.");
-                        return;
-                      }
-                      if (leafletMapRef.current) {
-                        leafletMapRef.current.setView([p.lat, p.lng], 15);
-                      }
-                      setPicked(p);
-                      setMarker(p);
-                    } catch {
-                      setSearchError("No se pudo buscar la dirección. Intentá de nuevo.");
-                    } finally {
-                      setSearching(false);
-                    }
-                  }}
-                  className="h-11 shrink-0 rounded-2xl bg-[#1f2a8a] px-4 text-sm font-black text-white disabled:opacity-60"
+                  onClick={() => void searchAddress()}
+                  className="h-11 shrink-0 rounded-xl bg-[#1f2a8a] px-4 text-sm font-semibold text-white disabled:opacity-60"
                   disabled={!query.trim() || searching}
                 >
                   {searching ? "Buscando…" : "Buscar"}
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={useCurrentLocation}
+                disabled={locating}
+                className="mt-2 h-10 w-full rounded-xl bg-[#d9f1ff] px-4 text-sm font-semibold text-[#075985] disabled:opacity-60"
+              >
+                {locating ? "Buscando mi ubicación…" : "Usar mi ubicación actual"}
+              </button>
+              {message ? <p className="mt-2 text-sm font-normal text-black/75" aria-live="polite">{message}</p> : null}
+            </header>
 
-              {searchError ? <div className="mt-2 text-xs font-semibold text-red-600">{searchError}</div> : null}
-            </div>
-
-            <div className="relative h-[52vh] min-h-[320px] w-full bg-zinc-100">
-              <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <div className="relative h-[min(46dvh,420px)] min-h-[270px] w-full bg-zinc-100">
               <div ref={mapDivRef} className="h-full w-full" />
-              {!leafletReady ? (
-                <div className="absolute inset-0 grid place-items-center text-sm font-semibold text-black/70">
-                  Cargando mapa…
-                </div>
-              ) : null}
+              <div className="pointer-events-none absolute bottom-3 left-1/2 z-[500] -translate-x-1/2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-black shadow">
+                Tocá el mapa para mover el punto
+              </div>
             </div>
 
-            <div className="border-t border-border px-5 py-4">
+            <footer className="border-t border-border p-4">
               <button
                 type="button"
                 disabled={!picked}
@@ -303,12 +218,12 @@ export function MapPickerModal({
                   onPick(picked);
                   onClose();
                 }}
-                className="h-11 w-full rounded-2xl bg-brand text-sm font-black text-white disabled:opacity-50"
+                className="h-11 w-full rounded-xl bg-brand text-sm font-semibold text-white disabled:opacity-50"
               >
-                Usar esta ubicación
+                {picked ? "Confirmar punto de entrega" : "Marcá un punto en el mapa"}
               </button>
-            </div>
-          </motion.div>
+            </footer>
+          </motion.section>
         </>
       ) : null}
     </AnimatePresence>
