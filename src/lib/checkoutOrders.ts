@@ -22,17 +22,48 @@ function asActor(user: User | null, customer: CheckoutCustomer) {
   return user?.email || user?.uid || customer.nombre || "checkout";
 }
 
+const CONFIRM_INVENTORY_URL =
+  "https://us-central1-app-presu.cloudfunctions.net/confirmTiendaOrder";
+
+async function confirmCentralInventory(user: User, orderId: string) {
+  const token = await user.getIdToken();
+  const response = await fetch(CONFIRM_INVENTORY_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ orderId }),
+  });
+  const data = await response.json().catch(() => null) as {
+    ok?: boolean;
+    error?: string;
+    stockCode?: string | null;
+    available?: number | null;
+  } | null;
+  if (response.ok && data?.ok === true) return;
+  if (response.status === 409) {
+    const detail = data?.stockCode
+      ? `El artículo ${data.stockCode} ya no tiene stock suficiente${Number.isFinite(data.available) ? ` (quedan ${data.available})` : ""}.`
+      : data?.error || "Uno de los artículos ya no tiene stock suficiente.";
+    throw new Error(`${detail} Actualizá el carrito e intentá nuevamente.`);
+  }
+  throw new Error("No pudimos reservar el stock central. Intentá nuevamente.");
+}
+
 export async function submitCheckoutOrder(params: {
   user: User | null;
   customer: CheckoutCustomer;
   cartItems: CartItem[];
   productsById: Map<string, Product>;
+  requestId: string;
 }) {
   const db = getDb();
   if (!db) throw new Error("Firebase no está configurado.");
+  if (!params.user) throw new Error("Necesitás iniciar sesión para confirmar la compra.");
 
   const nowIso = new Date().toISOString();
-  const orderRef = doc(collection(db, "orders"));
+  const orderRef = doc(collection(db, "orders"), params.requestId);
   const actor = asActor(params.user, params.customer);
 
   const items = params.cartItems.map((item) => {
@@ -141,6 +172,7 @@ export async function submitCheckoutOrder(params: {
   };
 
   await setDoc(orderRef, payload, { merge: true });
+  await confirmCentralInventory(params.user, orderRef.id);
 
   const telegramPayload: TelegramOrderPayload = {
     pedido: {

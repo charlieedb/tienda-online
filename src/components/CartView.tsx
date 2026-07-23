@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/auth/AuthProvider";
 import { submitCheckoutOrder } from "@/lib/checkoutOrders";
@@ -12,6 +12,12 @@ const PROFILE_KEY = "joma.profile.v1";
 
 type CheckoutForm = { nombre: string; telefono: string; direccion: string; nota: string };
 const EMPTY_FORM: CheckoutForm = { nombre: "", telefono: "", direccion: "", nota: "" };
+
+function createRequestId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `order_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
 
 function addressText(address?: { direccion?: string; localidad?: string; provincia?: string } | null) {
   return [address?.direccion, address?.localidad, address?.provincia].map((value) => String(value ?? "").trim()).filter(Boolean).join(", ");
@@ -42,6 +48,7 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const [form, setForm] = useState<CheckoutForm>(EMPTY_FORM);
+  const orderRequestId = useRef(createRequestId());
   const total = useMemo(() => items.reduce((sum, item) => sum + item.price * item.qty, 0), [items]);
 
   useEffect(() => {
@@ -86,12 +93,12 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
           direcciones: [{ id: "principal", provincia: "", localidad: "", direccion: customer.direccion, ubicacion: null }],
         });
       }
-      const result = await submitCheckoutOrder({ user, customer, cartItems: items, productsById: new Map() });
+      const result = await submitCheckoutOrder({ user, customer, cartItems: items, productsById: new Map(), requestId: orderRequestId.current });
       await notifyTelegramOrder(result.telegramPayload);
       try {
         localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, address: customer.direccion, city: "", notes: customer.nota }));
       } catch { /* el pedido ya fue enviado */ }
-      clear(); setCheckoutOpen(false); setSent(true); setForm(EMPTY_FORM);
+      clear(); setCheckoutOpen(false); setSent(true); setForm(EMPTY_FORM); orderRequestId.current = createRequestId();
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "No pudimos enviar el pedido.");
     } finally { setSubmitting(false); }
