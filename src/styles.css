@@ -60,6 +60,8 @@ img { display: block; max-width: 100%; }
 .drawer-content .drawer-logout > svg:first-child { color: #b12e28; }
 main { width: min(100%, 760px); margin: 0 auto; padding: calc(var(--top-shell-h) + env(safe-area-inset-top) + 14px) var(--gutter) 28px; }
 main.has-mini-cart { padding-bottom: 72px; }
+.desktop-layout { display: block; }
+.desktop-rail { display: none; }
 .view { min-height: calc(100dvh - 180px); }
 
 .hero-card { position: relative; z-index: 1; isolation: isolate; border-radius: 30px; overflow: hidden; padding: 24px 24px 20px; background: #e92721; color: white; }
@@ -323,6 +325,129 @@ body:has(input:focus, textarea:focus, select:focus) .mini-cart { opacity: 0; poi
   .product-card { grid-template-columns: 112px minmax(0, 1fr); }
   .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .category-card { min-height: 72px; }
+}
+
+@media (min-width: 1180px) {
+  .desktop-layout {
+    width: min(calc(100% - 32px), 1400px);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(240px, 280px) minmax(540px, 760px) minmax(240px, 280px);
+    justify-content: center;
+    align-items: start;
+    gap: 18px;
+  }
+  .desktop-layout > main {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 0;
+  }
+  .desktop-layout > main.has-mini-cart { padding-bottom: 28px; }
+  .desktop-rail {
+    position: sticky;
+    top: calc(var(--top-shell-h) + env(safe-area-inset-top) + 14px);
+    height: calc(100dvh - var(--top-shell-h) - env(safe-area-inset-top) - 28px);
+    display: block;
+    min-width: 0;
+  }
+  .desktop-rail-panel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--paper);
+  }
+  .desktop-rail-panel > header {
+    min-height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .desktop-rail-panel > header > div { display: grid; gap: 2px; }
+  .desktop-rail-panel > header span {
+    color: var(--brand);
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .desktop-rail-panel > header h2 { margin: 2px 0 0; font-size: 20px; line-height: 1.1; letter-spacing: -.03em; }
+  .desktop-category-rail nav { overflow-y: auto; padding: 6px; overscroll-behavior: contain; }
+  .desktop-category-rail nav button {
+    width: 100%;
+    min-height: 57px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 9px 8px 11px;
+    text-align: left;
+    color: var(--ink);
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    cursor: pointer;
+  }
+  .desktop-category-rail nav button:hover { background: #f5f0e9; }
+  .desktop-category-rail nav button.is-active { color: var(--brand-dark); background: #fff0ee; }
+  .desktop-category-rail nav button > span { min-width: 0; display: grid; gap: 3px; }
+  .desktop-category-rail nav strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+  .desktop-category-rail nav small { color: var(--muted); font-size: 9px; font-weight: 700; }
+  .desktop-category-rail nav svg { width: 15px; color: var(--muted); }
+  .desktop-category-rail nav button.is-active svg { color: var(--brand); }
+  .desktop-cart-clear {
+    min-height: 36px;
+    padding: 0 4px;
+    color: #a33b35;
+    border: 0;
+    background: transparent;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .desktop-cart-empty {
+    flex: 1;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 7px;
+    padding: 24px 16px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .desktop-cart-empty svg { width: 28px; color: #aaa197; }
+  .desktop-cart-empty strong { color: var(--ink); font-size: 12px; }
+  .desktop-cart-empty span { max-width: 22ch; font-size: 10px; line-height: 1.45; }
+  .desktop-cart-items {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 3px 12px;
+    overscroll-behavior: contain;
+  }
+  .desktop-cart-items article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .desktop-cart-items article > div:first-child { min-width: 0; display: grid; gap: 3px; }
+  .desktop-cart-items article strong { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 11px; line-height: 1.3; }
+  .desktop-cart-items article span { color: var(--muted); font-size: 9px; }
+  .desktop-cart-items article > b { font-size: 11px; font-variant-numeric: tabular-nums; }
+  .desktop-cart-actions { grid-column: 1 / -1; display: grid; grid-template-columns: 30px 34px 30px 1fr; align-items: center; gap: 2px; }
+  .desktop-cart-actions button { width: 30px; height: 30px; display: grid; place-items: center; color: var(--brand); border: 0; border-radius: 9px; background: #fff0ee; cursor: pointer; }
+  .desktop-cart-actions button:disabled { opacity: .35; cursor: not-allowed; }
+  .desktop-cart-actions svg { width: 14px; }
+  .desktop-cart-actions output { text-align: center; font-size: 11px; font-weight: 900; }
+  .desktop-cart-actions .desktop-cart-remove { justify-self: end; color: #8b413c; background: transparent; }
+  .desktop-rail-panel > footer { flex: 0 0 auto; padding: 13px 14px 14px; border-top: 1px solid var(--line); background: #f7f3ed; }
+  .desktop-rail-panel > footer > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .desktop-rail-panel > footer span { color: var(--muted); font-size: 10px; font-weight: 750; }
+  .desktop-rail-panel > footer strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+  .desktop-rail-panel > footer > button { width: 100%; min-height: 42px; margin-top: 11px; color: white; border: 0; border-radius: 11px; background: var(--ink); font-size: 11px; font-weight: 850; cursor: pointer; }
+  .desktop-rail-panel > footer > button:disabled { color: #9d968d; background: #e4ded6; cursor: not-allowed; }
+  .mini-cart { display: none; }
 }
 
 @media (max-width: 359px) {

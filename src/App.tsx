@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { CatalogManifest, Category, Product } from "@/catalog/types";
-import { useCartStore } from "@/store/cart";
+import { getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart";
 import { CartView } from "@/components/CartView";
 import { Icon } from "@/components/Icons";
 import { ProductCard } from "@/components/ProductCard";
@@ -37,6 +37,64 @@ function CategoryGrid({ categories, onSelect }: { categories: Category[]; onSele
     <span className="category-copy"><strong>{category.name}</strong><em>{category.count} {category.count === 1 ? "producto disponible" : "productos disponibles"}</em></span>
     <span className="category-arrow"><Icon name="arrow"/></span>
   </button>)}</div>;
+}
+
+function DesktopCategoryRail({
+  categories,
+  selectedCategory,
+  tab,
+  onShowAll,
+  onSelect,
+}: {
+  categories: Category[];
+  selectedCategory: Category | null;
+  tab: Tab;
+  onShowAll: () => void;
+  onSelect: (category: Category) => void;
+}) {
+  return <aside className="desktop-rail desktop-category-rail" aria-label="Categorías">
+    <div className="desktop-rail-panel">
+      <header><div><span>Explorar</span><h2>Categorías</h2></div></header>
+      <nav>
+        <button type="button" className={tab === "categories" && !selectedCategory ? "is-active" : ""} onClick={onShowAll}>
+          <span><strong>Todas las categorías</strong><small>Ver el listado completo</small></span><Icon name="arrow"/>
+        </button>
+        {categories.map((category) => <button type="button" className={selectedCategory?.id === category.id ? "is-active" : ""} onClick={() => onSelect(category)} key={category.id}>
+          <span><strong>{category.name}</strong><small>{category.count} disponibles</small></span><Icon name="arrow"/>
+        </button>)}
+      </nav>
+    </div>
+  </aside>;
+}
+
+function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
+  const items = useCartStore((state) => state.items);
+  const setItemQty = useCartStore((state) => state.setItemQty);
+  const removeItem = useCartStore((state) => state.removeItem);
+  const clear = useCartStore((state) => state.clear);
+  const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+  return <aside className="desktop-rail desktop-cart-rail" aria-label="Carrito">
+    <div className="desktop-rail-panel">
+      <header><div><span>Tu compra</span><h2>Carrito</h2></div>{items.length ? <button type="button" className="desktop-cart-clear" onClick={clear}>Vaciar</button> : null}</header>
+      {!items.length ? <div className="desktop-cart-empty"><Icon name="cart"/><strong>Tu carrito está vacío</strong><span>Los productos que agregues aparecerán acá.</span></div> :
+        <div className="desktop-cart-items">{items.map((item) => {
+          const remaining = getRemainingStock(items, item.productId, item.stockLimit);
+          const canAdd = remaining === undefined || remaining >= getCartItemUnits({ ...item, qty: 1 });
+          return <article key={item.id}>
+            <div><strong>{item.name}</strong><span>{item.label}</span></div>
+            <b>{money.format(item.price * item.qty)}</b>
+            <div className="desktop-cart-actions">
+              <button type="button" onClick={() => setItemQty(item.id, item.qty - 1)} aria-label={`Disminuir ${item.name}`}><Icon name="minus"/></button>
+              <output>{item.qty}</output>
+              <button type="button" onClick={() => setItemQty(item.id, item.qty + 1)} disabled={!canAdd} aria-label={`Aumentar ${item.name}`}><Icon name="plus"/></button>
+              <button type="button" className="desktop-cart-remove" onClick={() => removeItem(item.id)} aria-label={`Quitar ${item.name}`}><Icon name="trash"/></button>
+            </div>
+          </article>;
+        })}</div>}
+      <footer><div><span>Subtotal</span><strong>{money.format(total)}</strong></div><button type="button" onClick={onOpenCart} disabled={!items.length}>Revisar y confirmar</button></footer>
+    </div>
+  </aside>;
 }
 
 function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog> }) {
@@ -123,7 +181,9 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
       <AnimatePresence>{menuOpen ? <><motion.button type="button" className="drawer-scrim" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.nav className="header-menu" aria-label="Menú principal" initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ duration: .24, ease: [0.22, 1, 0.36, 1] }}><div className="drawer-head"><button type="button" className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><Icon name="close"/></button><img src="/joma-express.png" alt="JOMA Express" width="561" height="257"/></div><div className="drawer-content"><button type="button" onClick={() => goTo("profile")}><Icon name="user"/><span><strong>Perfil</strong><small>Mis datos y dirección</small></span><Icon name="arrow"/></button><hr/><button type="button" onClick={() => goTo("categories")}><Icon name="grid"/><span><strong>Categorías</strong><small>Explorar productos</small></span><Icon name="arrow"/></button><button type="button" className="drawer-logout" onClick={() => { setMenuOpen(false); void signOut(); }}><Icon name="logout"/><span><strong>Cerrar sesión</strong><small>Salir de esta cuenta</small></span><Icon name="arrow"/></button></div></motion.nav></> : null}</AnimatePresence>
     </div>
 
-    <main id="main-content" className={itemCount ? "has-mini-cart" : ""}>
+    <div className="desktop-layout">
+      <DesktopCategoryRail categories={manifest?.categories ?? []} selectedCategory={selectedCategory} tab={tab} onShowAll={() => goTo("categories")} onSelect={openCategory}/>
+      <main id="main-content" className={itemCount ? "has-mini-cart" : ""}>
       <AnimatePresence mode="wait" initial={false}>
         {tab === "home" ? <motion.div className="view" key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <section className="hero-card"><div><h1>Tu compra diaria,<br/><em>sin vueltas.</em></h1><div className="hero-actions"><button type="button" onClick={() => goTo("categories")}>Ver categorías <Icon name="arrow"/></button><button type="button" className="is-secondary" onClick={openCombos}>Ver combos <Icon name="arrow"/></button></div></div></section>
@@ -143,7 +203,9 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
         {tab === "cart" ? <motion.div className="view" key="cart" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><CartView onContinue={() => goTo("home")}/></motion.div> : null}
         {tab === "profile" ? <motion.div className="view" key="profile" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><ProfileView/></motion.div> : null}
       </AnimatePresence>
-    </main>
+      </main>
+      <DesktopCartRail onOpenCart={() => goTo("cart")}/>
+    </div>
 
     {itemCount && tab !== "cart" ? <button type="button" className="mini-cart" onClick={() => goTo("cart")} aria-label={`Abrir carrito. Subtotal ${money.format(cartTotal)}`}><span>Subtotal</span><strong>{money.format(cartTotal)}</strong></button> : null}
 
