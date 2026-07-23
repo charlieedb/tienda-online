@@ -145,22 +145,11 @@ export function MapPickerModal({
   return createPortal(
     <AnimatePresence>
       {open ? (
-        <>
-          <motion.button
-            type="button"
-            aria-label="Cerrar mapa"
-            className="modal-backdrop-lite fixed inset-0 z-[130]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
-          <div className="pointer-events-none fixed inset-0 z-[140] flex items-center justify-center p-2">
-            <motion.section
-              className="pointer-events-auto w-full max-w-[720px] overflow-hidden rounded-2xl bg-white"
-              initial={{ opacity: 0, y: 8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+          <motion.section
+              className="fixed inset-0 z-[140] flex min-h-0 flex-col overflow-hidden bg-white"
+              initial={{ opacity: 0, x: "6%" }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: "6%" }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
               role="dialog"
               aria-modal="true"
@@ -206,7 +195,7 @@ export function MapPickerModal({
               {message ? <p className="mt-2 text-sm font-normal text-black/75" aria-live="polite">{message}</p> : null}
             </header>
 
-            <div className="relative h-[min(46dvh,420px)] min-h-[270px] w-full bg-zinc-100">
+            <div className="relative min-h-0 flex-1 bg-zinc-100">
               <div ref={mapDivRef} className="h-full w-full" />
               <div className="pointer-events-none absolute bottom-3 left-1/2 z-[500] -translate-x-1/2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-black shadow">
                 Tocá el mapa para mover el punto
@@ -224,12 +213,10 @@ export function MapPickerModal({
                 }}
                 className="h-11 w-full rounded-xl bg-brand text-sm font-semibold text-white disabled:opacity-50"
               >
-                {picked ? "Confirmar punto de entrega" : "Marcá un punto en el mapa"}
+                {picked ? "Guardar punto y volver" : "Marcá un punto en el mapa"}
               </button>
             </footer>
-            </motion.section>
-          </div>
-        </>
+          </motion.section>
       ) : null}
     </AnimatePresence>,
     document.body,
