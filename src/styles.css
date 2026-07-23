@@ -149,6 +149,10 @@ main.has-mini-cart { padding-bottom: 72px; }
 .category-arrow svg { width: 15px; }
 .back-button { min-height: 44px; margin: 7px 0 9px -8px; display: flex; align-items: center; gap: 4px; border: 0; background: transparent; color: var(--muted); font-size: 12px; font-weight: 750; cursor: pointer; }
 .back-button svg { width: 18px; transform: rotate(180deg); }
+.category-back-button { width: max-content; margin: 10px 0 14px; padding: 6px 14px 6px 7px; gap: 8px; border: 1px solid #e92721; border-radius: 12px; background: #fff4f3; color: #c81b16; font-size: 13px; font-weight: 850; }
+.category-back-button:active { background: #ffe7e5; transform: scale(.98); }
+.back-button-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: #e92721; color: #fff; }
+.back-button-icon svg { width: 17px; }
 .search-home-button { margin-top: 0; margin-bottom: 14px; }
 .category-title { align-items: center; }
 .category-title h1 { font-size: 34px; }
