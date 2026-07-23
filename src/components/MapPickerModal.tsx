@@ -5,20 +5,45 @@ import { createPortal } from "react-dom";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
 import type { LatLng } from "@/lib/userProfile";
 
+const CORRIENTES_CAPITAL = { lat: -27.4692, lng: -58.8306 };
+
 async function geocode(query: string): Promise<LatLng | null> {
   const q = query.trim();
   if (!q) return null;
-  const url =
-    "https://nominatim.openstreetmap.org/search?" +
-    new URLSearchParams({ format: "json", q, limit: "1" }).toString();
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error("No se pudo consultar la dirección.");
-  const data = (await res.json()) as Array<{ lat: string; lon: string }>;
-  const first = data[0];
-  if (!first) return null;
-  const lat = Number(first.lat);
-  const lng = Number(first.lon);
-  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+
+  const search = async (params: URLSearchParams) => {
+    const url = `https://nominatim.openstreetmap.org/search?${params.toString()}`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error("No se pudo consultar la dirección.");
+    const data = (await res.json()) as Array<{ lat: string; lon: string }>;
+    const first = data[0];
+    if (!first) return null;
+    const lat = Number(first.lat);
+    const lng = Number(first.lon);
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  };
+
+  const localResult = await search(
+    new URLSearchParams({
+      format: "json",
+      q: `${q}, Corrientes Capital, Corrientes, Argentina`,
+      limit: "1",
+      countrycodes: "ar",
+      viewbox: "-58.95,-27.35,-58.70,-27.60",
+      "accept-language": "es",
+    }),
+  );
+  if (localResult) return localResult;
+
+  return search(
+    new URLSearchParams({
+      format: "json",
+      q,
+      limit: "1",
+      countrycodes: "ar",
+      "accept-language": "es",
+    }),
+  );
 }
 
 export function MapPickerModal({
@@ -48,7 +73,7 @@ export function MapPickerModal({
   const [message, setMessage] = useState("");
 
   const baseCenter = useMemo(
-    () => picked ?? center ?? initial ?? { lat: -34.6037, lng: -58.3816 },
+    () => picked ?? center ?? initial ?? CORRIENTES_CAPITAL,
     [picked, center, initial],
   );
 
