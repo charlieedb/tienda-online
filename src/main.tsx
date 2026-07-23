@@ -4,11 +4,14 @@ import { App } from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
 import { AdminPedidosPage } from "./components/admin/AdminPedidosPage";
 import "./styles.css";
-import "./app/globals.css";
-import "./admin-desktop.css";
 
 const isAdminPedidosRoute =
   window.location.pathname.replace(/\/+$/, "") === "/admin/pedidos";
+
+if (isAdminPedidosRoute) {
+  await import("./app/globals.css");
+  await import("./admin-desktop.css");
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
