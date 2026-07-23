@@ -1,8 +1,9 @@
 ﻿"use client";
 
-import { startTransition, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
 import { getAdminProfile, type AdminProfile } from "@/lib/adminAuth";
+import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
 import { generateOrderRemitoPdf } from "@/lib/remitoPdf";
 import {
   buildMetrics,
@@ -72,11 +73,12 @@ function DashboardMetric({
   );
 }
 
-function ProfileIcon() {
+function MenuIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 12.25a4.25 4.25 0 1 0 0-8.5 4.25 4.25 0 0 0 0 8.5Z" />
-      <path d="M4.75 20.25a7.75 7.75 0 0 1 14.5 0" />
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M4 6h16" />
+      <path d="M4 12h16" />
+      <path d="M4 18h16" />
     </svg>
   );
 }
@@ -101,7 +103,7 @@ function ButtonSpinner() {
 }
 
 export function AdminPedidosPage() {
-  const { user, loading, signInEmailSession, signOut } = useAuth();
+  const { user, loading, signInUsernameSession, resetAdminPassword, signOut } = useAuth();
   const [adminSessionActive, setAdminSessionActive] = useState(false);
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
@@ -112,7 +114,8 @@ export function AdminPedidosPage() {
   const [savingStatus, setSavingStatus] = useState<OrderStatus | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [authError, setAuthError] = useState("");
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
+  const [adminView, setAdminView] = useState<"orders" | "users">("orders");
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "week">("all");
   const [searchText, setSearchText] = useState("");
@@ -121,6 +124,8 @@ export function AdminPedidosPage() {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [actionError, setActionError] = useState("");
+  const [topMenuOpen, setTopMenuOpen] = useState(false);
+  const topMenuRef = useRef<HTMLDivElement | null>(null);
   const [todayKey] = useState(() => new Date().toISOString().slice(0, 10));
   const [weekStartMs] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
 
@@ -189,6 +194,22 @@ export function AdminPedidosPage() {
       } catch {}
     };
   }, [adminProfile]);
+
+  useEffect(() => {
+    if (!topMenuOpen) return;
+    const closeOutside = (event: MouseEvent) => {
+      if (!topMenuRef.current?.contains(event.target as Node)) setTopMenuOpen(false);
+    };
+    const closeEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setTopMenuOpen(false);
+    };
+    document.addEventListener("mousedown", closeOutside);
+    document.addEventListener("keydown", closeEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOutside);
+      document.removeEventListener("keydown", closeEscape);
+    };
+  }, [topMenuOpen]);
 
   const filteredOrders = useMemo(() => {
     const tokens = deferredSearch
@@ -267,7 +288,7 @@ export function AdminPedidosPage() {
   async function handleLogin() {
     setAuthError("");
     try {
-      await signInEmailSession(loginForm.email.trim(), loginForm.password);
+      await signInUsernameSession(loginForm.username.trim(), loginForm.password);
       if (typeof window !== "undefined") {
         window.sessionStorage.setItem("adminPedidosSession", "1");
       }
@@ -277,8 +298,23 @@ export function AdminPedidosPage() {
     }
   }
 
+  async function handlePasswordReset() {
+    setAuthError("");
+    if (!loginForm.username.trim()) {
+      setAuthError("Ingresá tu usuario para recuperar la contraseña.");
+      return;
+    }
+    try {
+      await resetAdminPassword(loginForm.username.trim());
+      setAuthError("Te enviamos un correo para restablecer la contraseña.");
+    } catch (error) {
+      setAuthError(String((error as Error)?.message || "No se pudo enviar el correo."));
+    }
+  }
+
   async function handleStatusChange(order: OrderRecord, status: OrderStatus) {
     if (!user) return;
+    const actorName = adminProfile?.name || user.email || user.uid.replace(/^adminop_/, "");
     const draftValue = dispatchDrafts[order.id] || { remito: "", note: "" };
     const nowIso = new Date().toISOString();
     setSavingOrderId(order.id);
@@ -304,7 +340,7 @@ export function AdminPedidosPage() {
       await updateOrderWorkflow({
         orderId: order.id,
         status,
-        actor: user.email || user.uid,
+        actor: actorName,
         remitoNumber,
         observaciones: draftValue.note,
       });
@@ -325,12 +361,12 @@ export function AdminPedidosPage() {
                   audit: {
                     ...entry.audit,
                     updatedAtIso: nowIso,
-                    lastActionBy: user.email || user.uid,
+                    lastActionBy: actorName,
                   },
                   history: entry.history.concat({
                     status,
                     atIso: nowIso,
-                    actor: user.email || user.uid,
+                    actor: actorName,
                     note:
                       [remitoNumber ? `Remito ${remitoNumber}` : "", draftValue.note]
                         .filter(Boolean)
@@ -391,20 +427,21 @@ export function AdminPedidosPage() {
               <div className="admin-kicker">Panel privado</div>
               <h1 className="admin-title">Centro de control de pedidos</h1>
               <p className="admin-subtitle">
-                Solo admins habilitados por email y contrasena. No hay registro publico.
+                Ingresá con tu usuario interno del administrador de tienda.
               </p>
             </div>
           </div>
           <div className="admin-card__body space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-black/65">Email</span>
+                <span className="text-sm font-semibold text-black/65">Usuario</span>
                 <input
                   className="admin-input"
-                  type="email"
-                  value={loginForm.email}
-                  onChange={(event) => setLoginForm((prev) => ({ ...prev, email: event.target.value }))}
-                  placeholder="admin@tuempresa.com"
+                  type="text"
+                  value={loginForm.username}
+                  onChange={(event) => setLoginForm((prev) => ({ ...prev, username: event.target.value }))}
+                  placeholder="Ej: carlos"
+                  autoComplete="username"
                 />
               </label>
               <label className="space-y-2">
@@ -423,9 +460,14 @@ export function AdminPedidosPage() {
             </div>
             {authError ? <div className="admin-error">{authError}</div> : null}
             <div className="flex justify-end">
-              <button type="button" className="btn primary min-w-40" onClick={() => void handleLogin()}>
-                Ingresar
-              </button>
+              <div className="admin-login-actions">
+                <button type="button" className="admin-forgot-password" onClick={() => void handlePasswordReset()}>
+                  Olvidé mi contraseña
+                </button>
+                <button type="button" className="btn primary min-w-40" onClick={() => void handleLogin()}>
+                  Ingresar
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -459,18 +501,42 @@ export function AdminPedidosPage() {
   return (
     <main className="admin-shell">
       <div className="admin-topbar">
-        <button type="button" className="admin-topbar__icon" aria-label="Perfil">
-          <ProfileIcon />
-        </button>
-        <div className="admin-topbar__center">
+        <div className="admin-topbar-menu" ref={topMenuRef}>
+          <button
+            type="button"
+            className="admin-topbar__icon"
+            aria-label="Abrir menú"
+            aria-expanded={topMenuOpen}
+            aria-controls="admin-main-menu"
+            onClick={() => setTopMenuOpen((current) => !current)}
+          >
+            <MenuIcon />
+          </button>
+          {topMenuOpen ? (
+            <nav id="admin-main-menu" className="admin-main-menu" aria-label="Menú del administrador">
+              <button type="button" onClick={() => { setAdminView("users"); setTopMenuOpen(false); }}>Usuarios</button>
+              <button type="button" onClick={() => setTopMenuOpen(false)}>Configuración</button>
+              <button type="button" onClick={() => setTopMenuOpen(false)}>Reportes</button>
+              <div className="admin-main-menu__separator" />
+              <button
+                type="button"
+                className="admin-main-menu__logout"
+                onClick={() => void handleAdminSignOut()}
+              >
+                <LogoutIcon />
+                <span>Salir</span>
+              </button>
+            </nav>
+          ) : null}
+        </div>
+        <button type="button" className="admin-topbar__center" onClick={() => setAdminView("orders")}>
           <div className="admin-kicker admin-kicker--light">Admin pedidos</div>
           <div className="admin-topbar__title">Centro de control</div>
-        </div>
-        <button type="button" className="admin-topbar__icon" aria-label="Salir" onClick={() => void handleAdminSignOut()}>
-          <LogoutIcon />
         </button>
+        <div className="admin-topbar__spacer" aria-hidden="true" />
       </div>
 
+      {adminView === "users" ? <AdminUsersPanel /> : <>
       <section className="admin-card admin-overview overflow-hidden">
         <div className="admin-card__head">
           <div className="admin-headline">
@@ -933,6 +999,7 @@ export function AdminPedidosPage() {
           </div>
         </div>
       </section>
+      </>}
     </main>
   );
 }

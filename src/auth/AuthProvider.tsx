@@ -10,6 +10,7 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
+  sendPasswordResetEmail,
   type User,
   type UserCredential,
 } from "firebase/auth";
@@ -23,6 +24,8 @@ type AuthContextValue = {
   firebaseReady: boolean;
   signInEmail: (email: string, password: string) => Promise<UserCredential>;
   signInEmailSession: (email: string, password: string) => Promise<UserCredential>;
+  signInUsernameSession: (username: string, password: string) => Promise<UserCredential>;
+  resetAdminPassword: (username: string) => Promise<void>;
   signUpEmail: (email: string, password: string) => Promise<UserCredential>;
   signInGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -114,6 +117,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!auth) throw new Error("Firebase no está configurado.");
         await setPersistence(auth, browserSessionPersistence);
         return signInWithEmailAndPassword(auth, email, password);
+      },
+      signInUsernameSession: async (username, password) => {
+        if (!auth) throw new Error("Firebase no está configurado.");
+        const response = await fetch(
+          "https://us-central1-app-presu.cloudfunctions.net/loginAdminOperator",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username.trim(), password }),
+          },
+        );
+        const result = await response.json().catch(() => null) as {
+          ok?: boolean;
+          email?: string;
+          error?: string;
+        } | null;
+        if (!response.ok || !result?.email) {
+          throw new Error(result?.error || "Usuario o contraseña incorrectos.");
+        }
+        await setPersistence(auth, browserSessionPersistence);
+        return signInWithEmailAndPassword(auth, result.email, password);
+      },
+      resetAdminPassword: async (username) => {
+        if (!auth) throw new Error("Firebase no está configurado.");
+        const response = await fetch(
+          "https://us-central1-app-presu.cloudfunctions.net/loginAdminOperator",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username.trim() }),
+          },
+        );
+        const result = await response.json().catch(() => null) as { email?: string; error?: string } | null;
+        if (!response.ok || !result?.email) throw new Error(result?.error || "No encontramos ese usuario.");
+        await sendPasswordResetEmail(auth, result.email);
       },
       signUpEmail: async (email, password) => {
         if (!auth) throw new Error("Firebase no está configurado.");
