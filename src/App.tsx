@@ -21,6 +21,27 @@ function ErrorState({ message, retry }: { message: string; retry: () => void }) 
   return <div className="error-state" role="alert"><Icon name="refresh"/><h3>No pudimos cargar</h3><p>{message}</p><button type="button" onClick={retry}>Reintentar</button></div>;
 }
 
+function LiveDateTime() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const day = new Intl.DateTimeFormat("es-AR", { day: "2-digit" }).format(now);
+  const month = new Intl.DateTimeFormat("es-AR", { month: "long" }).format(now);
+  const time = new Intl.DateTimeFormat("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(now);
+  return <time className="hero-live-clock" dateTime={now.toISOString()} aria-label={`${day} de ${month}, ${time}`}>
+    <strong>{day}</strong>
+    <span>{month}</span>
+    <small>{time}</small>
+  </time>;
+}
+
 function ProductList({ products, eagerCount = 0 }: { products: Product[]; eagerCount?: number }) {
   useEffect(() => {
     products.slice(eagerCount, eagerCount + 3).forEach((product) => {
@@ -193,7 +214,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
       <main id="main-content" className={itemCount ? "has-mini-cart" : ""}>
       <AnimatePresence mode="wait" initial={false}>
         {tab === "home" ? <motion.div className="view" key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <section className="hero-card"><div><h1>Tu compra diaria,<br/><em>sin vueltas.</em></h1><div className="hero-actions"><button type="button" onClick={() => goTo("categories")}>Ver categorías <Icon name="arrow"/></button><button type="button" className="is-secondary" onClick={openCombos}>Ver combos <Icon name="arrow"/></button></div></div></section>
+          <section className="hero-card"><div><h1>Tu compra diaria,<br/><em>sin vueltas.</em></h1><div className="hero-actions"><button type="button" onClick={() => goTo("categories")}>Ver categorías <Icon name="arrow"/></button><button type="button" className="is-secondary" onClick={openCombos}>Ver combos <Icon name="arrow"/></button></div></div><LiveDateTime/></section>
           <section><div className="section-heading"><div><span>Elegidos para vos</span><h2>Destacados</h2></div><button type="button" onClick={() => goTo("categories")}>Ver todo</button></div>
             {initialLoading ? <ProductSkeletons/> : initialError ? <ErrorState message={initialError} retry={loadInitial}/> : <ProductList products={featured} eagerCount={3}/>}</section>
         </motion.div> : null}

@@ -4,8 +4,10 @@ import { useAuth } from "@/auth/AuthProvider";
 import { submitCheckoutOrder } from "@/lib/checkoutOrders";
 import { getCachedUserProfile, refreshUserProfile, upsertUserProfile } from "@/lib/userProfile";
 import { notifyTelegramOrder } from "@/lib/telegramOrders";
+import type { LatLng } from "@/lib/userProfile";
 import { getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
+import { MapPickerModal } from "./MapPickerModal";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const PROFILE_KEY = "joma.profile.v1";
@@ -35,6 +37,15 @@ function readLocalProfile(uid: string): CheckoutForm {
   } catch { return EMPTY_FORM; }
 }
 
+function readLocalLocation(uid: string): LatLng | null {
+  try {
+    const raw = JSON.parse(localStorage.getItem(`${PROFILE_KEY}.${uid}`) || "{}") as Record<string, unknown>;
+    const lat = Number(raw.lat);
+    const lng = Number(raw.lng);
+    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+  } catch { return null; }
+}
+
 export function CartView({ onContinue }: { onContinue: () => void }) {
   const { user } = useAuth();
   const items = useCartStore((state) => state.items);
@@ -51,6 +62,8 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
   const [sent, setSent] = useState(false);
   const [sentWarning, setSentWarning] = useState("");
   const [form, setForm] = useState<CheckoutForm>(EMPTY_FORM);
+  const [deliveryLocation, setDeliveryLocation] = useState<LatLng | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
   const orderRequestId = useRef(createRequestId());
   const total = useMemo(() => items.reduce((sum, item) => sum + item.price * item.qty, 0), [items]);
 
@@ -58,13 +71,17 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
     if (!checkoutOpen || !user) return;
     let active = true;
     const local = readLocalProfile(user.uid);
+    const localLocation = readLocalLocation(user.uid);
     const cached = getCachedUserProfile(user.uid);
-    const fill = (profile: typeof cached) => setForm((current) => ({
-      nombre: current.nombre || local.nombre || [profile?.nombre, profile?.apellido].filter(Boolean).join(" ") || user.displayName || "",
-      telefono: current.telefono || local.telefono || profile?.telefono || "",
-      direccion: current.direccion || local.direccion || addressText(profile?.direcciones?.[0]),
-      nota: current.nota || local.nota || profile?.notes || "",
-    }));
+    const fill = (profile: typeof cached) => {
+      setForm((current) => ({
+        nombre: current.nombre || local.nombre || [profile?.nombre, profile?.apellido].filter(Boolean).join(" ") || user.displayName || "",
+        telefono: current.telefono || local.telefono || profile?.telefono || "",
+        direccion: current.direccion || local.direccion || addressText(profile?.direcciones?.[0]),
+        nota: current.nota || local.nota || profile?.notes || "",
+      }));
+      setDeliveryLocation((current) => current ?? localLocation ?? profile?.direcciones?.[0]?.ubicacion ?? null);
+    };
     fill(cached);
     setProfileLoading(true);
     refreshUserProfile(user.uid).then((profile) => { if (active) fill(profile); }).finally(() => { if (active) setProfileLoading(false); });
@@ -73,7 +90,7 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
 
   const submit = async () => {
     const customer = {
-      nombre: form.nombre.trim(), telefono: form.telefono.trim(), direccion: form.direccion.trim(), nota: form.nota.trim(),
+      nombre: form.nombre.trim(), telefono: form.telefono.trim(), direccion: form.direccion.trim(), nota: form.nota.trim(), ubicacion: deliveryLocation,
     };
     if (!customer.nombre || !customer.telefono || !customer.direccion) {
       setError("Completá nombre, teléfono y dirección para confirmar la compra."); return;
@@ -84,16 +101,18 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
       const savedProfile = getCachedUserProfile(user.uid) ?? await refreshUserProfile(user.uid);
       const savedName = [savedProfile?.nombre, savedProfile?.apellido].filter(Boolean).join(" ").trim();
       const savedAddress = addressText(savedProfile?.direcciones?.[0]);
+      const savedLocation = savedProfile?.direcciones?.[0]?.ubicacion ?? null;
+      const locationChanged = savedLocation?.lat !== customer.ubicacion?.lat || savedLocation?.lng !== customer.ubicacion?.lng;
       const profileChanged = !savedProfile || savedName !== customer.nombre ||
         String(savedProfile.telefono || "").trim() !== customer.telefono ||
-        savedAddress !== customer.direccion || String(savedProfile.notes || "").trim() !== customer.nota;
+        savedAddress !== customer.direccion || String(savedProfile.notes || "").trim() !== customer.nota || locationChanged;
       if (profileChanged) {
         await upsertUserProfile({
           uid: user.uid, email: user.email,
           username: savedProfile?.username || user.email?.split("@")[0] || `usuario_${user.uid.slice(0, 8)}`,
           dni: savedProfile?.dni || "", displayName: savedProfile?.displayName || user.displayName,
           nombre: customer.nombre, apellido: "", telefono: customer.telefono, notes: customer.nota,
-          direcciones: [{ id: "principal", provincia: "", localidad: "", direccion: customer.direccion, ubicacion: null }],
+          direcciones: [{ id: "principal", provincia: "", localidad: "", direccion: customer.direccion, ubicacion: customer.ubicacion }],
         });
       }
       setSubmitProgress(15); setSubmitProgressLabel("Validando productos");
@@ -118,9 +137,9 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
       setSubmitProgress(100); setSubmitProgressLabel("Pedido confirmado");
       await new Promise((resolve) => window.setTimeout(resolve, 300));
       try {
-        localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, address: customer.direccion, city: "", notes: customer.nota }));
+        localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, address: customer.direccion, city: "", notes: customer.nota, lat: customer.ubicacion?.lat, lng: customer.ubicacion?.lng }));
       } catch { /* el pedido ya fue enviado */ }
-      clear(); setCheckoutOpen(false); setSentWarning(telegramWarning); setSent(true); setForm(EMPTY_FORM); orderRequestId.current = createRequestId();
+      clear(); setCheckoutOpen(false); setSentWarning(telegramWarning); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); orderRequestId.current = createRequestId();
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "No pudimos enviar el pedido.");
     } finally { setSubmitting(false); }
@@ -132,7 +151,7 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
   </section>;
 
   return <>
-    {sent ? <section className="order-success"><div className="success-check"><Icon name="check"/></div><h2>Pedido enviado</h2><p>Recibimos tu compra correctamente. En breve nos comunicaremos con vos.</p>{sentWarning ? <div className="checkout-error" role="status">{sentWarning}</div> : null}<button type="button" className="primary-action" onClick={() => window.location.reload()}>Volver al inicio</button></section> : <section className="cart-page">
+    {sent ? <section className="order-success"><div className="success-check"><Icon name="check"/></div><h2>Pedido confirmado :)</h2><p>Nos comunicaremos con vos en breve, para coordinar la entrega y la forma de pago.<br/>Muchas gracias</p>{sentWarning ? <div className="checkout-error" role="status">{sentWarning}</div> : null}<button type="button" className="primary-action" onClick={() => window.location.reload()}>Volver al inicio</button></section> : <section className="cart-page">
       <div className="section-heading cart-heading"><div><span>Tu compra</span><h2>Carrito</h2></div><button type="button" className="clear-button" onClick={clear}><Icon name="trash" /> Vaciar</button></div>
       <div className="cart-list"><AnimatePresence initial={false}>{items.map((item) => { const remaining = getRemainingStock(items, item.productId, item.stockLimit); const canAdd = remaining === undefined || remaining >= getCartItemUnits({ ...item, qty: 1 }); return <motion.article layout exit={{ opacity: 0, x: 24 }} key={item.id} className="cart-item">
         <div className="cart-item-copy"><strong>{item.name}</strong><span>{item.label}</span><b>{money.format(item.price * item.qty)}</b></div>
@@ -146,8 +165,10 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
       {error ? <div className="checkout-error" role="alert">{error}</div> : null}
       <label><span>Nombre y apellido</span><input value={form.nombre} onChange={(event) => setForm((current) => ({ ...current, nombre: event.target.value }))} autoComplete="name" placeholder="Tu nombre"/></label>
       <label><span>Teléfono</span><input value={form.telefono} onChange={(event) => setForm((current) => ({ ...current, telefono: event.target.value }))} autoComplete="tel" inputMode="tel" placeholder="WhatsApp o teléfono"/></label>
-      <label><span>Dirección de entrega</span><input value={form.direccion} onChange={(event) => setForm((current) => ({ ...current, direccion: event.target.value }))} autoComplete="street-address" placeholder="Calle, número y localidad"/></label>
+      <label><span>Dirección de entrega</span><input value={form.direccion} onChange={(event) => { setForm((current) => ({ ...current, direccion: event.target.value })); setDeliveryLocation(null); }} autoComplete="street-address" placeholder="Calle, número y localidad"/></label>
+      <button type="button" className={`checkout-location-button ${deliveryLocation ? "is-marked" : ""}`} onClick={() => setMapOpen(true)} disabled={submitting || !form.direccion.trim()}><span aria-hidden="true">📍</span><span>{deliveryLocation ? "Ubicación marcada" : "Marcar punto de entrega"}</span>{deliveryLocation ? <small>Editar</small> : null}</button>
       <label><span>Nota <em>Opcional</em></span><textarea value={form.nota} onChange={(event) => setForm((current) => ({ ...current, nota: event.target.value }))} rows={3} placeholder="Aclaraciones para el pedido"/></label>
     </div>{submitting ? <div className="checkout-progress" aria-live="polite"><div className="checkout-progress-copy"><span>{submitProgressLabel}</span><strong>{submitProgress}%</strong></div><div className="checkout-progress-track" role="progressbar" aria-label="Progreso del pedido" aria-valuemin={0} aria-valuemax={100} aria-valuenow={submitProgress}><span style={{ width: `${submitProgress}%` }}/></div></div> : null}<div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className="checkout-submit" onClick={submit} disabled={submitting || profileLoading}>{submitting ? <><span className="tiny-spinner"/> Enviando…</> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
+    <MapPickerModal open={mapOpen} initial={deliveryLocation} center={deliveryLocation} initialQuery={form.direccion} onClose={() => setMapOpen(false)} onPick={setDeliveryLocation}/>
   </>;
 }

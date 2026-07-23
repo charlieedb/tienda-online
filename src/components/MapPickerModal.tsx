@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import Script from "next/script";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LatLng } from "@/lib/userProfile";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
@@ -76,6 +75,25 @@ export function MapPickerModal({
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const lastAutoQueryRef = useRef<string>("");
+
+  useEffect(() => {
+    if (!open) return;
+    if (window.L) {
+      setLeafletReady(true);
+      return;
+    }
+    const existing = document.querySelector<HTMLScriptElement>('script[data-leaflet-map="true"]');
+    const script = existing ?? document.createElement("script");
+    const onLoad = () => setLeafletReady(true);
+    script.addEventListener("load", onLoad);
+    if (!existing) {
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.async = true;
+      script.dataset.leafletMap = "true";
+      document.head.appendChild(script);
+    }
+    return () => script.removeEventListener("load", onLoad);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -193,15 +211,9 @@ export function MapPickerModal({
     <AnimatePresence>
       {open ? (
         <>
-          <Script
-            src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            strategy="afterInteractive"
-            onLoad={() => setLeafletReady(true)}
-          />
-
           <motion.button
             aria-label="Cerrar"
-            className="modal-backdrop-lite fixed inset-0 z-[80]"
+            className="modal-backdrop-lite fixed inset-0 z-[130]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -209,7 +221,7 @@ export function MapPickerModal({
           />
 
           <motion.div
-            className="fixed left-1/2 top-1/2 z-[90] w-[min(760px,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-white shadow-2xl"
+            className="fixed left-1/2 top-1/2 z-[140] w-[min(760px,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-3xl border border-border bg-white shadow-2xl"
             initial={{ opacity: 0, y: 10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.98 }}

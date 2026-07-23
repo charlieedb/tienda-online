@@ -30,6 +30,11 @@ function buildMessage(payload) {
   if (jonico.length) message += `\n\n<i>(Prod. de JONICO)</i>\n${jonico.join("\n")}`;
   if (clean(client.nota)) message += `\n\n📝 Nota: ${escapeHtml(client.nota)}`;
   if (clean(client.telefono)) message += `\n📞 ${escapeHtml(client.telefono)}`;
+  const lat = Number(client?.ubicacion?.lat);
+  const lng = Number(client?.ubicacion?.lng);
+  if (Number.isFinite(lat) && Number.isFinite(lng)) {
+    message += `\n📍 <a href="https://www.google.com/maps?q=${lat},${lng}">Abrir ubicación en Google Maps</a>`;
+  }
   return message;
 }
 

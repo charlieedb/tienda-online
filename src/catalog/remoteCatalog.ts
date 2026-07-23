@@ -1,4 +1,5 @@
 import type { CatalogManifest, CatalogProvider, Product } from "./types";
+import { getFeaturedProductsConfig } from "@/lib/featuredProducts";
 
 const VERSION_URL = "/api/catalog-version";
 const PRODUCTS_URL = "/api/catalog-products";
@@ -19,6 +20,13 @@ function discountBetween(listPrice: number, finalPrice: number) {
 }
 function sortProducts(a: Product, b: Product) {
   return Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, "es", { sensitivity: "base", numeric: true });
+}
+
+function selectFeatured(products: Product[], ids: string[], configured: boolean) {
+  const available = products.filter((item) => item.active);
+  if (!configured) return available.filter((item) => item.offer).sort(sortProducts);
+  const byId = new Map(available.map((item) => [item.id, item]));
+  return ids.map((id) => byId.get(id)).filter((item): item is Product => Boolean(item));
 }
 
 function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay): Product {
@@ -108,8 +116,9 @@ export function createRemoteCatalog(): CatalogProvider {
   };
 
   const manifest = async (): Promise<CatalogManifest> => {
-    const products = await loadProducts();
+    const [products, featuredConfig] = await Promise.all([loadProducts(), getFeaturedProductsConfig()]);
     const visibleProducts = products.filter((item) => item.active);
+    const featured = selectFeatured(products, featuredConfig.ids, featuredConfig.configured);
     const groups = new Map<string, Product[]>();
     for (const product of visibleProducts) {
       const list = groups.get(product.categoryId) ?? [];
@@ -123,12 +132,15 @@ export function createRemoteCatalog(): CatalogProvider {
       image: items.find((item) => item.imageUrl)?.imageUrl || "/joma-express.png",
       count: items.filter((item) => item.active).length,
     })).sort((a, b) => a.name.localeCompare(b.name, "es"));
-    return { version: catalogVersion, featuredCount: visibleProducts.filter((item) => item.offer).length, categories };
+    return { version: catalogVersion, featuredCount: featured.length, categories };
   };
 
   return {
     getManifest: () => manifest(),
-    getFeaturedProducts: async () => (await loadProducts()).filter((item) => item.active && item.offer).sort(sortProducts),
+    getFeaturedProducts: async () => {
+      const [products, config] = await Promise.all([loadProducts(), getFeaturedProductsConfig()]);
+      return selectFeatured(products, config.ids, config.configured);
+    },
     getCategoryProducts: async (categoryId) => (await loadProducts()).filter((item) => item.active && item.categoryId === categoryId).sort(sortProducts),
     searchProducts: async (query) => {
       const terms = normalize(query).split(/\s+/).filter(Boolean);

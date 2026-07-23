@@ -51,6 +51,13 @@ function parsePayload(body: unknown): TelegramOrderPayload | null {
       telefono: toText(cliente.telefono),
       direccion: toText(cliente.direccion),
       nota: toText(cliente.nota),
+      ubicacion: (() => {
+        const point = asRecord(cliente.ubicacion);
+        if (!point) return null;
+        const lat = Number(point.lat);
+        const lng = Number(point.lng);
+        return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+      })(),
     },
     items,
     totals: {

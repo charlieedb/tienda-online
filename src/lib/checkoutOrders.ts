@@ -12,6 +12,7 @@ type CheckoutCustomer = {
   telefono: string;
   direccion: string;
   nota?: string;
+  ubicacion?: { lat: number; lng: number } | null;
 };
 
 function roundMoney(value: number) {
@@ -134,6 +135,7 @@ export async function submitCheckoutOrder(params: {
       telefono: params.customer.telefono.trim(),
       direccion: params.customer.direccion.trim(),
       nota: String(params.customer.nota || "").trim(),
+      ubicacion: params.customer.ubicacion ?? null,
     },
     items,
     totals: {
@@ -188,6 +190,7 @@ export async function submitCheckoutOrder(params: {
       telefono: payload.cliente.telefono,
       direccion: payload.cliente.direccion,
       nota: payload.cliente.nota,
+      ubicacion: payload.cliente.ubicacion,
     },
     items: items.map((item) => ({
       codigo: item.codigo,

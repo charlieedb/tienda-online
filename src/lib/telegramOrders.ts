@@ -18,6 +18,7 @@ export type TelegramOrderPayload = {
     telefono: string;
     direccion: string;
     nota?: string;
+    ubicacion?: { lat: number; lng: number } | null;
   };
   items: TelegramOrderItem[];
   totals: {
@@ -117,6 +118,11 @@ export function buildTelegramOrderMessage(payload: TelegramOrderPayload) {
   const direccion = cleanText(payload.cliente?.direccion);
   const telefono = cleanText(payload.cliente?.telefono);
   const nota = cleanText(payload.cliente?.nota);
+  const lat = Number(payload.cliente?.ubicacion?.lat);
+  const lng = Number(payload.cliente?.ubicacion?.lng);
+  const mapsUrl = Number.isFinite(lat) && Number.isFinite(lng)
+    ? `https://www.google.com/maps?q=${lat},${lng}`
+    : "";
 
   const lineasJoma: string[] = [];
   const lineasJonico: string[] = [];
@@ -152,6 +158,9 @@ export function buildTelegramOrderMessage(payload: TelegramOrderPayload) {
 
   if (telefono) {
     mensaje += `\n📞 ${escapeHtml(telefono)}`;
+  }
+  if (mapsUrl) {
+    mensaje += `\n📍 <a href="${mapsUrl}">Abrir ubicación en Google Maps</a>`;
   }
 
   return mensaje.trim();
