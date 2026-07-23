@@ -116,7 +116,7 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
   </section>;
 
   return <>
-    {sent ? <section className="order-success"><div className="success-check"><Icon name="check"/></div><h2>Pedido enviado</h2><p>Recibimos tu compra correctamente. En breve nos comunicaremos con vos.</p>{sentWarning ? <div className="checkout-error" role="status">{sentWarning}</div> : null}<button type="button" className="primary-action" onClick={() => { setSent(false); setSentWarning(""); onContinue(); }}>Volver al inicio</button></section> : <section className="cart-page">
+    {sent ? <section className="order-success"><div className="success-check"><Icon name="check"/></div><h2>Pedido enviado</h2><p>Recibimos tu compra correctamente. En breve nos comunicaremos con vos.</p>{sentWarning ? <div className="checkout-error" role="status">{sentWarning}</div> : null}<button type="button" className="primary-action" onClick={() => window.location.reload()}>Volver al inicio</button></section> : <section className="cart-page">
       <div className="section-heading cart-heading"><div><span>Tu compra</span><h2>Carrito</h2></div><button type="button" className="clear-button" onClick={clear}><Icon name="trash" /> Vaciar</button></div>
       <div className="cart-list"><AnimatePresence initial={false}>{items.map((item) => { const remaining = getRemainingStock(items, item.productId, item.stockLimit); const canAdd = remaining === undefined || remaining >= getCartItemUnits({ ...item, qty: 1 }); return <motion.article layout exit={{ opacity: 0, x: 24 }} key={item.id} className="cart-item">
         <div className="cart-item-copy"><strong>{item.name}</strong><span>{item.label}</span><b>{money.format(item.price * item.qty)}</b></div>
