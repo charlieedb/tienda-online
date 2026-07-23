@@ -5,6 +5,7 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { AdminPedidosPage } from "./components/admin/AdminPedidosPage";
 import "./styles.css";
 import "./app/globals.css";
+import "./admin-desktop.css";
 
 const isAdminPedidosRoute =
   window.location.pathname.replace(/\/+$/, "") === "/admin/pedidos";

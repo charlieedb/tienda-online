@@ -25,19 +25,8 @@ const STATUS_OPTIONS: Array<{ value: OrderStatus; label: string }> = [
   { value: "rejected", label: "Rechazado" },
 ];
 
-const STATUS_ACTIONS: Array<{ value: OrderStatus; label: string }> = [
-  { value: "new", label: "Nuevo" },
-  { value: "preparing", label: "En preparacion" },
-  { value: "dispatched", label: "Remitar" },
-  { value: "delivered", label: "Cobrar" },
-];
-
 function statusLabel(status: OrderStatus) {
   return STATUS_OPTIONS.find((option) => option.value === status)?.label || status;
-}
-
-function statusActionLabel(status: OrderStatus) {
-  return STATUS_ACTIONS.find((option) => option.value === status)?.label || statusLabel(status);
 }
 
 function statusPill(status: OrderStatus) {
@@ -125,7 +114,7 @@ export function AdminPedidosPage() {
   const [authError, setAuthError] = useState("");
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
-  const [dateFilter, setDateFilter] = useState<"all" | "today" | "week">("today");
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "week">("all");
   const [searchText, setSearchText] = useState("");
   const deferredSearch = useDeferredValue(searchText);
   const [dispatchDrafts, setDispatchDrafts] = useState<Record<string, { remito: string; note: string }>>({});
@@ -179,7 +168,6 @@ export function AdminPedidosPage() {
         if (cancelled) return;
         startTransition(() => {
           setOrders(items);
-          setSelectedId((current) => current || items[0]?.id || null);
         });
         setLoadingData(false);
       },
@@ -243,11 +231,23 @@ export function AdminPedidosPage() {
   );
 
   const selectedOrder = useMemo(
-    () => filteredOrders.find((order) => order.id === selectedId) || filteredOrders[0] || null,
+    () => filteredOrders.find((order) => order.id === selectedId) || null,
     [filteredOrders, selectedId],
   );
 
   const metrics = useMemo(() => buildMetrics(orders, searches), [orders, searches]);
+  const filteredStats = useMemo(() => {
+    const billable = filteredOrders.filter((order) => order.status !== "rejected");
+    const total = billable.reduce((sum, order) => sum + order.totals.total, 0);
+    return {
+      orders: filteredOrders.length,
+      total,
+      average: billable.length ? total / billable.length : 0,
+      units: billable.reduce((sum, order) => sum + order.metrics.totalUnits, 0),
+      boxes: billable.reduce((sum, order) => sum + order.metrics.totalBoxes, 0),
+      discounts: billable.reduce((sum, order) => sum + order.totals.discountTotal, 0),
+    };
+  }, [filteredOrders]);
 
   const draft = selectedOrder
     ? dispatchDrafts[selectedOrder.id] || {
@@ -474,16 +474,16 @@ export function AdminPedidosPage() {
       <section className="admin-card admin-overview overflow-hidden">
         <div className="admin-card__head">
           <div className="admin-headline">
-            <h1 className="admin-title">Pedidos de hoy</h1>
+            <h1 className="admin-title">Todos los pedidos</h1>
           </div>
           <div className="text-sm font-semibold text-white/65">{loadingData ? "Sincronizando..." : "En vivo"}</div>
         </div>
         <div className="admin-card__body">
           <div className="grid gap-3 md:grid-cols-3">
             <DashboardMetric
-              label="Pedidos hoy"
-              value={String(todayOrders.length)}
-              hint="Confirmados durante la jornada actual."
+              label="Total de pedidos"
+              value={String(orders.length)}
+              hint="Todos los pedidos disponibles."
             />
             <DashboardMetric
               label="Nuevos"
@@ -536,16 +536,14 @@ export function AdminPedidosPage() {
         </div>
 
         <div className="admin-card__body">
-          <div className="admin-orders-layout">
+          <div className={`admin-orders-layout ${selectedOrder ? "has-open-detail" : ""}`}>
+            <div className="admin-list-column">
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th>Pedido</th>
-                    <th>Cliente</th>
-                    <th>Telefono</th>
-                    <th>Direccion</th>
                     <th>Fecha</th>
+                    <th>Cliente</th>
                     <th>Estado</th>
                     <th>Total</th>
                   </tr>
@@ -557,22 +555,14 @@ export function AdminPedidosPage() {
                       className={selectedOrder?.id === order.id ? "is-active" : ""}
                       onClick={() => setSelectedId(order.id)}
                     >
-                      <td>
-                        <div className="font-semibold text-[#20283b]">#{order.id.slice(0, 8)}</div>
-                        <div className="text-xs text-black/45">{order.items.length} items</div>
-                      </td>
-                      <td>{order.cliente.nombre || "Sin nombre"}</td>
-                      <td>{order.cliente.telefono || "Sin telefono"}</td>
-                      <td>{order.cliente.direccion || "Sin direccion"}</td>
-                      <td>{formatDateTime(orderMoment(order))}</td>
-                      <td>
-                        <span
-                          className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusPill(order.status)}`}
-                        >
+                      <td className="admin-order-row__date">{formatDateTime(orderMoment(order))}</td>
+                      <td className="admin-order-row__client">{order.cliente.nombre || "Sin nombre"}</td>
+                      <td className="admin-order-row__status">
+                        <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusPill(order.status)}`}>
                           {statusLabel(order.status)}
                         </span>
                       </td>
-                      <td>{formatMoney(order.totals.total)}</td>
+                      <td className="admin-order-row__total">{formatMoney(order.totals.total)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -584,7 +574,51 @@ export function AdminPedidosPage() {
               ) : null}
             </div>
 
-            <div className="space-y-4">
+            <section className="admin-list-stats" aria-label="Estadísticas de los pedidos filtrados">
+              <div className="admin-list-stats__head">
+                <div>
+                  <h3>Resumen del listado</h3>
+                  <p>Calculado con los filtros seleccionados.</p>
+                </div>
+              </div>
+              <div className="admin-list-stats__grid">
+                <div>
+                  <span>Pedidos</span>
+                  <strong>{filteredStats.orders}</strong>
+                </div>
+                <div>
+                  <span>Facturación</span>
+                  <strong>{formatMoney(filteredStats.total)}</strong>
+                </div>
+                <div>
+                  <span>Ticket promedio</span>
+                  <strong>{formatMoney(filteredStats.average)}</strong>
+                </div>
+                <div>
+                  <span>Unidades</span>
+                  <strong>{filteredStats.units}</strong>
+                </div>
+                <div>
+                  <span>Cajas</span>
+                  <strong>{filteredStats.boxes}</strong>
+                </div>
+                <div>
+                  <span>Descuentos</span>
+                  <strong>{formatMoney(filteredStats.discounts)}</strong>
+                </div>
+              </div>
+            </section>
+            </div>
+
+            {selectedOrder ? (
+            <>
+              <button
+                type="button"
+                className="admin-detail-backdrop"
+                aria-label="Cerrar detalle"
+                onClick={() => setSelectedId(null)}
+              />
+            <div className="admin-detail-panel">
               <div className="admin-order-detail">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -599,11 +633,21 @@ export function AdminPedidosPage() {
                     </p>
                   </div>
                   {selectedOrder ? (
-                    <span
-                      className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusPill(selectedOrder.status)}`}
-                    >
-                      {statusLabel(selectedOrder.status)}
-                    </span>
+                    <div className="admin-detail-head-actions">
+                      <span
+                        className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusPill(selectedOrder.status)}`}
+                      >
+                        {statusLabel(selectedOrder.status)}
+                      </span>
+                      <button
+                        type="button"
+                        className="admin-detail-close"
+                        aria-label="Cerrar detalle"
+                        onClick={() => setSelectedId(null)}
+                      >
+                        ×
+                      </button>
+                    </div>
                   ) : null}
                 </div>
 
@@ -613,23 +657,24 @@ export function AdminPedidosPage() {
                       {selectedOrder.items.map((item) => (
                         <div
                           key={`${selectedOrder.id}-${item.codigo}`}
-                          className="rounded-[22px] border border-black/8 bg-[#fffdf8] px-4 py-3"
+                          className="admin-detail-product"
                         >
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="text-sm font-semibold text-[#20283b]">{item.nombre}</div>
-                              <div className="text-xs uppercase tracking-[0.18em] text-black/40">{item.codigo}</div>
-                            </div>
-                            <div className="text-right text-sm font-semibold text-[#20283b]">
-                              {formatMoney(item.subtotal)}
-                            </div>
+                          <div className="admin-detail-product__name">
+                            <strong>{item.nombre}</strong>
+                            <span>{item.codigo}</span>
                           </div>
-                          <div className="mt-2 grid gap-2 text-sm text-black/58 md:grid-cols-2">
-                            <div>Lista: {formatMoney(item.precioLista)}</div>
-                            <div>Final: {formatMoney(item.precioFinal)}</div>
-                            <div>Desc.: {item.descuentoPct ? `${item.descuentoPct}%` : "Sin descuento"}</div>
+                          <div className="admin-detail-product__facts">
                             <div>
-                              Unid.: {item.cantidadUnidades} · Cajas: {item.cantidadCajas}
+                              <span>Unidades</span>
+                              <strong>{item.cantidadUnidades}</strong>
+                            </div>
+                            <div>
+                              <span>Descuento</span>
+                              <strong>{item.descuentoPct ? `${item.descuentoPct}%` : "0%"}</strong>
+                            </div>
+                            <div>
+                              <span>Subtotal</span>
+                              <strong>{formatMoney(item.subtotal)}</strong>
                             </div>
                           </div>
                         </div>
@@ -681,35 +726,35 @@ export function AdminPedidosPage() {
                       </div>
                     ) : null}
 
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {selectedOrder.dispatch.remitoNumber ? (
+                    <div className="admin-primary-actions">
+                      {selectedOrder.status === "rejected" ? (
+                        <div className="admin-actions-closed">Pedido rechazado</div>
+                      ) : selectedOrder.status === "dispatched" || selectedOrder.status === "delivered" ? (
                         <button
                           type="button"
-                          className="btn ghost"
+                          className="btn primary"
                           onClick={() => void handleOpenRemito(selectedOrder)}
                           disabled={savingOrderId === selectedOrder.id}
                         >
-                          Ver remito {selectedOrder.dispatch.remitoNumber}
+                          Reimprimir remito
                         </button>
-                      ) : null}
-                      {selectedOrder.status !== "rejected" ? STATUS_ACTIONS.map((option) => (
+                      ) : (
                         <button
-                          key={option.value}
                           type="button"
-                          className={`btn ${option.value === "delivered" ? "success" : option.value === "new" ? "ghost" : "primary"}`}
-                          onClick={() => void handleStatusChange(selectedOrder, option.value)}
+                          className="btn primary"
+                          onClick={() => void handleStatusChange(selectedOrder, "dispatched")}
                           disabled={savingOrderId === selectedOrder.id}
                         >
-                          {savingOrderId === selectedOrder.id && savingStatus === option.value ? (
+                          {savingOrderId === selectedOrder.id && savingStatus === "dispatched" ? (
                             <span className="inline-flex items-center gap-2">
                               <ButtonSpinner />
-                              {option.value === "dispatched" ? "Generando..." : "Guardando..."}
+                              Generando...
                             </span>
                           ) : (
-                            statusActionLabel(option.value)
+                            "Remitar"
                           )}
                         </button>
-                      )) : null}
+                      )}
                       {selectedOrder.status !== "rejected" ? (
                         <button
                           type="button"
@@ -721,7 +766,17 @@ export function AdminPedidosPage() {
                           }}
                           disabled={savingOrderId === selectedOrder.id}
                         >
-                          Rechazar pedido
+                          Rechazar
+                        </button>
+                      ) : null}
+                      {selectedOrder.status !== "rejected" && selectedOrder.status !== "delivered" ? (
+                        <button
+                          type="button"
+                          className="btn success"
+                          onClick={() => void handleStatusChange(selectedOrder, "delivered")}
+                          disabled={savingOrderId === selectedOrder.id}
+                        >
+                          {savingOrderId === selectedOrder.id && savingStatus === "delivered" ? "Guardando..." : "Pagado"}
                         </button>
                       ) : null}
                     </div>
@@ -803,6 +858,8 @@ export function AdminPedidosPage() {
                 ) : null}
               </div>
             </div>
+            </>
+            ) : null}
           </div>
         </div>
       </section>

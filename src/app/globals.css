@@ -222,6 +222,189 @@
   }
 }
 
+@media (min-width: 981px) {
+  body .admin-workspace .admin-orders-layout,
+  body .admin-workspace .admin-orders-layout.has-open-detail {
+    display: block;
+    width: 100%;
+    height: 100%;
+    grid-template-columns: none;
+  }
+
+  body .admin-workspace .admin-table-wrap,
+  body .admin-workspace .admin-table {
+    width: 100%;
+    max-width: none;
+  }
+
+  body .admin-workspace .admin-table-wrap {
+    height: 100%;
+    max-height: none;
+  }
+
+  body .admin-workspace .admin-detail-panel {
+    position: fixed;
+    inset: 68px 0 0 auto;
+    width: min(560px, 46vw);
+  }
+}
+
+/* Admin PC: superficie de trabajo completa, sin márgenes laterales. */
+@media (min-width: 981px) {
+  .admin-shell {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+    padding: 68px 0 0;
+    background: #e5ebf0;
+  }
+
+  .admin-topbar {
+    min-height: 68px;
+    padding-inline: 18px;
+    box-shadow: 0 2px 8px rgba(95, 0, 8, 0.22);
+  }
+
+  .admin-card {
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .admin-card + .admin-card {
+    margin-top: 0;
+  }
+
+  .admin-overview {
+    border-bottom: 1px solid #d5dde5;
+  }
+
+  .admin-overview .admin-card__head {
+    min-height: 58px;
+    padding: 10px 18px;
+  }
+
+  .admin-overview .admin-card__body {
+    padding: 10px 18px;
+  }
+
+  .admin-overview .admin-card__body > .grid > div {
+    min-height: 74px;
+    padding: 10px 14px;
+  }
+
+  .admin-overview .admin-card__body > .grid > div > div:nth-child(2) {
+    margin-top: 3px;
+    font-size: 1.35rem;
+  }
+
+  .admin-overview .admin-card__body > .grid > div > div:last-child {
+    display: none;
+  }
+
+  .admin-workspace {
+    height: calc(100dvh - 238px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .admin-workspace > .admin-card__head {
+    flex: 0 0 auto;
+    min-height: 62px;
+    padding: 9px 18px;
+    background: #f3f6f8;
+  }
+
+  .admin-workspace > .admin-card__body {
+    min-height: 0;
+    flex: 1;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .admin-orders-layout {
+    height: 100%;
+    display: block;
+    gap: 0;
+  }
+
+  .admin-table-wrap {
+    height: 100%;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 9px 10px;
+  }
+
+  .admin-filters {
+    max-width: 920px;
+  }
+
+  .admin-filters .admin-input:first-child {
+    min-width: 360px;
+  }
+}
+
+.admin-detail-backdrop {
+  position: fixed;
+  inset: 68px 0 0;
+  z-index: 39;
+  border: 0;
+  background: rgba(13, 23, 35, 0.42);
+  backdrop-filter: blur(2px);
+}
+
+.admin-detail-panel {
+  position: fixed;
+  inset: 68px 0 0 auto;
+  z-index: 40;
+  width: min(560px, 46vw);
+  background: #fff;
+  box-shadow: -8px 0 24px rgba(29, 53, 87, 0.18);
+}
+
+.admin-detail-panel .admin-order-detail {
+  position: static;
+  height: 100%;
+  max-height: none;
+  border-radius: 0;
+  padding: 18px 20px 32px;
+}
+
+.admin-detail-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-detail-close {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #edf2f6;
+  color: #1d3557;
+  font-size: 1.65rem;
+  line-height: 1;
+}
+
+.admin-detail-close:hover {
+  background: #dde6ed;
+}
+
+.admin-detail-close:focus-visible {
+  outline: 3px solid rgba(69, 123, 157, 0.28);
+  outline-offset: 2px;
+}
+
 @media (max-width: 640px) {
   .admin-shell {
     padding-inline: 8px;
@@ -3626,6 +3809,34 @@ body {
   }
 }
 
+/* Regla definitiva del admin: la bandeja nunca reserva espacio para el detalle. */
+@media (min-width: 981px) {
+  .admin-workspace .admin-orders-layout,
+  .admin-workspace .admin-orders-layout.has-open-detail {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .admin-workspace .admin-table-wrap {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+  }
+
+  .admin-workspace .admin-table {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .admin-workspace .admin-detail-panel {
+    position: fixed;
+    inset: 68px 0 0 auto;
+    width: min(560px, 46vw);
+  }
+}
+
 /* El bloque final gana sobre los estilos históricos del admin. */
 .admin-shell {
   padding: 84px 12px 28px;
@@ -3687,7 +3898,39 @@ body {
 
 .admin-input {
   border-radius: 9px;
+  border-color: #aebbc8;
+  background: #ffffff;
+  color: #17263a;
+  -webkit-text-fill-color: #17263a;
+  caret-color: #1d3557;
   box-shadow: none;
+  opacity: 1;
+}
+
+.admin-input::placeholder {
+  color: #667689;
+  -webkit-text-fill-color: #667689;
+  opacity: 1;
+}
+
+.admin-input:focus {
+  border-color: #457b9d;
+  background: #ffffff;
+  color: #101d2e;
+  -webkit-text-fill-color: #101d2e;
+  box-shadow: 0 0 0 3px rgba(69, 123, 157, 0.16);
+}
+
+.admin-input option {
+  background: #ffffff;
+  color: #17263a;
+}
+
+.admin-input:disabled {
+  background: #e8edf2;
+  color: #536274;
+  -webkit-text-fill-color: #536274;
+  opacity: 1;
 }
 
 .admin-orders-layout {
