@@ -123,6 +123,7 @@ main.has-mini-cart { padding-bottom: 72px; }
 .variant-switch button.is-active { color: var(--ink); background: white; box-shadow: 0 2px 7px rgba(56, 45, 35, .1); }
 .add-button, .primary-action { width: 100%; min-height: 42px; margin-top: 7px; border: 0; border-radius: 12px; background: var(--ink); color: white; font-size: 12px; font-weight: 850; cursor: pointer; }
 .add-button:disabled { color: #aaa39a; background: #e5dfd7; cursor: not-allowed; }
+.stepper button:disabled { opacity: .35; cursor: not-allowed; }
 .stepper { min-height: 42px; margin-top: 7px; display: grid; grid-template-columns: 42px 1fr 42px; align-items: center; overflow: hidden; border: 1px solid #e5c6c3; border-radius: 12px; background: #fff5f3; }
 .stepper button { width: 42px; height: 42px; display: grid; place-items: center; border: 0; background: transparent; color: var(--brand); cursor: pointer; }
 .stepper svg { width: 18px; }

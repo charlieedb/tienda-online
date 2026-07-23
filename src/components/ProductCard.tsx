@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { Product } from "@/catalog/types";
-import { useCartStore } from "@/store/cart";
+import { getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
 import { getProductImageUrl } from "@/lib/productImages";
 
@@ -56,18 +56,21 @@ function ProductCardInner({ product, eager = false }: { product: Product; eager?
   const itemId = `${product.id}:${variant}`;
   const item = items.find((entry) => entry.id === itemId);
   const option = variant === "pack" && product.pack ? product.pack : product.unit;
-  const available = product.active;
+  const remainingStock = getRemainingStock(items, product.id, product.stockReal);
+  const unitsNeeded = variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1;
+  const available = product.active && (remainingStock === undefined || remainingStock >= unitsNeeded);
+  const exhausted = product.active && remainingStock !== undefined && remainingStock <= 0;
 
-  const add = () => addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1 }, 1);
+  const add = () => addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.stockReal }, 1);
 
-  return <motion.article className={`product-card ${!available ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
+  return <motion.article className={`product-card ${!product.active ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
     <div className="product-media">
       <ProductImage product={product} eager={eager} />
-      {product.stockReal !== undefined ? <div className={`product-stock ${product.stockReal <= 0 ? "is-empty" : ""}`}><span>Stock disponible:</span> <strong>{stockNumber.format(product.stockReal)} unidades</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div>}
+      {remainingStock !== undefined ? <div className={`product-stock ${remainingStock <= 0 ? "is-empty" : ""}`}><span>Stock disponible:</span> <strong>{stockNumber.format(remainingStock)} unidades</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div>}
     </div>
     <div className="product-content">
       <div className="product-copy">
-        <div className="eyebrow-row"><span>{product.brand}</span>{!available ? <strong>Sin stock</strong> : null}</div>
+        <div className="eyebrow-row"><span>{product.brand}</span>{!product.active || exhausted ? <strong>Sin stock</strong> : null}</div>
         <h3>{product.name}</h3>
         <p>{option.label}</p>
       </div>
@@ -83,7 +86,7 @@ function ProductCardInner({ product, eager = false }: { product: Product; eager?
       {!item ? <button type="button" className="add-button" onClick={add} disabled={!available}>Agregar</button> : <div className="stepper" aria-label={`Cantidad de ${product.name}`}>
         <button type="button" onClick={() => setItemQty(item.id, item.qty - 1)} aria-label="Quitar una unidad"><Icon name="minus" /></button>
         <output aria-live="polite">{item.qty}</output>
-        <button type="button" onClick={() => setItemQty(item.id, item.qty + 1)} aria-label="Agregar una unidad"><Icon name="plus" /></button>
+        <button type="button" onClick={() => setItemQty(item.id, item.qty + 1)} aria-label="Agregar una unidad" disabled={!available}><Icon name="plus" /></button>
       </div>}
     </div>
   </motion.article>;
