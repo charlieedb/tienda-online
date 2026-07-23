@@ -1,6 +1,7 @@
 "use client";
 
 import { doc, getDoc } from "firebase/firestore";
+import { getAuthClient } from "@/lib/firebase";
 import { getDb } from "@/lib/firebase";
 
 export type AdminProfile = {
@@ -15,7 +16,27 @@ export async function getAdminProfile(uid: string): Promise<AdminProfile | null>
   if (!db) return null;
 
   const snap = await getDoc(doc(db, "adminUsers", uid));
-  if (!snap.exists()) return null;
+  if (!snap.exists()) {
+    const auth = getAuthClient();
+    const user = auth?.currentUser;
+    if (!user || user.uid !== uid) return null;
+    const token = await user.getIdToken();
+    const response = await fetch(
+      "https://us-central1-app-presu.cloudfunctions.net/getSessionContext",
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    const result = await response.json().catch(() => null) as {
+      ok?: boolean;
+      data?: { admin?: boolean; activo?: boolean; username?: string };
+    } | null;
+    if (!response.ok || result?.data?.admin !== true || result.data.activo === false) return null;
+    return {
+      uid,
+      active: true,
+      email: user.email,
+      name: result.data.username || user.displayName,
+    };
+  }
 
   const data = snap.data() as {
     active?: unknown;
