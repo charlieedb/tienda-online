@@ -41,6 +41,7 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const isCombo = bool(raw.esCombo) || normalize(category).includes("promo");
   const stockValue = raw.stockReal;
   const parsedStock = stockValue === null || stockValue === undefined || stockValue === "" ? undefined : Number(stockValue);
+  const stockReal = parsedStock !== undefined && Number.isFinite(parsedStock) ? parsedStock : undefined;
 
   return {
     id: code || `${slug(name)}-${index}`,
@@ -53,8 +54,8 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     pack: packQty > 1 ? { qty: packQty, label: `Caja x${packQty}`, price: packPrice, listPrice: packDiscount > 0 ? packListPrice : undefined, discountPct: packDiscount || undefined } : undefined,
     sortPrice: unitPrice,
     keywords: [code, name, category, text(raw.codigoBarra)].filter(Boolean),
-    active: !bool(raw.sinStock ?? raw.SinStock),
-    stockReal: parsedStock !== undefined && Number.isFinite(parsedStock) ? parsedStock : undefined,
+    active: stockReal !== undefined ? stockReal > 0 : !bool(raw.sinStock ?? raw.SinStock),
+    stockReal,
     offer,
     offerDiscount: offerDiscount || packDiscount || undefined,
     offerCondition: promoPackUnit > 0 ? "pack" : undefined,
