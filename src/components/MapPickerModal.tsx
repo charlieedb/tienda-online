@@ -152,16 +152,17 @@ export function MapPickerModal({
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
-          <motion.section
-            className="fixed left-1/2 top-1/2 z-[140] w-[min(720px,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-2xl bg-white"
-            initial={{ opacity: 0, y: 8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.98 }}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="map-picker-title"
-          >
+          <div className="pointer-events-none fixed inset-0 z-[140] flex items-center justify-center p-2">
+            <motion.section
+              className="pointer-events-auto w-full max-w-[720px] overflow-hidden rounded-2xl bg-white"
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="map-picker-title"
+            >
             <header className="border-b border-border px-4 py-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -223,7 +224,8 @@ export function MapPickerModal({
                 {picked ? "Confirmar punto de entrega" : "Marcá un punto en el mapa"}
               </button>
             </footer>
-          </motion.section>
+            </motion.section>
+          </div>
         </>
       ) : null}
     </AnimatePresence>
