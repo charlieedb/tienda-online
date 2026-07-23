@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from "framer-motion";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -143,31 +142,26 @@ export function MapPickerModal({
   if (typeof document === "undefined") return null;
 
   return createPortal(
-    <AnimatePresence>
-      {open ? (
-          <motion.section
-              className="fixed inset-0 z-[140] flex min-h-0 flex-col overflow-hidden bg-white"
-              initial={{ opacity: 0, x: "6%" }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: "6%" }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="map-picker-title"
-            >
-            <header className="border-b border-border px-4 py-3">
-              <div className="flex items-start justify-between gap-3">
+    open ? (
+      <section
+        className="delivery-map-view"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="map-picker-title"
+      >
+            <header className="delivery-map-header">
+              <div className="delivery-map-title-row">
                 <div>
                   <h2 id="map-picker-title" className="text-base font-semibold text-black">Punto de entrega</h2>
                   <p className="mt-0.5 text-sm text-black/70">Buscá la dirección o tocá el punto exacto en el mapa.</p>
                 </div>
-                <button type="button" onClick={onClose} className="rounded-xl px-3 py-2 text-sm font-semibold text-black/70 hover:bg-black/5">
+                <button type="button" onClick={onClose} className="delivery-map-close">
                   Cerrar
                 </button>
               </div>
-              <div className="mt-3 flex gap-2">
+              <div className="delivery-map-search">
                 <input
-                  className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-white px-3 text-[16px] font-normal text-black outline-none focus:border-brand"
+                  className="delivery-map-search-input"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   onKeyDown={(event) => {
@@ -178,7 +172,7 @@ export function MapPickerModal({
                 <button
                   type="button"
                   onClick={() => void searchAddress()}
-                  className="h-11 shrink-0 rounded-xl bg-[#1f2a8a] px-4 text-sm font-semibold text-white disabled:opacity-60"
+                  className="delivery-map-search-button"
                   disabled={!query.trim() || searching}
                 >
                   {searching ? "Buscando…" : "Buscar"}
@@ -188,21 +182,21 @@ export function MapPickerModal({
                 type="button"
                 onClick={useCurrentLocation}
                 disabled={locating}
-                className="mt-2 h-10 w-full rounded-xl bg-[#d9f1ff] px-4 text-sm font-semibold text-[#075985] disabled:opacity-60"
+                className="delivery-map-locate"
               >
                 {locating ? "Buscando mi ubicación…" : "Usar mi ubicación actual"}
               </button>
-              {message ? <p className="mt-2 text-sm font-normal text-black/75" aria-live="polite">{message}</p> : null}
+              {message ? <p className="delivery-map-message" aria-live="polite">{message}</p> : null}
             </header>
 
-            <div className="relative min-h-0 flex-1 bg-zinc-100">
-              <div ref={mapDivRef} className="h-full w-full" />
-              <div className="pointer-events-none absolute bottom-3 left-1/2 z-[500] -translate-x-1/2 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-black shadow">
+            <div className="delivery-map-canvas">
+              <div ref={mapDivRef} className="delivery-map-leaflet" />
+              <div className="delivery-map-hint">
                 Tocá el mapa para mover el punto
               </div>
             </div>
 
-            <footer className="border-t border-border p-4">
+            <footer className="delivery-map-footer">
               <button
                 type="button"
                 disabled={!picked}
@@ -211,14 +205,13 @@ export function MapPickerModal({
                   onPick(picked);
                   onClose();
                 }}
-                className="h-11 w-full rounded-xl bg-brand text-sm font-semibold text-white disabled:opacity-50"
+                className="delivery-map-confirm"
               >
                 {picked ? "Guardar punto y volver" : "Marcá un punto en el mapa"}
               </button>
             </footer>
-          </motion.section>
-      ) : null}
-    </AnimatePresence>,
+      </section>
+    ) : null,
     document.body,
   );
 }
