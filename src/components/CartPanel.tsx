@@ -166,6 +166,8 @@ function CheckoutModal({
   loadingProfile,
   form,
   submitting,
+  progress,
+  progressLabel,
   error,
   onClose,
   onChange,
@@ -175,6 +177,8 @@ function CheckoutModal({
   loadingProfile: boolean;
   form: CheckoutForm;
   submitting: boolean;
+  progress: number;
+  progressLabel: string;
   error: string;
   onClose: () => void;
   onChange: (patch: Partial<CheckoutForm>) => void;
@@ -275,6 +279,27 @@ function CheckoutModal({
                 {submitting ? "Enviando..." : "Enviar pedido"}
               </MotionButton>
             </div>
+            {submitting ? (
+              <div className="px-5 pb-4" aria-live="polite">
+                <div className="mb-2 flex items-center justify-between gap-3 text-xs font-semibold text-foreground/70">
+                  <span>{progressLabel}</span>
+                  <span className="tabular-nums text-foreground">{progress}%</span>
+                </div>
+                <div
+                  className="h-2 overflow-hidden rounded-full bg-black/10"
+                  role="progressbar"
+                  aria-label="Progreso del pedido"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={progress}
+                >
+                  <div
+                    className="h-full rounded-full bg-[var(--brand)] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            ) : null}
           </motion.div>
         </>
       ) : null}
@@ -359,6 +384,8 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
   const [successOpen, setSuccessOpen] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState(0);
+  const [submitProgressLabel, setSubmitProgressLabel] = useState("Preparando pedido");
   const [checkoutError, setCheckoutError] = useState("");
   const [form, setForm] = useState<CheckoutForm>({ nombre: "", telefono: "", direccion: "", nota: "" });
   const [browserBarInset, setBrowserBarInset] = useState(0);
@@ -513,10 +540,14 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
     }
 
     setSubmitting(true);
+    setSubmitProgress(5);
+    setSubmitProgressLabel("Preparando pedido");
     setCheckoutError("");
     try {
       await primeSuccessAudio();
       const catalog = await getActiveCatalog();
+      setSubmitProgress(15);
+      setSubmitProgressLabel("Validando productos");
       const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
 
       const orderResult = await submitCheckoutOrder({
@@ -529,14 +560,23 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
         },
         cartItems: items,
         productsById,
+        onProgress: (progress, label) => {
+          setSubmitProgress(progress);
+          setSubmitProgressLabel(label);
+        },
       });
 
       try {
+        setSubmitProgress(88);
+        setSubmitProgressLabel("Enviando aviso");
         await notifyTelegramOrder(orderResult.telegramPayload);
       } catch (telegramError) {
         console.error("Telegram order notification failed", telegramError);
       }
 
+      setSubmitProgress(100);
+      setSubmitProgressLabel("Pedido confirmado");
+      await new Promise((resolve) => window.setTimeout(resolve, 300));
       clearCart();
       closeCart();
       setCheckoutOpen(false);
@@ -624,6 +664,8 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
         loadingProfile={profileLoading}
         form={form}
         submitting={submitting}
+        progress={submitProgress}
+        progressLabel={submitProgressLabel}
         error={checkoutError}
         onClose={() => {
           if (submitting) return;

@@ -421,7 +421,7 @@ export function AdminPedidosPage() {
   if (!user || !adminSessionActive) {
     return (
       <main className="admin-shell">
-        <section className="admin-card mx-auto max-w-xl overflow-hidden">
+        <section className="admin-card admin-login-card overflow-hidden">
           <div className="admin-card__head">
             <div>
               <div className="admin-kicker">Panel privado</div>
@@ -432,15 +432,15 @@ export function AdminPedidosPage() {
             </div>
           </div>
           <div className="admin-card__body space-y-4">
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="admin-login-fields">
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-black/65">Usuario</span>
+                <span className="text-sm font-semibold text-black/65">Usuario o email</span>
                 <input
                   className="admin-input"
                   type="text"
                   value={loginForm.username}
                   onChange={(event) => setLoginForm((prev) => ({ ...prev, username: event.target.value }))}
-                  placeholder="Ej: carlos"
+                  placeholder="Ej: carlos o nombre@email.com"
                   autoComplete="username"
                 />
               </label>
@@ -478,7 +478,7 @@ export function AdminPedidosPage() {
   if (!adminProfile) {
     return (
       <main className="admin-shell">
-        <section className="admin-card mx-auto max-w-xl overflow-hidden">
+        <section className="admin-card admin-login-card overflow-hidden">
           <div className="admin-card__head">
             <div>
               <div className="admin-kicker">Acceso denegado</div>
@@ -970,7 +970,7 @@ export function AdminPedidosPage() {
                     <div>
                       <div className="font-semibold text-[#20283b]">{product.nombre}</div>
                       <div className="text-black/48">
-                        {product.codigo} Â· {product.unidades} unid. Â· {product.cajas} cajas
+                        {product.codigo} · {product.unidades} unid. · {product.cajas} cajas
                       </div>
                     </div>
                     <div className="font-semibold text-[#20283b]">{formatMoney(product.total)}</div>

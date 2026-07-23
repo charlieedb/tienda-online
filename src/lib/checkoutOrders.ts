@@ -57,6 +57,7 @@ export async function submitCheckoutOrder(params: {
   cartItems: CartItem[];
   productsById: Map<string, Product>;
   requestId: string;
+  onProgress?: (progress: number, label: string) => void;
 }) {
   const db = getDb();
   if (!db) throw new Error("Firebase no está configurado.");
@@ -172,7 +173,9 @@ export async function submitCheckoutOrder(params: {
   };
 
   await setDoc(orderRef, payload, { merge: true });
+  params.onProgress?.(35, "Pedido registrado");
   await confirmCentralInventory(params.user, orderRef.id);
+  params.onProgress?.(78, "Stock reservado");
 
   const telegramPayload: TelegramOrderPayload = {
     pedido: {

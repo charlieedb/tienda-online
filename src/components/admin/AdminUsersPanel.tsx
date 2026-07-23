@@ -24,6 +24,7 @@ export function AdminUsersPanel() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [form, setForm] = useState({ username: "", name: "", email: "", password: "" });
+  const [editingUsername, setEditingUsername] = useState<string | null>(null);
 
   async function loadUsers() {
     if (!user) return;
@@ -70,6 +71,7 @@ export function AdminUsersPanel() {
       const result = await response.json().catch(() => null) as { ok?: boolean; error?: string } | null;
       if (!response.ok || result?.ok !== true) throw new Error(result?.error || "No se pudo guardar el usuario.");
       setForm({ username: "", name: "", email: "", password: "" });
+      setEditingUsername(null);
       setMessage("Usuario guardado correctamente.");
       await loadUsers();
     } catch (error) {
@@ -90,6 +92,32 @@ export function AdminUsersPanel() {
     await loadUsers();
   }
 
+  function editUser(entry: ManagedUser) {
+    setEditingUsername(entry.username);
+    setForm({ username: entry.username, name: entry.name, email: entry.email, password: "" });
+    setMessage("");
+  }
+
+  async function deleteUser(entry: ManagedUser) {
+    if (!user || !window.confirm(`¿Eliminar el operador ${entry.username}?`)) return;
+    const token = await user.getIdToken();
+    const response = await fetch("https://us-central1-app-presu.cloudfunctions.net/manageAdminOperators", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ username: entry.username }),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null) as { error?: string } | null;
+      setMessage(result?.error || "No se pudo eliminar el usuario.");
+      return;
+    }
+    if (editingUsername === entry.username) {
+      setEditingUsername(null);
+      setForm({ username: "", name: "", email: "", password: "" });
+    }
+    await loadUsers();
+  }
+
   return (
     <section className="admin-users-box">
       <header className="admin-users-head">
@@ -101,10 +129,10 @@ export function AdminUsersPanel() {
 
       <div className="admin-users-layout">
         <div className="admin-users-form">
-          <h2>Agregar o actualizar usuario</h2>
+          <h2>{editingUsername ? `Editar @${editingUsername}` : "Agregar usuario"}</h2>
           <label>
             <span>Usuario</span>
-            <input className="admin-input" value={form.username} onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))} autoComplete="off" />
+            <input className="admin-input" value={form.username} onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))} autoComplete="off" disabled={Boolean(editingUsername)} />
           </label>
           <label>
             <span>Nombre</span>
@@ -115,13 +143,20 @@ export function AdminUsersPanel() {
             <input className="admin-input" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} autoComplete="email" />
           </label>
           <label>
-            <span>Contraseña</span>
-            <input className="admin-input" type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} autoComplete="new-password" />
+            <span>{editingUsername ? "Nueva contraseña (opcional)" : "Contraseña"}</span>
+            <input className="admin-input" type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} autoComplete="new-password" placeholder={editingUsername ? "Dejar vacío para conservarla" : ""} />
           </label>
           {message ? <div className="admin-users-message">{message}</div> : null}
-          <button type="button" className="btn primary" onClick={() => void saveUser()} disabled={saving || form.username.trim().length < 3 || !form.email.includes("@") || form.password.length < 6}>
-            {saving ? "Guardando..." : "Guardar usuario"}
-          </button>
+          <div className="admin-users-form__actions">
+            {editingUsername ? (
+              <button type="button" className="btn ghost" onClick={() => { setEditingUsername(null); setForm({ username: "", name: "", email: "", password: "" }); }}>
+                Cancelar
+              </button>
+            ) : null}
+            <button type="button" className="btn primary" onClick={() => void saveUser()} disabled={saving || form.username.trim().length < 3 || !form.email.includes("@") || (!editingUsername && form.password.length < 6) || (Boolean(form.password) && form.password.length < 6)}>
+              {saving ? "Guardando..." : editingUsername ? "Guardar cambios" : "Guardar usuario"}
+            </button>
+          </div>
         </div>
 
         <div className="admin-users-list">
@@ -135,9 +170,13 @@ export function AdminUsersPanel() {
                 <strong>{entry.name || entry.username}</strong>
                 <span>@{entry.username} · {entry.email} · Último acceso: {entry.lastLogin}</span>
               </div>
-              <button type="button" className={`admin-user-state ${entry.active ? "is-active" : ""}`} onClick={() => void toggleUser(entry)}>
-                {entry.active ? "Activo" : "Desactivado"}
-              </button>
+              <div className="admin-user-actions">
+                <button type="button" className="admin-user-edit" onClick={() => editUser(entry)}>Editar</button>
+                <button type="button" className={`admin-user-state ${entry.active ? "is-active" : ""}`} onClick={() => void toggleUser(entry)}>
+                  {entry.active ? "Activo" : "Desactivado"}
+                </button>
+                <button type="button" className="admin-user-delete" onClick={() => void deleteUser(entry)}>Eliminar</button>
+              </div>
             </article>
           ))}
         </div>

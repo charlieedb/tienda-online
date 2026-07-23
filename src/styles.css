@@ -201,6 +201,14 @@ main.has-mini-cart { padding-bottom: 72px; }
 .checkout-actions button:disabled { opacity: .6; cursor: wait; }
 .checkout-cancel { color: var(--ink); border: 1px solid var(--line); background: white; }
 .checkout-submit { display: flex; align-items: center; justify-content: center; gap: 7px; color: white; border: 0; background: var(--brand); }
+.checkout-progress { padding: 0 18px 12px; background: #fffdf9; }
+.checkout-progress-copy { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; color: #514b45; font-size: 12px; font-weight: 700; }
+.checkout-progress-copy strong { color: #211d19; font-variant-numeric: tabular-nums; }
+.checkout-progress-track { height: 8px; overflow: hidden; border-radius: 999px; background: #e7e1da; }
+.checkout-progress-track > span { display: block; height: 100%; border-radius: inherit; background: var(--brand); transition: width .5s cubic-bezier(.22, 1, .36, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .checkout-progress-track > span { transition: none; }
+}
 .order-success { min-height: calc(100dvh - var(--top-shell-h) - env(safe-area-inset-top) - 40px); display: grid; place-content: center; justify-items: center; padding: 30px 18px; text-align: center; }
 .success-check { width: 68px; height: 68px; display: grid; place-items: center; color: white; border-radius: 50%; background: var(--green); }
 .success-check svg { width: 32px; }
@@ -288,10 +296,10 @@ main.has-mini-cart { padding-bottom: 72px; }
 .error-state p { max-width: 34ch; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .error-state button { min-height: 44px; margin-top: 15px; padding: 0 17px; border: 0; border-radius: 12px; color: white; background: var(--ink); font-size: 12px; font-weight: 800; cursor: pointer; }
 
-.mini-cart { position: fixed; z-index: 35; left: 50%; bottom: max(16px, calc(env(safe-area-inset-bottom) + 8px)); width: max-content; min-height: 46px; display: flex; align-items: center; gap: 6px; padding: 8px 12px; white-space: nowrap; color: white; border: 1px solid rgba(255,255,255,.38); border-radius: 15px; background: rgba(20, 126, 82, .86); box-shadow: 0 9px 22px rgba(14, 93, 59, .25), inset 0 1px 0 rgba(255,255,255,.24); backdrop-filter: blur(14px) saturate(145%); -webkit-backdrop-filter: blur(14px) saturate(145%); transform: translateX(-50%); transition: opacity .18s ease, transform .22s ease; cursor: pointer; }
-.mini-cart::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 15px; height: 15px; background: rgba(20, 126, 82, .94); border-right: 1px solid rgba(255,255,255,.28); border-bottom: 1px solid rgba(255,255,255,.28); border-radius: 0 0 3px 0; transform: translateX(-50%) rotate(45deg); }
-.mini-cart span { color: rgba(255,255,255,.78); font-size: 9px; font-weight: 750; line-height: 1; }
-.mini-cart strong { font-size: 13px; line-height: 1; font-variant-numeric: tabular-nums; }
+.mini-cart { position: fixed; z-index: 35; left: 50%; bottom: max(18px, calc(env(safe-area-inset-bottom) + 10px)); width: max-content; min-height: 54px; display: flex; align-items: center; gap: 8px; padding: 10px 17px; white-space: nowrap; color: white; border: 0; border-radius: 16px; background: #10a85f; box-shadow: 0 8px 16px rgba(7, 112, 61, .24); transform: translateX(-50%); transition: opacity .18s ease, transform .22s ease; cursor: pointer; }
+.mini-cart::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 15px; height: 15px; background: #10a85f; border: 0; border-radius: 0 0 3px 0; transform: translateX(-50%) rotate(45deg); }
+.mini-cart span { color: #fff; font-size: 10px; font-weight: 800; line-height: 1; }
+.mini-cart strong { font-size: 16px; line-height: 1; font-variant-numeric: tabular-nums; }
 .mini-cart:active { transform: translateX(-50%) scale(.98); }
 body:has(input:focus, textarea:focus, select:focus) .mini-cart { opacity: 0; pointer-events: none; transform: translate(-50%, calc(100% + 40px)); }
 .bottom-nav { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; height: calc(var(--nav-h) + env(safe-area-inset-bottom)); padding: 7px max(10px, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(10px, env(safe-area-inset-left)); display: grid; grid-template-columns: repeat(4, 1fr); background: #c81b16; border-top: 1px solid rgba(126, 14, 11, .42); box-shadow: 0 -8px 24px rgba(125, 18, 14, .16); }

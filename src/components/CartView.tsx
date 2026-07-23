@@ -45,6 +45,8 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState(0);
+  const [submitProgressLabel, setSubmitProgressLabel] = useState("Preparando pedido");
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const [sentWarning, setSentWarning] = useState("");
@@ -76,7 +78,7 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
     if (!customer.nombre || !customer.telefono || !customer.direccion) {
       setError("Completá nombre, teléfono y dirección para confirmar la compra."); return;
     }
-    setSubmitting(true); setError("");
+    setSubmitting(true); setSubmitProgress(5); setSubmitProgressLabel("Preparando pedido"); setError("");
     try {
       if (!user) throw new Error("Necesitás iniciar sesión para confirmar la compra.");
       const savedProfile = getCachedUserProfile(user.uid) ?? await refreshUserProfile(user.uid);
@@ -94,13 +96,27 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
           direcciones: [{ id: "principal", provincia: "", localidad: "", direccion: customer.direccion, ubicacion: null }],
         });
       }
-      const result = await submitCheckoutOrder({ user, customer, cartItems: items, productsById: new Map(), requestId: orderRequestId.current });
+      setSubmitProgress(15); setSubmitProgressLabel("Validando productos");
+      const result = await submitCheckoutOrder({
+        user,
+        customer,
+        cartItems: items,
+        productsById: new Map(),
+        requestId: orderRequestId.current,
+        onProgress: (progress, label) => {
+          setSubmitProgress(progress);
+          setSubmitProgressLabel(label);
+        },
+      });
       let telegramWarning = "";
       try {
+        setSubmitProgress(88); setSubmitProgressLabel("Enviando aviso");
         await notifyTelegramOrder(result.telegramPayload);
       } catch {
         telegramWarning = "El pedido y el stock quedaron confirmados, pero el aviso de Telegram no pudo enviarse.";
       }
+      setSubmitProgress(100); setSubmitProgressLabel("Pedido confirmado");
+      await new Promise((resolve) => window.setTimeout(resolve, 300));
       try {
         localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, address: customer.direccion, city: "", notes: customer.nota }));
       } catch { /* el pedido ya fue enviado */ }
@@ -132,6 +148,6 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
       <label><span>Teléfono</span><input value={form.telefono} onChange={(event) => setForm((current) => ({ ...current, telefono: event.target.value }))} autoComplete="tel" inputMode="tel" placeholder="WhatsApp o teléfono"/></label>
       <label><span>Dirección de entrega</span><input value={form.direccion} onChange={(event) => setForm((current) => ({ ...current, direccion: event.target.value }))} autoComplete="street-address" placeholder="Calle, número y localidad"/></label>
       <label><span>Nota <em>Opcional</em></span><textarea value={form.nota} onChange={(event) => setForm((current) => ({ ...current, nota: event.target.value }))} rows={3} placeholder="Aclaraciones para el pedido"/></label>
-    </div><div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className="checkout-submit" onClick={submit} disabled={submitting || profileLoading}>{submitting ? <><span className="tiny-spinner"/> Enviando…</> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
+    </div>{submitting ? <div className="checkout-progress" aria-live="polite"><div className="checkout-progress-copy"><span>{submitProgressLabel}</span><strong>{submitProgress}%</strong></div><div className="checkout-progress-track" role="progressbar" aria-label="Progreso del pedido" aria-valuemin={0} aria-valuemax={100} aria-valuenow={submitProgress}><span style={{ width: `${submitProgress}%` }}/></div></div> : null}<div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className="checkout-submit" onClick={submit} disabled={submitting || profileLoading}>{submitting ? <><span className="tiny-spinner"/> Enviando…</> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
   </>;
 }

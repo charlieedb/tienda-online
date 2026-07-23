@@ -494,6 +494,36 @@ body .admin-workspace .admin-list-column .admin-table-wrap {
   color: #17603c;
 }
 
+.admin-users-form__actions,
+.admin-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-users-form__actions {
+  justify-content: flex-end;
+}
+
+.admin-user-edit,
+.admin-user-delete {
+  min-height: 36px;
+  border-radius: 7px;
+  padding: 0 10px;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.admin-user-edit {
+  background: #e6edf3;
+  color: #31516d;
+}
+
+.admin-user-delete {
+  background: #f5e5e6;
+  color: #8b1e24;
+}
+
 .admin-login-actions {
   display: flex;
   align-items: center;
@@ -509,4 +539,52 @@ body .admin-workspace .admin-list-column .admin-table-wrap {
 .admin-forgot-password:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+body .admin-shell:has(.admin-login-card) {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 32px;
+}
+
+body .admin-shell .admin-login-card {
+  width: min(520px, calc(100vw - 40px));
+  max-width: 520px;
+  margin: 0 auto;
+  border-radius: 14px;
+}
+
+.admin-login-card .admin-card__head {
+  padding: 24px 26px 20px;
+}
+
+.admin-login-card .admin-card__body {
+  padding: 22px 26px 26px;
+}
+
+.admin-login-card .admin-title {
+  margin-top: 6px;
+  font-size: 1.55rem;
+  line-height: 1.15;
+}
+
+.admin-login-fields {
+  display: grid;
+  gap: 15px;
+}
+
+.admin-login-card label {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-login-card .admin-input {
+  width: 100%;
+}
+
+.admin-login-card .admin-login-actions {
+  width: 100%;
+  justify-content: space-between;
+  margin-top: 4px;
 }
