@@ -18,7 +18,7 @@ import {
 } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 
-export type OrderStatus = "new" | "preparing" | "dispatched" | "delivered";
+export type OrderStatus = "new" | "preparing" | "dispatched" | "delivered" | "rejected";
 
 export type OrderItem = {
   codigo: string;
@@ -87,6 +87,15 @@ export type OrderRecord = {
     createdBy: string;
     lastActionBy: string;
   };
+  rejection?: {
+    reason: string;
+    rejectedAtIso: string;
+    rejectedBy: string;
+  };
+  inventory?: {
+    status: string;
+    restoredAtIso?: string;
+  };
   sheets?: {
     status?: string;
     message?: string;
@@ -115,6 +124,8 @@ const PAGE_SIZE = 40;
 const REALTIME_LIMIT = 80;
 const MY_ORDERS_PAGE_SIZE = 12;
 const MY_ORDERS_LOOKBACK_DAYS = 30;
+const REJECT_ORDER_URL =
+  "https://us-central1-app-presu.cloudfunctions.net/rejectTiendaOrder";
 
 function statusHistoryLabel(status: OrderStatus) {
   switch (status) {
@@ -124,6 +135,8 @@ function statusHistoryLabel(status: OrderStatus) {
       return "Remitado";
     case "delivered":
       return "Cobrado";
+    case "rejected":
+      return "Rechazado";
     default:
       return "Nuevo";
   }
@@ -140,7 +153,7 @@ function asString(value: unknown) {
 
 function toStatus(value: unknown): OrderStatus {
   const raw = asString(value);
-  if (raw === "preparing" || raw === "dispatched" || raw === "delivered") return raw;
+  if (raw === "preparing" || raw === "dispatched" || raw === "delivered" || raw === "rejected") return raw;
   return "new";
 }
 
@@ -220,6 +233,15 @@ function mapOrder(
       createdBy: asString(data?.audit?.createdBy),
       lastActionBy: asString(data?.audit?.lastActionBy),
     },
+    rejection: data?.rejection ? {
+      reason: asString(data.rejection.reason),
+      rejectedAtIso: asString(data.rejection.rejectedAtIso),
+      rejectedBy: asString(data.rejection.rejectedBy),
+    } : undefined,
+    inventory: data?.inventory ? {
+      status: asString(data.inventory.status),
+      restoredAtIso: asString(data.inventory.restoredAtIso),
+    } : undefined,
     sheets: data?.sheets
       ? {
           status: asString(data?.sheets?.status),
@@ -373,8 +395,36 @@ export async function updateOrderWorkflow(params: {
   });
 }
 
+export async function rejectOrderAndRestoreStock(params: {
+  orderId: string;
+  reason: string;
+  token: string;
+}) {
+  const response = await fetch(REJECT_ORDER_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      orderId: params.orderId,
+      reason: params.reason.trim(),
+    }),
+  });
+  const data = await response.json().catch(() => null) as {
+    ok?: boolean;
+    alreadyRestored?: boolean;
+    error?: string;
+  } | null;
+  if (!response.ok || data?.ok !== true) {
+    throw new Error(data?.error || "No se pudo rechazar el pedido.");
+  }
+  return data;
+}
+
 export function buildMetrics(orders: OrderRecord[], searches: SearchEvent[]) {
-  const totalRevenue = orders.reduce((acc, order) => acc + order.totals.total, 0);
+  const activeOrders = orders.filter((order) => order.status !== "rejected");
+  const totalRevenue = activeOrders.reduce((acc, order) => acc + order.totals.total, 0);
   const todayKey = new Date().toISOString().slice(0, 10);
   const pedidosHoy = orders.filter((order) => orderMoment(order).slice(0, 10) === todayKey).length;
 
@@ -382,7 +432,7 @@ export function buildMetrics(orders: OrderRecord[], searches: SearchEvent[]) {
     string,
     { nombre: string; unidades: number; cajas: number; total: number; pedidos: number }
   >();
-  for (const order of orders) {
+  for (const order of activeOrders) {
     for (const item of order.items) {
       const key = item.codigo || item.nombre;
       const current = topProductsMap.get(key) || {
@@ -419,7 +469,7 @@ export function buildMetrics(orders: OrderRecord[], searches: SearchEvent[]) {
 
   return {
     pedidosHoy,
-    ticketPromedio: orders.length ? totalRevenue / orders.length : 0,
+    ticketPromedio: activeOrders.length ? totalRevenue / activeOrders.length : 0,
     totalRevenue,
     averageDispatchMinutes: statusDurations.length
       ? statusDurations.reduce((acc, value) => acc + value, 0) / statusDurations.length

@@ -23,6 +23,237 @@
   --admin-page-bg-2: #dfe7ef;
 }
 
+/* Admin de pedidos 2026: bandeja operativa alineada con la app JOMA. */
+.admin-shell {
+  padding: 84px 12px 28px;
+  background: #e9eef3;
+}
+
+.admin-topbar {
+  min-height: 68px;
+  background: linear-gradient(135deg, #ed111c, #bf0010);
+  box-shadow: 0 6px 18px rgba(122, 0, 10, 0.2);
+}
+
+.admin-topbar__center {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.admin-topbar .admin-kicker {
+  letter-spacing: 0.08em;
+}
+
+.admin-card {
+  width: min(1520px, 100%);
+  border: 0;
+  border-radius: 14px;
+  background: #f8fafc;
+  box-shadow: 0 2px 8px rgba(29, 53, 87, 0.09);
+  backdrop-filter: none;
+}
+
+.admin-card + .admin-card {
+  margin-top: 12px;
+}
+
+.admin-card__head {
+  align-items: center;
+  padding: 16px 18px;
+}
+
+.admin-card__body {
+  padding: 16px 18px 18px;
+}
+
+.admin-title {
+  margin-top: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.025em;
+}
+
+.admin-section-title {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.admin-overview .admin-card__body > .grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-overview .admin-card__body > .grid > div {
+  border: 0;
+  border-radius: 10px;
+  background: #eef3f7;
+  box-shadow: none;
+}
+
+.admin-filters {
+  flex: 1;
+  flex-wrap: nowrap;
+}
+
+.admin-filters .admin-input:first-child {
+  min-width: min(360px, 40vw);
+}
+
+.admin-input {
+  min-height: 44px;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.admin-orders-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.42fr) minmax(360px, 0.58fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.admin-table-wrap {
+  max-height: calc(100dvh - 320px);
+  overflow: auto;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.admin-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #edf2f6;
+}
+
+.admin-table th {
+  letter-spacing: 0.05em;
+}
+
+.admin-table tbody tr.is-active {
+  background: #e4eef7;
+  box-shadow: inset 3px 0 #457b9d;
+}
+
+.admin-order-detail {
+  position: sticky;
+  top: 82px;
+  max-height: calc(100dvh - 104px);
+  overflow: auto;
+  border-radius: 10px;
+  background: #fff;
+  padding: 18px;
+}
+
+.admin-detail-label {
+  margin-bottom: 5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #5f6f82;
+}
+
+.admin-danger {
+  background: #8b1e24;
+  color: #fff;
+}
+
+.admin-danger:hover {
+  background: #73181d;
+}
+
+.admin-danger:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-reject-box,
+.admin-rejection-note {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  border-radius: 10px;
+  background: #fff0f0;
+  padding: 14px;
+  color: #6f1a20;
+}
+
+.admin-reject-box p,
+.admin-rejection-note span,
+.admin-rejection-note small {
+  margin: 0;
+  color: #77464a;
+}
+
+.admin-reject-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.admin-workspace + .admin-card {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  .admin-overview {
+    display: none;
+  }
+
+  .admin-filters {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .admin-filters .admin-input:first-child {
+    min-width: 100%;
+  }
+
+  .admin-orders-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-table-wrap {
+    max-height: 42dvh;
+  }
+
+  .admin-order-detail {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-shell {
+    padding-inline: 8px;
+  }
+
+  .admin-card__head,
+  .admin-card__body {
+    padding-inline: 12px;
+  }
+
+  .admin-table {
+    min-width: 820px;
+  }
+
+  .admin-reject-actions {
+    flex-direction: column-reverse;
+  }
+
+  .admin-reject-actions .btn {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell *,
+  .admin-shell *::before,
+  .admin-shell *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 body {
   overflow-y: auto;
 }
@@ -3392,5 +3623,139 @@ body {
   .desktop-shop-list .desktop-shop-row .desktop-shop-card__actions {
     display: flex;
     flex-direction: column;
+  }
+}
+
+/* El bloque final gana sobre los estilos históricos del admin. */
+.admin-shell {
+  padding: 84px 12px 28px;
+  background: #e9eef3;
+}
+
+.admin-card {
+  width: min(1520px, 100%);
+  border: 0;
+  border-radius: 14px;
+  background: #f8fafc;
+  box-shadow: 0 2px 8px rgba(29, 53, 87, 0.09);
+  backdrop-filter: none;
+}
+
+.admin-card + .admin-card {
+  margin-top: 12px;
+}
+
+.admin-card__head {
+  align-items: center;
+  padding: 16px 18px;
+}
+
+.admin-card__body {
+  padding: 16px 18px 18px;
+}
+
+.admin-title {
+  margin-top: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.025em;
+}
+
+.admin-section-title {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.admin-overview .admin-card__body > .grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-overview .admin-card__body > .grid > div {
+  border: 0;
+  border-radius: 10px;
+  background: #eef3f7;
+  box-shadow: none;
+}
+
+.admin-filters {
+  flex: 1;
+  flex-wrap: nowrap;
+}
+
+.admin-filters .admin-input:first-child {
+  min-width: min(360px, 40vw);
+}
+
+.admin-input {
+  border-radius: 9px;
+  box-shadow: none;
+}
+
+.admin-orders-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.42fr) minmax(360px, 0.58fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.admin-table-wrap {
+  max-height: calc(100dvh - 320px);
+  overflow: auto;
+  border-radius: 10px;
+}
+
+.admin-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.admin-table th {
+  letter-spacing: 0.05em;
+}
+
+.admin-table tbody tr.is-active {
+  background: #e4eef7;
+  box-shadow: inset 3px 0 #457b9d;
+}
+
+.admin-order-detail {
+  position: sticky;
+  top: 82px;
+  max-height: calc(100dvh - 104px);
+  overflow: auto;
+  border-radius: 10px;
+  background: #fff;
+  padding: 18px;
+}
+
+.admin-workspace + .admin-card {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  .admin-overview {
+    display: none;
+  }
+
+  .admin-filters {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .admin-filters .admin-input:first-child {
+    min-width: 100%;
+  }
+
+  .admin-orders-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-table-wrap {
+    max-height: 42dvh;
+  }
+
+  .admin-order-detail {
+    position: static;
+    max-height: none;
   }
 }

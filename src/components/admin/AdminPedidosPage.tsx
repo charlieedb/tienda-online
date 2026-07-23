@@ -10,6 +10,7 @@ import {
   formatMoney,
   orderMoment,
   subscribeOrdersRealtime,
+  rejectOrderAndRestoreStock,
   updateOrderWorkflow,
   type OrderStatus,
   type OrderRecord,
@@ -21,6 +22,7 @@ const STATUS_OPTIONS: Array<{ value: OrderStatus; label: string }> = [
   { value: "preparing", label: "Preparado" },
   { value: "dispatched", label: "Remitado" },
   { value: "delivered", label: "Cobrado" },
+  { value: "rejected", label: "Rechazado" },
 ];
 
 const STATUS_ACTIONS: Array<{ value: OrderStatus; label: string }> = [
@@ -46,6 +48,8 @@ function statusPill(status: OrderStatus) {
       return "bg-[#dff6eb] text-[#0f5c3a] border-[#87d3af]";
     case "delivered":
       return "bg-[#dce9ff] text-[#1a438f] border-[#96b6f7]";
+    case "rejected":
+      return "bg-[#fee7e7] text-[#8b1e24] border-[#efaaaa]";
     default:
       return "bg-white/85 text-black/75 border-black/10";
   }
@@ -125,6 +129,9 @@ export function AdminPedidosPage() {
   const [searchText, setSearchText] = useState("");
   const deferredSearch = useDeferredValue(searchText);
   const [dispatchDrafts, setDispatchDrafts] = useState<Record<string, { remito: string; note: string }>>({});
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [actionError, setActionError] = useState("");
   const [todayKey] = useState(() => new Date().toISOString().slice(0, 10));
   const [weekStartMs] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
 
@@ -347,6 +354,26 @@ export function AdminPedidosPage() {
     });
   }
 
+  async function handleRejectOrder(order: OrderRecord) {
+    if (!user || rejectReason.trim().length < 3) return;
+    setSavingOrderId(order.id);
+    setActionError("");
+    try {
+      const token = await user.getIdToken();
+      await rejectOrderAndRestoreStock({
+        orderId: order.id,
+        reason: rejectReason,
+        token,
+      });
+      setRejectingId(null);
+      setRejectReason("");
+    } catch (error) {
+      setActionError(String((error as Error)?.message || "No se pudo rechazar el pedido."));
+    } finally {
+      setSavingOrderId(null);
+    }
+  }
+
   if (loading || checkingAdmin) {
     return (
       <main className="admin-shell">
@@ -444,10 +471,10 @@ export function AdminPedidosPage() {
         </button>
       </div>
 
-      <section className="admin-card overflow-hidden">
+      <section className="admin-card admin-overview overflow-hidden">
         <div className="admin-card__head">
           <div className="admin-headline">
-            <h1 className="admin-title">Pedidos del dia</h1>
+            <h1 className="admin-title">Pedidos de hoy</h1>
           </div>
           <div className="text-sm font-semibold text-white/65">{loadingData ? "Sincronizando..." : "En vivo"}</div>
         </div>
@@ -464,19 +491,18 @@ export function AdminPedidosPage() {
               hint="Pendientes de tomar."
             />
             <DashboardMetric
-              label="Remitados hoy"
-              value={String(todayOrders.filter((order) => order.status === "dispatched").length)}
-              hint="Listos para salir o ya despachados."
+              label="A preparar"
+              value={String(todayOrders.filter((order) => order.status === "new" || order.status === "preparing").length)}
+              hint="Pedidos que todavía requieren acción."
             />
           </div>
         </div>
       </section>
 
-      <section className="admin-card overflow-hidden">
+      <section className="admin-card admin-workspace overflow-hidden">
         <div className="admin-card__head">
           <div>
-            <div className="admin-kicker">Pedidos</div>
-            <h2 className="admin-section-title">Listado operativo</h2>
+            <h2 className="admin-section-title">Bandeja de pedidos</h2>
           </div>
           <div className="admin-filters">
             <input
@@ -510,7 +536,7 @@ export function AdminPedidosPage() {
         </div>
 
         <div className="admin-card__body">
-          <div className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
+          <div className="admin-orders-layout">
             <div className="admin-table-wrap">
               <table className="admin-table">
                 <thead>
@@ -559,16 +585,16 @@ export function AdminPedidosPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-[30px] border border-white/60 bg-white/80 p-5 shadow-[0_18px_42px_rgba(30,41,59,0.12)]">
+              <div className="admin-order-detail">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <div className="admin-kicker">Detalle</div>
+                    <div className="admin-detail-label">Detalle del pedido</div>
                     <h3 className="text-xl font-semibold text-[#1d2538]">
                       {selectedOrder ? selectedOrder.cliente.nombre || "Pedido sin nombre" : "Selecciona un pedido"}
                     </h3>
                     <p className="mt-1 text-sm text-black/55">
                       {selectedOrder
-                        ? `${selectedOrder.cliente.telefono || "Sin telefono"} Â· ${selectedOrder.cliente.direccion || "Sin direccion"}`
+                        ? `${selectedOrder.cliente.telefono || "Sin teléfono"} · ${selectedOrder.cliente.direccion || "Sin dirección"}`
                         : "El panel lateral muestra articulos, remito y acciones."}
                     </p>
                   </div>
@@ -603,7 +629,7 @@ export function AdminPedidosPage() {
                             <div>Final: {formatMoney(item.precioFinal)}</div>
                             <div>Desc.: {item.descuentoPct ? `${item.descuentoPct}%` : "Sin descuento"}</div>
                             <div>
-                              Unid.: {item.cantidadUnidades} Â· Cajas: {item.cantidadCajas}
+                              Unid.: {item.cantidadUnidades} · Cajas: {item.cantidadCajas}
                             </div>
                           </div>
                         </div>
@@ -647,6 +673,14 @@ export function AdminPedidosPage() {
                       </label>
                     </div>
 
+                    {selectedOrder.rejection?.reason ? (
+                      <div className="admin-rejection-note">
+                        <strong>Pedido rechazado</strong>
+                        <span>{selectedOrder.rejection.reason}</span>
+                        <small>{selectedOrder.inventory?.status === "restored" ? "Stock restituido correctamente" : "Revisar restitución de stock"}</small>
+                      </div>
+                    ) : null}
+
                     <div className="mt-4 flex flex-wrap gap-2">
                       {selectedOrder.dispatch.remitoNumber ? (
                         <button
@@ -658,7 +692,7 @@ export function AdminPedidosPage() {
                           Ver remito {selectedOrder.dispatch.remitoNumber}
                         </button>
                       ) : null}
-                      {STATUS_ACTIONS.map((option) => (
+                      {selectedOrder.status !== "rejected" ? STATUS_ACTIONS.map((option) => (
                         <button
                           key={option.value}
                           type="button"
@@ -675,8 +709,53 @@ export function AdminPedidosPage() {
                             statusActionLabel(option.value)
                           )}
                         </button>
-                      ))}
+                      )) : null}
+                      {selectedOrder.status !== "rejected" ? (
+                        <button
+                          type="button"
+                          className="btn admin-danger"
+                          onClick={() => {
+                            setRejectingId(selectedOrder.id);
+                            setRejectReason("");
+                            setActionError("");
+                          }}
+                          disabled={savingOrderId === selectedOrder.id}
+                        >
+                          Rechazar pedido
+                        </button>
+                      ) : null}
                     </div>
+
+                    {rejectingId === selectedOrder.id ? (
+                      <div className="admin-reject-box" role="region" aria-label="Rechazar pedido">
+                        <div>
+                          <strong>Rechazar y devolver stock</strong>
+                          <p>Indicá el motivo. Las unidades reservadas volverán al catálogo una sola vez.</p>
+                        </div>
+                        <textarea
+                          className="admin-input"
+                          rows={3}
+                          value={rejectReason}
+                          onChange={(event) => setRejectReason(event.target.value)}
+                          placeholder="Ej: el cliente canceló el pedido"
+                          autoFocus
+                        />
+                        {actionError ? <div className="admin-error">{actionError}</div> : null}
+                        <div className="admin-reject-actions">
+                          <button type="button" className="btn ghost" onClick={() => setRejectingId(null)}>
+                            Mantener pedido
+                          </button>
+                          <button
+                            type="button"
+                            className="btn admin-danger"
+                            onClick={() => void handleRejectOrder(selectedOrder)}
+                            disabled={rejectReason.trim().length < 3 || savingOrderId === selectedOrder.id}
+                          >
+                            {savingOrderId === selectedOrder.id ? "Devolviendo stock..." : "Confirmar rechazo"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
 
                     <div className="mt-5 rounded-[24px] border border-black/8 bg-[#f7f2eb] p-4">
                       <div className="flex items-center justify-between gap-3">
