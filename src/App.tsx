@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { CatalogManifest, Category, Product } from "@/catalog/types";
@@ -29,7 +29,14 @@ function ProductList({ products, eagerCount = 0 }: { products: Product[]; eagerC
       image.src = product.imageUrl;
     });
   }, [products, eagerCount]);
-  return <div className="product-list">{products.map((product, index) => <ProductCard product={product} eager={index < eagerCount} key={product.id}/>)}</div>;
+  const isOutOfStock = (product: Product) =>
+    !product.active || (Number.isFinite(product.stockReal) && Number(product.stockReal) <= 0);
+  const firstOutOfStockIndex = products.findIndex(isOutOfStock);
+
+  return <div className="product-list">{products.map((product, index) => <Fragment key={product.id}>
+    {index === firstOutOfStockIndex ? <div className="product-stock-divider" role="separator"><span>Sin stock</span></div> : null}
+    <ProductCard product={product} eager={index < eagerCount}/>
+  </Fragment>)}</div>;
 }
 
 function CategoryGrid({ categories, onSelect }: { categories: Category[]; onSelect: (category: Category) => void }) {

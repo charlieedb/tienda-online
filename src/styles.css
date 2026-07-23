@@ -92,6 +92,7 @@ main.has-mini-cart { padding-bottom: 72px; }
 .page-intro p { margin: 9px 0 0; max-width: 36ch; color: var(--muted); font-size: 14px; line-height: 1.5; }
 
 .product-list { display: grid; gap: 11px; }
+.product-stock-divider { width: 100%; padding: 5px 10px; border-radius: 8px; background: #e2e2e2; color: #f00000; text-align: center; font-size: 12px; font-weight: 900; letter-spacing: .045em; text-transform: uppercase; }
 .product-card { min-height: 184px; display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 13px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 23px; box-shadow: 0 8px 26px rgba(71, 56, 42, .055); overflow: hidden; }
 .product-card.is-unavailable { filter: grayscale(.65); opacity: .72; }
 .product-media { min-width: 0; align-self: start; display: grid; gap: 7px; }
@@ -112,7 +113,7 @@ main.has-mini-cart { padding-bottom: 72px; }
 .product-content { min-width: 0; display: flex; flex-direction: column; }
 .product-copy { min-width: 0; }
 .eyebrow-row { display: flex; justify-content: space-between; gap: 5px; min-height: 17px; color: var(--muted); font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .045em; }
-.eyebrow-row strong { color: #9c2d28; }
+.eyebrow-row strong { color: #f00000; font-weight: 950; }
 .product-copy h3 { margin: 3px 0 3px; display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: #302923 !important; -webkit-text-fill-color: #302923; opacity: 1; font-size: 15px; line-height: 1.16; letter-spacing: -.02em; }
 .product-copy p { margin: 0; color: #655c53 !important; -webkit-text-fill-color: #655c53; opacity: 1; font-size: 11px; font-weight: 600; }
 .product-price { min-height: 28px; margin: 6px 0 8px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 7px; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
@@ -330,6 +331,7 @@ body:has(input:focus, textarea:focus, select:focus) .mini-cart { opacity: 0; poi
 
 @media (min-width: 560px) {
   .product-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .product-stock-divider { display: none; }
   .product-card { grid-template-columns: 112px minmax(0, 1fr); }
   .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .category-card { min-height: 72px; }
