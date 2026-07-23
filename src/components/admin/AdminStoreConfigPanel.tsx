@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
-import { getActiveCatalog, type Product } from "@/lib/products";
+import { createRemoteCatalog } from "@/catalog/remoteCatalog";
+import type { Product } from "@/catalog/types";
 import { getFeaturedProductsConfig, saveFeaturedProductIds } from "@/lib/featuredProducts";
 
 function normalize(value: string) {
@@ -17,7 +18,13 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([getActiveCatalog(), getFeaturedProductsConfig({ refresh: true })])
+    const catalog = createRemoteCatalog();
+    const loadRealProducts = async () => {
+      const manifest = await catalog.getManifest();
+      const groups = await Promise.all(manifest.categories.map((category) => catalog.getCategoryProducts(category.id)));
+      return groups.flat();
+    };
+    Promise.all([loadRealProducts(), getFeaturedProductsConfig({ refresh: true })])
       .then(([catalog, config]) => {
         if (!active) return;
         setProducts(catalog);
