@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/admin/pedidos",
+      "destination": "/index.html"
+    }
+  ]
+}
