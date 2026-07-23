@@ -141,6 +141,7 @@ export function createRemoteCatalog(): CatalogProvider {
       const [products, config] = await Promise.all([loadProducts(), getFeaturedProductsConfig()]);
       return selectFeatured(products, config.ids, config.configured);
     },
+    getOfferProducts: async () => (await loadProducts()).filter((item) => item.active && item.offer).sort(sortProducts),
     getCategoryProducts: async (categoryId) => (await loadProducts()).filter((item) => item.active && item.categoryId === categoryId).sort(sortProducts),
     searchProducts: async (query) => {
       const terms = normalize(query).split(/\s+/).filter(Boolean);

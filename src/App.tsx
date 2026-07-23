@@ -131,6 +131,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
   const [menuOpen, setMenuOpen] = useState(false);
   const [manifest, setManifest] = useState<CatalogManifest | null>(null);
   const [featured, setFeatured] = useState<Product[]>([]);
+  const [offers, setOffers] = useState<Product[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialError, setInitialError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -149,8 +150,8 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
   const loadInitial = () => {
     const controller = new AbortController();
     setInitialLoading(true); setInitialError("");
-    Promise.all([catalog.getManifest(controller.signal), catalog.getFeaturedProducts(controller.signal)])
-      .then(([nextManifest, products]) => { setManifest(nextManifest); setFeatured(products); })
+    Promise.all([catalog.getManifest(controller.signal), catalog.getFeaturedProducts(controller.signal), catalog.getOfferProducts(controller.signal)])
+      .then(([nextManifest, featuredProducts, offerProducts]) => { setManifest(nextManifest); setFeatured(featuredProducts); setOffers(offerProducts); })
       .catch((error) => { if (!controller.signal.aborted) setInitialError(error instanceof Error ? error.message : "Error inesperado."); })
       .finally(() => { if (!controller.signal.aborted) setInitialLoading(false); });
     return controller;
@@ -217,6 +218,8 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
           <section className="hero-card"><div><h1>Tu compra diaria,<br/><em>sin vueltas.</em></h1><div className="hero-actions"><button type="button" onClick={() => goTo("categories")}>Ver categorías <Icon name="arrow"/></button><button type="button" className="is-secondary" onClick={openCombos}>Ver combos <Icon name="arrow"/></button></div></div><LiveDateTime/></section>
           <section><div className="section-heading"><div><span>Elegidos para vos</span><h2>Destacados</h2></div><button type="button" onClick={() => goTo("categories")}>Ver todo</button></div>
             {initialLoading ? <ProductSkeletons/> : initialError ? <ErrorState message={initialError} retry={loadInitial}/> : <ProductList products={featured} eagerCount={3}/>}</section>
+          {initialLoading || offers.length ? <section className="home-offers-section"><div className="section-heading"><div><span>Precios especiales</span><h2>Ofertas</h2></div></div>
+            {initialLoading ? <ProductSkeletons count={2}/> : <ProductList products={offers}/>}</section> : null}
         </motion.div> : null}
 
         {tab === "categories" ? <motion.div className="view" key={`categories-${selectedCategory?.id ?? "grid"}`} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>

@@ -91,6 +91,8 @@ main.has-mini-cart { padding-bottom: 72px; }
 .section-heading span, .page-intro > span { color: var(--brand); font-size: 11px; font-weight: 850; letter-spacing: .09em; text-transform: uppercase; }
 .section-heading h2, .section-heading h1, .page-intro h1 { margin: 0; color: var(--ink); font-size: 27px; line-height: 1.08; letter-spacing: -.045em; }
 .section-heading > button { min-width: 62px; min-height: 44px; border: 0; padding: 0 4px; color: var(--brand); background: transparent; font-size: 12px; font-weight: 800; cursor: pointer; }
+.home-offers-section { margin-top: 8px; }
+.home-offers-section .section-heading h2 { color: #c81b16; }
 .page-intro { padding: 22px 2px 20px; }
 .page-intro h1 { margin-top: 5px; font-size: 36px; }
 .page-intro p { margin: 9px 0 0; max-width: 36ch; color: var(--muted); font-size: 14px; line-height: 1.5; }

@@ -36,6 +36,7 @@ export type CatalogManifest = {
 export interface CatalogProvider {
   getManifest(signal?: AbortSignal): Promise<CatalogManifest>;
   getFeaturedProducts(signal?: AbortSignal): Promise<Product[]>;
+  getOfferProducts(signal?: AbortSignal): Promise<Product[]>;
   getCategoryProducts(categoryId: string, signal?: AbortSignal): Promise<Product[]>;
   searchProducts(query: string, signal?: AbortSignal): Promise<Product[]>;
   getCatalogVersion(signal?: AbortSignal): Promise<number>;

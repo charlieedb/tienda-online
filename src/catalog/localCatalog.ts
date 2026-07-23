@@ -36,6 +36,11 @@ export const localCatalog: CatalogProvider = {
     const items = await readWithFallback<Product[]>("featured.json", signal);
     return items.filter((item) => item.active).sort((a, b) => (a.featuredOrder ?? 999) - (b.featuredOrder ?? 999));
   },
+  getOfferProducts: async (signal) => {
+    const manifest = await localCatalog.getManifest(signal);
+    const groups = await Promise.all(manifest.categories.map((category) => localCatalog.getCategoryProducts(category.id, signal)));
+    return groups.flat().filter((item) => item.active && item.offer);
+  },
   getCategoryProducts: async (categoryId, signal) => {
     if (!/^[a-z0-9-]+$/.test(categoryId)) return [];
     return readWithFallback<Product[]>(`categories/${categoryId}.json`, signal);
