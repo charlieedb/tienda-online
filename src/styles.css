@@ -117,6 +117,10 @@ main.has-mini-cart { padding-bottom: 72px; }
 .image-fallback { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; color: #9a9289; background: #efeae3; }
 .image-fallback span { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: #ded7ce; font-weight: 900; font-size: 20px; }
 .image-fallback small { font-size: 10px; font-weight: 700; }
+.product-image.is-combo { display: grid; place-items: center; border: 1px solid #bfe7cd; background: #eaf8ef; }
+.combo-product-mark { display: grid; justify-items: center; color: #11884b; line-height: 1; }
+.combo-product-mark span { font-size: 72px; font-weight: 950; letter-spacing: -.08em; transform: translateX(-3px); }
+.combo-product-mark small { margin-top: -3px; padding: 4px 9px; border-radius: 999px; color: #08743f; background: #ccefd9; font-size: 10px; font-weight: 850; letter-spacing: .035em; text-transform: uppercase; }
 .offer-badge { position: absolute; top: 8px; left: 8px; padding: 5px 7px; color: white; background: var(--brand); border-radius: 8px; font-size: 10px; font-weight: 900; box-shadow: 0 4px 12px rgba(118, 18, 13, .2); }
 .product-stock { min-height: 28px; display: block; color: #287346; text-align: center; font-size: 9px; line-height: 1.3; font-variant-numeric: tabular-nums; text-wrap: balance; }
 .product-stock span { color: var(--muted); font-weight: 700; }

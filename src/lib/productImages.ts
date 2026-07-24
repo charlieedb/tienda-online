@@ -12,6 +12,7 @@ function variants(code: string) {
 export async function getProductImageUrl(code: string) {
   const key = code.trim().toUpperCase();
   if (!key) return "";
+  if (/^P/.test(key)) return "";
   if (memory.has(key)) return memory.get(key) ?? "";
   try {
     const cached = localStorage.getItem(`joma.product-image.${key}`);

@@ -9,12 +9,13 @@ const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS
 const stockNumber = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 
 function ProductImage({ product, eager }: { product: Product; eager: boolean }) {
+  const isReusableCombo = product.categoryId === "combos" && /^P/i.test(product.id.trim());
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(eager);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [resolvedUrl, setResolvedUrl] = useState(product.imageUrl ?? "");
-  const [resolved, setResolved] = useState(Boolean(product.imageUrl));
+  const [resolvedUrl, setResolvedUrl] = useState(isReusableCombo ? "" : product.imageUrl ?? "");
+  const [resolved, setResolved] = useState(isReusableCombo || Boolean(product.imageUrl));
 
   useEffect(() => {
     if (visible || !host.current) return;
@@ -28,7 +29,7 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
   }, [visible]);
 
   useEffect(() => {
-    if (!visible || resolved) return;
+    if (isReusableCombo || !visible || resolved) return;
     let active = true;
     getProductImageUrl(product.id).then((url) => {
       if (!active) return;
@@ -37,12 +38,13 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
       if (!url) setFailed(true);
     });
     return () => { active = false; };
-  }, [product.id, resolved, visible]);
+  }, [isReusableCombo, product.id, resolved, visible]);
 
-  return <div className={`product-image ${loaded ? "is-loaded" : ""}`} ref={host}>
-    <div className="image-skeleton" aria-hidden="true" />
-    {visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} /> : null}
-    {resolved && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
+  return <div className={`product-image ${loaded ? "is-loaded" : ""} ${isReusableCombo ? "is-combo" : ""}`} ref={host}>
+    {!isReusableCombo ? <div className="image-skeleton" aria-hidden="true" /> : null}
+    {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} /> : null}
+    {isReusableCombo ? <div className="combo-product-mark" aria-label="Combo con descuento"><span aria-hidden="true">%</span><small>Combo</small></div> : null}
+    {!isReusableCombo && resolved && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
     {product.offer ? <span className="offer-badge">{product.offerCondition === "pack" ? "Oferta por caja" : product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
   </div>;
 }

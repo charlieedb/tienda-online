@@ -45,7 +45,7 @@ function LiveDateTime() {
 function ProductList({ products, eagerCount = 0 }: { products: Product[]; eagerCount?: number }) {
   useEffect(() => {
     products.slice(eagerCount, eagerCount + 3).forEach((product) => {
-      if (!product.imageUrl) return;
+      if (!product.imageUrl || (product.categoryId === "combos" && /^P/i.test(product.id.trim()))) return;
       const image = new Image();
       image.src = product.imageUrl;
     });
