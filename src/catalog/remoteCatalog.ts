@@ -50,6 +50,7 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const stockValue = raw.stockReal;
   const parsedStock = stockValue === null || stockValue === undefined || stockValue === "" ? undefined : Number(stockValue);
   const stockReal = parsedStock !== undefined && Number.isFinite(parsedStock) ? parsedStock : undefined;
+  const hiddenFromStore = /^R/i.test(code);
 
   return {
     id: code || `${slug(name)}-${index}`,
@@ -62,7 +63,7 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     pack: packQty > 1 ? { qty: packQty, label: `Caja x${packQty}`, price: packPrice, listPrice: packDiscount > 0 ? packListPrice : undefined, discountPct: packDiscount || undefined } : undefined,
     sortPrice: unitPrice,
     keywords: [code, name, category, text(raw.codigoBarra)].filter(Boolean),
-    active: stockReal !== undefined ? stockReal > 0 : !bool(raw.sinStock ?? raw.SinStock),
+    active: !hiddenFromStore && (stockReal !== undefined ? stockReal > 0 : !bool(raw.sinStock ?? raw.SinStock)),
     stockReal,
     offer,
     offerDiscount: offerDiscount || packDiscount || undefined,
