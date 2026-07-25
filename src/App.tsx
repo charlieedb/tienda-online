@@ -104,19 +104,28 @@ function HeroCarousel({
       if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
     }}
   >
-    {current && (current.mobileImageUrl || current.desktopImageUrl) ? <picture className="hero-custom-picture">
-      <source media="(min-width: 700px)" srcSet={current.desktopImageUrl || current.mobileImageUrl}/>
-      <img src={current.mobileImageUrl || current.desktopImageUrl} alt=""/>
-    </picture> : null}
+    <AnimatePresence initial={false}>
+      {current && (current.mobileImageUrl || current.desktopImageUrl) ? <motion.picture
+        className="hero-custom-picture"
+        key={`hero-image-${slide}`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: .35, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <source media="(min-width: 700px)" srcSet={current.desktopImageUrl || current.mobileImageUrl}/>
+        <img src={current.mobileImageUrl || current.desktopImageUrl} alt=""/>
+      </motion.picture> : null}
+    </AnimatePresence>
     <div className="hero-carousel-stage">
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence initial={false}>
         <motion.div
           className="hero-carousel-slide"
           key={slide}
-          initial={{ opacity: 0, x: 18 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -18 }}
-          transition={{ duration: .28, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: .35, ease: [0.22, 1, 0.36, 1] }}
         >
           {!current ? <>
             <h1>Tu compra diaria,<br/><em>sin vueltas.</em></h1>
