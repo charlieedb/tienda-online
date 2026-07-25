@@ -13,6 +13,21 @@ import { getStoreCarouselSlides, type StoreCarouselSlide } from "@/lib/featuredP
 
 type Tab = "home" | "categories" | "search" | "cart" | "profile";
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+const carouselImageCache = new Map<string, HTMLImageElement>();
+
+function preloadCarouselImages(slides: StoreCarouselSlide[], desktop: boolean) {
+  slides.forEach((slide, index) => {
+    const imageUrl = desktop
+      ? slide.desktopImageUrl || slide.mobileImageUrl
+      : slide.mobileImageUrl || slide.desktopImageUrl;
+    if (!imageUrl || carouselImageCache.has(imageUrl)) return;
+    const image = new Image();
+    image.decoding = "async";
+    image.fetchPriority = index === 0 ? "high" : "auto";
+    image.src = imageUrl;
+    carouselImageCache.set(imageUrl, image);
+  });
+}
 
 function ProductSkeletons({ count = 4 }: { count?: number }) {
   return <div className="product-list" aria-label="Cargando productos" aria-busy="true">{Array.from({ length: count }, (_, index) => <div className="product-card skeleton-card" key={index}><div className="skeleton-block image"/><div className="skeleton-lines"><i/><i/><i/><div/></div></div>)}</div>;
@@ -69,6 +84,14 @@ function HeroCarousel({
   }, [slide, slideCount]);
 
   const current = slide === 0 ? null : slides[slide - 1] ?? null;
+
+  useEffect(() => {
+    const desktopMedia = window.matchMedia("(min-width: 700px)");
+    const preloadForViewport = () => preloadCarouselImages(slides, desktopMedia.matches);
+    preloadForViewport();
+    desktopMedia.addEventListener("change", preloadForViewport);
+    return () => desktopMedia.removeEventListener("change", preloadForViewport);
+  }, [slides]);
 
   return <section
     className={`hero-card ${current ? "has-custom-slide" : "hero-slide-default"}`}
