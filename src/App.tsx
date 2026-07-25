@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { CatalogManifest, Category, Product } from "@/catalog/types";
 import { getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart";
@@ -71,6 +71,7 @@ function HeroCarousel({
 }) {
   const [slide, setSlide] = useState(0);
   const [paused, setPaused] = useState(false);
+  const reduceMotion = useReducedMotion();
   const slideCount = slides.length + 1;
 
   useEffect(() => {
@@ -108,10 +109,10 @@ function HeroCarousel({
       {current && (current.mobileImageUrl || current.desktopImageUrl) ? <motion.picture
         className="hero-custom-picture"
         key={`hero-image-${slide}`}
-        initial={{ opacity: 0 }}
+        initial={reduceMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: .8, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: reduceMotion ? 0 : .8, ease: [0.22, 1, 0.36, 1] }}
       >
         <source media="(min-width: 700px)" srcSet={current.desktopImageUrl || current.mobileImageUrl}/>
         <img src={current.mobileImageUrl || current.desktopImageUrl} alt=""/>
@@ -122,10 +123,10 @@ function HeroCarousel({
         <motion.div
           className="hero-carousel-slide"
           key={slide}
-          initial={{ opacity: 0 }}
+          initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: .8, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: reduceMotion ? 0 : .8, ease: [0.22, 1, 0.36, 1] }}
         >
           {!current ? <>
             <h1>Tu compra diaria,<br/><em>sin vueltas.</em></h1>
@@ -141,6 +142,15 @@ function HeroCarousel({
     {slideCount > 1 ? <div className="hero-carousel-dots" role="group" aria-label="Elegir placa">
       {Array.from({ length: slideCount }, (_, index) => <button type="button" key={index} className={slide === index ? "is-active" : ""} onClick={() => setSlide(index)} aria-label={`Mostrar placa ${index + 1}`} aria-current={slide === index ? "true" : undefined}/>)}
     </div> : <div className="hero-carousel-dots" aria-hidden="true"/>}
+    <motion.div
+      className="hero-credit-bar"
+      initial={reduceMotion ? false : { x: "100%" }}
+      animate={{ x: 0 }}
+      transition={{ duration: reduceMotion ? 0 : .75, delay: reduceMotion ? 0 : .35, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <span>Create by</span>
+      <a href="https://www.instagram.com/charlieedb" target="_blank" rel="noreferrer">/charlieedb</a>
+    </motion.div>
   </section>;
 }
 
