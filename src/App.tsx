@@ -56,7 +56,7 @@ function HeroCarousel({
 }) {
   const [slide, setSlide] = useState(0);
   const [paused, setPaused] = useState(false);
-  const slideCount = slides.length || 1;
+  const slideCount = slides.length + 1;
 
   useEffect(() => {
     if (paused || slideCount < 2) return;
@@ -68,7 +68,7 @@ function HeroCarousel({
     if (slide >= slideCount) setSlide(0);
   }, [slide, slideCount]);
 
-  const current = slides[slide] ?? null;
+  const current = slide === 0 ? null : slides[slide - 1] ?? null;
 
   return <section
     className={`hero-card ${current ? "has-custom-slide" : "hero-slide-default"}`}
