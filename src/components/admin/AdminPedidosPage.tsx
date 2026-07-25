@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { getAdminProfile, type AdminProfile } from "@/lib/adminAuth";
 import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
 import { AdminStoreConfigPanel } from "@/components/admin/AdminStoreConfigPanel";
+import { AdminCarouselPanel } from "@/components/admin/AdminCarouselPanel";
 import { generateOrderRemitoPdf } from "@/lib/remitoPdf";
 import {
   buildMetrics,
@@ -116,7 +117,7 @@ export function AdminPedidosPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [authError, setAuthError] = useState("");
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-  const [adminView, setAdminView] = useState<"orders" | "users" | "configuration">("orders");
+  const [adminView, setAdminView] = useState<"orders" | "users" | "configuration" | "carousel">("orders");
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "week">("all");
   const [searchText, setSearchText] = useState("");
@@ -517,6 +518,7 @@ export function AdminPedidosPage() {
             <nav id="admin-main-menu" className="admin-main-menu" aria-label="Menú del administrador">
               <button type="button" onClick={() => { setAdminView("users"); setTopMenuOpen(false); }}>Usuarios</button>
               <button type="button" onClick={() => { setAdminView("configuration"); setTopMenuOpen(false); }}>Configuración</button>
+              <button type="button" onClick={() => { setAdminView("carousel"); setTopMenuOpen(false); }}>Editar carrusel</button>
               <button type="button" onClick={() => setTopMenuOpen(false)}>Reportes</button>
               <div className="admin-main-menu__separator" />
               <button
@@ -537,7 +539,7 @@ export function AdminPedidosPage() {
         <div className="admin-topbar__spacer" aria-hidden="true" />
       </div>
 
-      {adminView === "users" ? <AdminUsersPanel /> : adminView === "configuration" && user ? <AdminStoreConfigPanel user={user} /> : <>
+      {adminView === "users" ? <AdminUsersPanel /> : adminView === "configuration" && user ? <AdminStoreConfigPanel user={user} /> : adminView === "carousel" && user ? <AdminCarouselPanel user={user} /> : <>
       <section className="admin-card admin-overview overflow-hidden">
         <div className="admin-card__head">
           <div className="admin-headline">

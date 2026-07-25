@@ -753,3 +753,288 @@ body .admin-shell .admin-login-card {
     grid-template-columns: 1fr;
   }
 }
+
+.admin-carousel-config .admin-card__head {
+  align-items: center;
+}
+
+.admin-carousel-config .admin-headline p {
+  max-width: 68ch;
+  margin-top: 5px;
+  color: #607184;
+  font-size: 0.86rem;
+}
+
+.admin-carousel-list {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-carousel-empty {
+  border: 1px dashed #bac7d2;
+  border-radius: 10px;
+  padding: 24px;
+  color: #657587;
+  background: #f4f6f8;
+  text-align: center;
+  font-size: 0.88rem;
+}
+
+.admin-carousel-item {
+  overflow: hidden;
+  border: 1px solid #cad5de;
+  border-radius: 12px;
+  background: #f7f9fa;
+}
+
+.admin-carousel-item__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #d8e0e7;
+  background: #edf2f5;
+}
+
+.admin-carousel-item__head > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #17263a;
+}
+
+.admin-carousel-item__head > div:first-child b {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 7px;
+  color: white;
+  background: #d9231e;
+  font-size: 0.76rem;
+}
+
+.admin-carousel-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-carousel-item__actions button {
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 7px;
+  color: #31516d;
+  background: #dce5ec;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.admin-carousel-item__actions button:disabled {
+  opacity: 0.35;
+}
+
+.admin-carousel-item__actions button.is-remove {
+  padding-inline: 10px;
+  color: #8b1e24;
+  background: #f2dddd;
+}
+
+.admin-carousel-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 14px;
+}
+
+.admin-carousel-upload {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  border: 1px dashed #aebdca;
+  border-radius: 10px;
+  padding: 12px;
+  color: #17263a;
+  background: white;
+  cursor: pointer;
+}
+
+.admin-carousel-upload > span {
+  font-size: 0.86rem;
+  font-weight: 750;
+}
+
+.admin-carousel-upload > small {
+  color: #68788a;
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.admin-carousel-upload img,
+.admin-carousel-upload > i {
+  width: 100%;
+  height: 150px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #d9231e;
+}
+
+.admin-carousel-upload > i {
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 0.8rem;
+  font-style: normal;
+}
+
+.admin-carousel-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.admin-carousel-upload-button {
+  min-height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #315f7d;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.admin-carousel-remove-image {
+  min-height: 36px;
+  border-radius: 8px;
+  color: #8b1e24;
+  background: #f2dddd;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.admin-carousel-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 14px 14px;
+}
+
+.admin-carousel-preview-block {
+  padding: 0 14px 14px;
+}
+
+.admin-carousel-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.admin-carousel-preview-toolbar > div:first-child {
+  display: grid;
+  gap: 2px;
+  color: #17263a;
+}
+
+.admin-carousel-preview-toolbar > div:first-child strong {
+  font-size: 0.86rem;
+}
+
+.admin-carousel-preview-toolbar > div:first-child span {
+  color: #68788a;
+  font-size: 0.72rem;
+}
+
+.admin-carousel-preview-toolbar > div:last-child {
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #e4eaf0;
+}
+
+.admin-carousel-preview-toolbar button {
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 0 12px;
+  color: #526579;
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.admin-carousel-preview-toolbar button.is-active {
+  color: white;
+  background: #315f7d;
+}
+
+.admin-carousel-live-preview {
+  margin-inline: auto;
+  box-shadow: none;
+}
+
+.admin-carousel-live-preview.is-mobile {
+  max-width: 390px;
+}
+
+.admin-carousel-live-preview.is-desktop {
+  max-width: 900px;
+}
+
+.admin-carousel-fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-carousel-fields label > span {
+  color: #44566a;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.admin-carousel-fields label > span em {
+  color: #798797;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.admin-carousel-destination {
+  margin: 0 14px 14px;
+  color: #17603c;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.admin-carousel-save {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+}
+
+@media (max-width: 760px) {
+  .admin-carousel-config .admin-card__head,
+  .admin-carousel-item__head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-carousel-upload-grid,
+  .admin-carousel-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-carousel-preview-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-carousel-config .admin-card__head .btn,
+  .admin-carousel-save .btn {
+    width: 100%;
+  }
+}

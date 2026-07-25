@@ -9,6 +9,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { ProfileView } from "@/components/ProfileView";
 import { AuthLoading, AuthWelcome } from "@/components/AuthWelcome";
 import { useAuth } from "@/auth/AuthProvider";
+import { getStoreCarouselSlides, type StoreCarouselSlide } from "@/lib/featuredProducts";
 
 type Tab = "home" | "categories" | "search" | "cart" | "profile";
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
@@ -40,6 +41,75 @@ function LiveDateTime() {
     <span>{month}</span>
     <small>{time}</small>
   </time>;
+}
+
+function HeroCarousel({
+  slides,
+  onCategories,
+  onCombos,
+  onAction,
+}: {
+  slides: StoreCarouselSlide[];
+  onCategories: () => void;
+  onCombos: () => void;
+  onAction: (slide: StoreCarouselSlide) => void;
+}) {
+  const [slide, setSlide] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const slideCount = slides.length || 1;
+
+  useEffect(() => {
+    if (paused || slideCount < 2) return;
+    const timer = window.setInterval(() => setSlide((current) => (current + 1) % slideCount), 5000);
+    return () => window.clearInterval(timer);
+  }, [paused, slideCount]);
+
+  useEffect(() => {
+    if (slide >= slideCount) setSlide(0);
+  }, [slide, slideCount]);
+
+  const current = slides[slide] ?? null;
+
+  return <section
+    className={`hero-card ${current ? "has-custom-slide" : "hero-slide-default"}`}
+    aria-roledescription="carrusel"
+    aria-label="Novedades de JOMA Express"
+    onMouseEnter={() => setPaused(true)}
+    onMouseLeave={() => setPaused(false)}
+    onFocusCapture={() => setPaused(true)}
+    onBlurCapture={(event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
+    }}
+  >
+    {current && (current.mobileImageUrl || current.desktopImageUrl) ? <picture className="hero-custom-picture">
+      <source media="(min-width: 700px)" srcSet={current.desktopImageUrl || current.mobileImageUrl}/>
+      <img src={current.mobileImageUrl || current.desktopImageUrl} alt=""/>
+    </picture> : null}
+    <div className="hero-carousel-stage">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          className="hero-carousel-slide"
+          key={slide}
+          initial={{ opacity: 0, x: 18 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -18 }}
+          transition={{ duration: .28, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {!current ? <>
+            <h1>Tu compra diaria,<br/><em>sin vueltas.</em></h1>
+            <div className="hero-actions"><button type="button" onClick={onCategories}>Ver categorías <Icon name="arrow"/></button><button type="button" className="is-secondary" onClick={onCombos}>Ver combos <Icon name="arrow"/></button></div>
+            <LiveDateTime/>
+          </> : null}
+          {current ? <>
+            {current.buttonLabel && current.targetType !== "none" ? <div className={`hero-actions align-${current.buttonAlign}`}><button type="button" onClick={() => onAction(current)}>{current.buttonLabel} <Icon name="arrow"/></button></div> : null}
+          </> : null}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+    {slideCount > 1 ? <div className="hero-carousel-dots" role="group" aria-label="Elegir placa">
+      {Array.from({ length: slideCount }, (_, index) => <button type="button" key={index} className={slide === index ? "is-active" : ""} onClick={() => setSlide(index)} aria-label={`Mostrar placa ${index + 1}`} aria-current={slide === index ? "true" : undefined}/>)}
+    </div> : <div className="hero-carousel-dots" aria-hidden="true"/>}
+  </section>;
 }
 
 function ProductList({ products, eagerCount = 0 }: { products: Product[]; eagerCount?: number }) {
@@ -132,6 +202,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
   const [manifest, setManifest] = useState<CatalogManifest | null>(null);
   const [featured, setFeatured] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Product[]>([]);
+  const [carouselSlides, setCarouselSlides] = useState<StoreCarouselSlide[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialError, setInitialError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -150,8 +221,8 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
   const loadInitial = () => {
     const controller = new AbortController();
     setInitialLoading(true); setInitialError("");
-    Promise.all([catalog.getManifest(controller.signal), catalog.getFeaturedProducts(controller.signal), catalog.getOfferProducts(controller.signal)])
-      .then(([nextManifest, featuredProducts, offerProducts]) => { setManifest(nextManifest); setFeatured(featuredProducts); setOffers(offerProducts); })
+    Promise.all([catalog.getManifest(controller.signal), catalog.getFeaturedProducts(controller.signal), catalog.getOfferProducts(controller.signal), getStoreCarouselSlides()])
+      .then(([nextManifest, featuredProducts, offerProducts, nextCarouselSlides]) => { setManifest(nextManifest); setFeatured(featuredProducts); setOffers(offerProducts); setCarouselSlides(nextCarouselSlides); })
       .catch((error) => { if (!controller.signal.aborted) setInitialError(error instanceof Error ? error.message : "Error inesperado."); })
       .finally(() => { if (!controller.signal.aborted) setInitialLoading(false); });
     return controller;
@@ -198,6 +269,21 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
   const goTo = (next: Tab) => { setMenuOpen(false); setSelectedCategory(null); setTab(next); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCategory = (category: Category) => { setSelectedCategory(category); setTab("categories"); window.scrollTo({ top: 0, behavior: "smooth" }); };
   const openCombos = () => openCategory(manifest?.categories.find((category) => category.id === "combos") ?? { id: "combos", name: "Combos", description: "Promociones de la app", color: "#d92822", image: "/joma-express.png", count: 0 });
+  const openCarouselDestination = (slide: StoreCarouselSlide) => {
+    if (slide.targetType === "categories") return goTo("categories");
+    if (slide.targetType === "cart") return goTo("cart");
+    if (slide.targetType === "category") {
+      const category = manifest?.categories.find((item) => item.id === slide.targetValue);
+      if (category) openCategory(category);
+      return;
+    }
+    if (slide.targetType === "search") {
+      setQuery(slide.targetValue);
+      setSelectedCategory(null);
+      setTab("search");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   return <div className="store-app">
     <div className="top-shell">
@@ -215,7 +301,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
       <main id="main-content" className={itemCount ? "has-mini-cart" : ""}>
       <AnimatePresence mode="wait" initial={false}>
         {tab === "home" ? <motion.div className="view" key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <section className="hero-card"><div><h1>Tu compra diaria,<br/><em>sin vueltas.</em></h1><div className="hero-actions"><button type="button" onClick={() => goTo("categories")}>Ver categorías <Icon name="arrow"/></button><button type="button" className="is-secondary" onClick={openCombos}>Ver combos <Icon name="arrow"/></button></div></div><LiveDateTime/></section>
+          <HeroCarousel slides={carouselSlides} onCategories={() => goTo("categories")} onCombos={openCombos} onAction={openCarouselDestination}/>
           <section><div className="section-heading"><div><span>Elegidos para vos</span><h2>Destacados</h2></div><button type="button" onClick={() => goTo("categories")}>Ver todo</button></div>
             {initialLoading ? <ProductSkeletons/> : initialError ? <ErrorState message={initialError} retry={loadInitial}/> : <ProductList products={featured} eagerCount={3}/>}</section>
           {initialLoading || offers.length ? <section className="home-offers-section"><div className="section-heading"><div><span>Precios especiales</span><h2>Ofertas</h2></div></div>
