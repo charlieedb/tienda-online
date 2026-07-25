@@ -164,13 +164,13 @@ function HeroCarousel({
         </motion.div>
       </AnimatePresence>
     </div>
-    {slideCount > 1 ? <div className="hero-carousel-dots" role="group" aria-label="Elegir placa">
-      {Array.from({ length: slideCount }, (_, index) => <button type="button" key={index} className={slide === index ? "is-active" : ""} onClick={() => selectSlide(index)} aria-label={`Mostrar placa ${index + 1}`} aria-current={slide === index ? "true" : undefined}/>)}
-    </div> : <div className="hero-carousel-dots" aria-hidden="true"/>}
-    {slideCount > 1 ? <div className="hero-carousel-arrows">
-      <button type="button" className="is-previous" onClick={previousSlide} aria-label="Mostrar placa anterior"><Icon name="arrow"/></button>
-      <button type="button" onClick={nextSlide} aria-label="Mostrar placa siguiente"><Icon name="arrow"/></button>
-    </div> : null}
+    <div className="hero-carousel-controls">
+      {slideCount > 1 ? <button type="button" className="hero-carousel-arrow is-previous" onClick={previousSlide} aria-label="Mostrar placa anterior"><Icon name="arrow"/></button> : null}
+      {slideCount > 1 ? <div className="hero-carousel-dots" role="group" aria-label="Elegir placa">
+        {Array.from({ length: slideCount }, (_, index) => <button type="button" key={index} className={slide === index ? "is-active" : ""} onClick={() => selectSlide(index)} aria-label={`Mostrar placa ${index + 1}`} aria-current={slide === index ? "true" : undefined}/>)}
+      </div> : <div className="hero-carousel-dots" aria-hidden="true"/>}
+      {slideCount > 1 ? <button type="button" className="hero-carousel-arrow" onClick={nextSlide} aria-label="Mostrar placa siguiente"><Icon name="arrow"/></button> : null}
+    </div>
   </section>;
 }
 
