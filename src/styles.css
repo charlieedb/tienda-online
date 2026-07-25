@@ -112,8 +112,10 @@ main.has-mini-cart { padding-bottom: 72px; }
 .hero-carousel-arrow { display: none; }
 
 @media (hover: hover) and (pointer: fine) {
-  .hero-card .hero-carousel-arrow { width: 20px; min-height: 20px; height: 20px; display: inline-flex; padding: 0; color: #9b1713; background: rgba(255,255,255,.9); }
-  .hero-card .hero-carousel-arrow svg { width: 10px; }
+  .hero-card .hero-carousel-arrow { width: 20px; min-height: 20px; height: 20px; display: inline-flex; padding: 0; color: rgba(255,255,255,.68); background: transparent; opacity: .78; transition: color .18s ease, opacity .18s ease; }
+  .hero-card .hero-carousel-arrow:hover { color: #fff; opacity: 1; }
+  .hero-card .hero-carousel-arrow:focus-visible { color: #fff; outline: 1px solid rgba(255,255,255,.75); outline-offset: 1px; opacity: 1; }
+  .hero-card .hero-carousel-arrow svg { width: 9px; }
   .hero-card .hero-carousel-arrow.is-previous svg { transform: rotate(180deg); }
 }
 .store-credit-shell { width: 100%; min-height: 44px; margin-top: 32px; margin-bottom: calc(-24px - env(safe-area-inset-bottom)); overflow: hidden; }
