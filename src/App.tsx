@@ -111,7 +111,7 @@ function HeroCarousel({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: .35, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: .8, ease: [0.22, 1, 0.36, 1] }}
       >
         <source media="(min-width: 700px)" srcSet={current.desktopImageUrl || current.mobileImageUrl}/>
         <img src={current.mobileImageUrl || current.desktopImageUrl} alt=""/>
@@ -125,7 +125,7 @@ function HeroCarousel({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: .35, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: .8, ease: [0.22, 1, 0.36, 1] }}
         >
           {!current ? <>
             <h1>Tu compra diaria,<br/><em>sin vueltas.</em></h1>
