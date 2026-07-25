@@ -72,6 +72,7 @@ function HeroCarousel({
   const [slide, setSlide] = useState(0);
   const [paused, setPaused] = useState(false);
   const [manualChange, setManualChange] = useState(0);
+  const [showDesktopArrows, setShowDesktopArrows] = useState(false);
   const reduceMotion = useReducedMotion();
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
   const slideCount = slides.length + 1;
@@ -101,6 +102,14 @@ function HeroCarousel({
     desktopMedia.addEventListener("change", preloadForViewport);
     return () => desktopMedia.removeEventListener("change", preloadForViewport);
   }, [slides]);
+
+  useEffect(() => {
+    const controlsMedia = window.matchMedia("(min-width: 700px) and (hover: hover) and (pointer: fine)");
+    const updateDesktopControls = () => setShowDesktopArrows(controlsMedia.matches);
+    updateDesktopControls();
+    controlsMedia.addEventListener("change", updateDesktopControls);
+    return () => controlsMedia.removeEventListener("change", updateDesktopControls);
+  }, []);
 
   return <section
     className={`hero-card ${current ? "has-custom-slide" : "hero-slide-default"}`}
@@ -165,11 +174,11 @@ function HeroCarousel({
       </AnimatePresence>
     </div>
     <div className="hero-carousel-controls">
-      {slideCount > 1 ? <button type="button" className="hero-carousel-arrow is-previous" onClick={previousSlide} aria-label="Mostrar placa anterior"><Icon name="arrow"/></button> : null}
+      {slideCount > 1 && showDesktopArrows ? <button type="button" className="hero-carousel-arrow is-previous" onClick={previousSlide} aria-label="Mostrar placa anterior"><Icon name="arrow"/></button> : null}
       {slideCount > 1 ? <div className="hero-carousel-dots" role="group" aria-label="Elegir placa">
         {Array.from({ length: slideCount }, (_, index) => <button type="button" key={index} className={slide === index ? "is-active" : ""} onClick={() => selectSlide(index)} aria-label={`Mostrar placa ${index + 1}`} aria-current={slide === index ? "true" : undefined}/>)}
       </div> : <div className="hero-carousel-dots" aria-hidden="true"/>}
-      {slideCount > 1 ? <button type="button" className="hero-carousel-arrow" onClick={nextSlide} aria-label="Mostrar placa siguiente"><Icon name="arrow"/></button> : null}
+      {slideCount > 1 && showDesktopArrows ? <button type="button" className="hero-carousel-arrow" onClick={nextSlide} aria-label="Mostrar placa siguiente"><Icon name="arrow"/></button> : null}
     </div>
   </section>;
 }
