@@ -71,20 +71,28 @@ function HeroCarousel({
 }) {
   const [slide, setSlide] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [manualChange, setManualChange] = useState(0);
   const reduceMotion = useReducedMotion();
+  const touchOrigin = useRef<{ x: number; y: number } | null>(null);
   const slideCount = slides.length + 1;
 
   useEffect(() => {
     if (paused || slideCount < 2) return;
     const timer = window.setInterval(() => setSlide((current) => (current + 1) % slideCount), 5000);
     return () => window.clearInterval(timer);
-  }, [paused, slideCount]);
+  }, [manualChange, paused, slideCount]);
 
   useEffect(() => {
     if (slide >= slideCount) setSlide(0);
   }, [slide, slideCount]);
 
   const current = slide === 0 ? null : slides[slide - 1] ?? null;
+  const selectSlide = (nextSlide: number) => {
+    setSlide((nextSlide + slideCount) % slideCount);
+    setManualChange((value) => value + 1);
+  };
+  const previousSlide = () => selectSlide(slide - 1);
+  const nextSlide = () => selectSlide(slide + 1);
 
   useEffect(() => {
     const desktopMedia = window.matchMedia("(min-width: 700px)");
@@ -100,6 +108,23 @@ function HeroCarousel({
     aria-label="Novedades de JOMA Express"
     onMouseEnter={() => setPaused(true)}
     onMouseLeave={() => setPaused(false)}
+    onTouchStart={(event) => {
+      if ((event.target as HTMLElement).closest("button, a, input, select, textarea")) return;
+      const touch = event.changedTouches[0];
+      touchOrigin.current = { x: touch.clientX, y: touch.clientY };
+    }}
+    onTouchEnd={(event) => {
+      const origin = touchOrigin.current;
+      touchOrigin.current = null;
+      if (!origin || slideCount < 2) return;
+      const touch = event.changedTouches[0];
+      const deltaX = touch.clientX - origin.x;
+      const deltaY = touch.clientY - origin.y;
+      if (Math.abs(deltaX) < 42 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.15) return;
+      if (deltaX < 0) nextSlide();
+      else previousSlide();
+    }}
+    onTouchCancel={() => { touchOrigin.current = null; }}
     onFocusCapture={() => setPaused(true)}
     onBlurCapture={(event) => {
       if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false);
@@ -140,8 +165,12 @@ function HeroCarousel({
       </AnimatePresence>
     </div>
     {slideCount > 1 ? <div className="hero-carousel-dots" role="group" aria-label="Elegir placa">
-      {Array.from({ length: slideCount }, (_, index) => <button type="button" key={index} className={slide === index ? "is-active" : ""} onClick={() => setSlide(index)} aria-label={`Mostrar placa ${index + 1}`} aria-current={slide === index ? "true" : undefined}/>)}
+      {Array.from({ length: slideCount }, (_, index) => <button type="button" key={index} className={slide === index ? "is-active" : ""} onClick={() => selectSlide(index)} aria-label={`Mostrar placa ${index + 1}`} aria-current={slide === index ? "true" : undefined}/>)}
     </div> : <div className="hero-carousel-dots" aria-hidden="true"/>}
+    {slideCount > 1 ? <div className="hero-carousel-arrows">
+      <button type="button" className="is-previous" onClick={previousSlide} aria-label="Mostrar placa anterior"><Icon name="arrow"/></button>
+      <button type="button" onClick={nextSlide} aria-label="Mostrar placa siguiente"><Icon name="arrow"/></button>
+    </div> : null}
   </section>;
 }
 
