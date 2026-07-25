@@ -142,16 +142,21 @@ function HeroCarousel({
     {slideCount > 1 ? <div className="hero-carousel-dots" role="group" aria-label="Elegir placa">
       {Array.from({ length: slideCount }, (_, index) => <button type="button" key={index} className={slide === index ? "is-active" : ""} onClick={() => setSlide(index)} aria-label={`Mostrar placa ${index + 1}`} aria-current={slide === index ? "true" : undefined}/>)}
     </div> : <div className="hero-carousel-dots" aria-hidden="true"/>}
-    <motion.div
-      className="hero-credit-bar"
-      initial={reduceMotion ? false : { x: "100%" }}
-      animate={{ x: 0 }}
-      transition={{ duration: reduceMotion ? 0 : .75, delay: reduceMotion ? 0 : .35, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <span>Create by</span>
-      <a href="https://www.instagram.com/charlieedb" target="_blank" rel="noreferrer">/charlieedb</a>
-    </motion.div>
   </section>;
+}
+
+function StoreCreditBar() {
+  const reduceMotion = useReducedMotion();
+  return <motion.footer
+    className="store-credit-bar"
+    initial={reduceMotion ? false : { x: "100%" }}
+    whileInView={{ x: 0 }}
+    viewport={{ once: true, amount: .7 }}
+    transition={{ duration: reduceMotion ? 0 : .75, ease: [0.22, 1, 0.36, 1] }}
+  >
+    <span>Create by</span>
+    <a href="https://www.instagram.com/charlieedb" target="_blank" rel="noreferrer">/charlieedb</a>
+  </motion.footer>;
 }
 
 function ProductList({ products, eagerCount = 0 }: { products: Product[]; eagerCount?: number }) {
@@ -365,6 +370,8 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
       </main>
       <DesktopCartRail onOpenCart={() => goTo("cart")}/>
     </div>
+
+    <StoreCreditBar/>
 
     {itemCount && tab !== "cart" ? <button type="button" className="mini-cart" onClick={() => goTo("cart")} aria-label={`Abrir carrito. Subtotal ${money.format(cartTotal)}`}><span>Subtotal</span><strong>{money.format(cartTotal)}</strong></button> : null}
 
