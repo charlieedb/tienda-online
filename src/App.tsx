@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { CatalogManifest, Category, Product } from "@/catalog/types";
 import { getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart";
@@ -147,16 +147,19 @@ function HeroCarousel({
 
 function StoreCreditBar() {
   const reduceMotion = useReducedMotion();
-  return <motion.footer
-    className="store-credit-bar"
-    initial={reduceMotion ? false : { x: "100%" }}
-    whileInView={{ x: 0 }}
-    viewport={{ once: true, amount: .7 }}
-    transition={{ duration: reduceMotion ? 0 : .75, ease: [0.22, 1, 0.36, 1] }}
-  >
-    <span>Create by</span>
-    <a href="https://www.instagram.com/charlieedb" target="_blank" rel="noreferrer">/charlieedb</a>
-  </motion.footer>;
+  const shellRef = useRef<HTMLElement>(null);
+  const isVisible = useInView(shellRef, { once: true, amount: .7 });
+  return <footer className="store-credit-shell" ref={shellRef}>
+    <motion.div
+      className="store-credit-bar"
+      initial={false}
+      animate={{ x: reduceMotion || isVisible ? 0 : "100%" }}
+      transition={{ duration: reduceMotion ? 0 : .75, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <span>Create by</span>
+      <a href="https://www.instagram.com/charlieedb" target="_blank" rel="noreferrer">/charlieedb</a>
+    </motion.div>
+  </footer>;
 }
 
 function ProductList({ products, eagerCount = 0 }: { products: Product[]; eagerCount?: number }) {
