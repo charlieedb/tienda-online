@@ -22,6 +22,13 @@ function sortProducts(a: Product, b: Product) {
   return Number(b.active) - Number(a.active) || a.name.localeCompare(b.name, "es", { sensitivity: "base", numeric: true });
 }
 
+function versionedImageUrl(value: unknown, catalogVersion: number) {
+  const url = text(value);
+  if (!url) return undefined;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}v=${catalogVersion || Date.now()}`;
+}
+
 function selectFeatured(products: Product[], ids: string[], configured: boolean) {
   const available = products.filter((item) => item.active);
   if (!configured) return available.filter((item) => item.offer).sort(sortProducts);
@@ -29,7 +36,7 @@ function selectFeatured(products: Product[], ids: string[], configured: boolean)
   return ids.map((id) => byId.get(id)).filter((item): item is Product => Boolean(item));
 }
 
-function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay): Product {
+function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay, catalogVersion = 0): Product {
   const code = text(raw["Código"] ?? raw.Codigo ?? raw.codigo);
   const name = text(raw.Nombre ?? raw.nombre) || "Producto sin nombre";
   const category = text(raw.Linea ?? raw.linea ?? raw.Categoria ?? raw.categoria) || "Sin categoría";
@@ -58,7 +65,7 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     brand: category.toUpperCase() === "AA" ? "Exclusivos" : category,
     category,
     categoryId: isCombo ? "combos" : slug(category),
-    imageUrl: text(raw.imagenURL ?? raw.imgUrl ?? raw.ImgUrl ?? raw.foto) || undefined,
+    imageUrl: versionedImageUrl(raw.imagenURL ?? raw.imgUrl ?? raw.ImgUrl ?? raw.foto, catalogVersion),
     unit: { label: "1 unidad", price: unitFinalPrice, listPrice: offerDiscount > 0 ? unitPrice : undefined, discountPct: offerDiscount || undefined },
     pack: packQty > 1 ? { qty: packQty, label: `Caja x${packQty}`, price: packPrice, listPrice: packDiscount > 0 ? packListPrice : undefined, discountPct: packDiscount || undefined } : undefined,
     sortPrice: unitPrice,
@@ -94,13 +101,13 @@ export function createRemoteCatalog(): CatalogProvider {
       } catch (error) {
         if (cachedRows.length) {
           catalogVersion = cachedVersion;
-          return cachedRows.map((raw, index) => normalizeProduct(raw, index, {}));
+          return cachedRows.map((raw, index) => normalizeProduct(raw, index, {}, catalogVersion));
         }
         throw error;
       }
 
       if (cachedRows.length && cachedVersion === catalogVersion) {
-        return cachedRows.map((raw, index) => normalizeProduct(raw, index, {}));
+        return cachedRows.map((raw, index) => normalizeProduct(raw, index, {}, catalogVersion));
       }
 
       const productsResponse = await fetch(`${PRODUCTS_URL}?v=${catalogVersion}`, { cache: "no-store" });
@@ -111,7 +118,7 @@ export function createRemoteCatalog(): CatalogProvider {
         localStorage.setItem(CACHE_PRODUCTS_KEY, JSON.stringify(rows));
         localStorage.setItem(CACHE_VERSION_KEY, String(catalogVersion));
       } catch { /* la app continúa con caché en memoria */ }
-      return rows.map((raw, index) => normalizeProduct(raw, index, {}));
+      return rows.map((raw, index) => normalizeProduct(raw, index, {}, catalogVersion));
     })().catch((error) => { productsPromise = null; throw error; });
     return productsPromise;
   };

@@ -2,6 +2,12 @@ import { getDownloadURL, getStorage, ref } from "firebase/storage";
 import { getFirebaseApp } from "@/lib/firebase";
 
 const memory = new Map<string, string>();
+const imageSessionVersion = Date.now();
+
+function withImageVersion(url: string) {
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}v=${imageSessionVersion}`;
+}
 
 function variants(code: string) {
   const raw = code.trim();
@@ -14,10 +20,6 @@ export async function getProductImageUrl(code: string) {
   if (!key) return "";
   if (/^P/.test(key)) return "";
   if (memory.has(key)) return memory.get(key) ?? "";
-  try {
-    const cached = localStorage.getItem(`joma.product-image.${key}`);
-    if (cached) { memory.set(key, cached); return cached; }
-  } catch { /* almacenamiento privado */ }
 
   const app = getFirebaseApp();
   if (!app) return "";
@@ -26,9 +28,8 @@ export async function getProductImageUrl(code: string) {
   for (const folder of ["fotosProductosThumb", "fotosProductos"]) {
     for (const name of names) {
       try {
-        const url = await getDownloadURL(ref(storage, `${folder}/${name}.jpg`));
+        const url = withImageVersion(await getDownloadURL(ref(storage, `${folder}/${name}.jpg`)));
         memory.set(key, url);
-        try { localStorage.setItem(`joma.product-image.${key}`, url); } catch { /* continúa en memoria */ }
         return url;
       } catch { /* probar siguiente variante */ }
     }
