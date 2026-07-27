@@ -112,10 +112,10 @@ function mapRowToProduct(row: SourceRow): Product | null {
     "";
 
   const safeCode = storageSafeCode(codigo);
-  const fallbackThumbUrl = bucket
-    ? `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(`fotosProductosThumb/${safeCode}.jpg`)}?alt=media`
+  const fallbackImageUrl = bucket
+    ? `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${encodeURIComponent(`fotosProductos/${safeCode}.jpg`)}?alt=media`
     : undefined;
-  const imageUrl = String(row.imagenURL ?? "").trim() || fallbackThumbUrl;
+  const imageUrl = String(row.imagenURL ?? "").trim() || fallbackImageUrl;
 
   const offer = row.oferta === true || row.Promo === true;
   const offerDiscount = toNumber(row.descOferta);

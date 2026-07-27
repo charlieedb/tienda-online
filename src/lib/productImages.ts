@@ -25,7 +25,9 @@ export async function getProductImageUrl(code: string) {
   if (!app) return "";
   const storage = getStorage(app);
   const names = variants(code);
-  for (const folder of ["fotosProductosThumb", "fotosProductos"]) {
+  // La foto principal es la fuente de verdad. No usar primero la miniatura:
+  // puede pertenecer a una versión anterior del mismo producto.
+  for (const folder of ["fotosProductos"]) {
     for (const name of names) {
       try {
         const url = withImageVersion(await getDownloadURL(ref(storage, `${folder}/${name}.jpg`)));
