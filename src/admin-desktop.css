@@ -1038,3 +1038,39 @@ body .admin-shell .admin-login-card {
     width: 100%;
   }
 }
+.admin-store-config { display: grid; gap: 18px; }
+.admin-delivery-days { display: flex; flex-wrap: wrap; gap: 9px; }
+.admin-delivery-days label { min-height: 42px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px; border: 1px solid rgba(31,41,55,.14); border-radius: 12px; color: #4b5563; background: rgba(255,255,255,.72); font-size: 13px; font-weight: 700; cursor: pointer; }
+.admin-delivery-days label.is-active { color: #0f5c3a; border-color: #87d3af; background: #dff6eb; }
+.admin-delivery-days label.is-disabled { color: #8b1e24; border-color: #efaaaa; background: #fee7e7; cursor: not-allowed; opacity: .7; }
+.admin-delivery-days input { width: 16px; height: 16px; accent-color: #167653; }
+.admin-delivery-times { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(140px, 1fr) auto; align-items: end; gap: 12px; margin-top: 16px; }
+.admin-delivery-times label { display: grid; gap: 7px; color: #4b5563; font-size: 12px; font-weight: 750; }
+.admin-delivery-times .btn { min-height: 46px; }
+@media (max-width: 640px) {
+  .admin-delivery-times { grid-template-columns: 1fr 1fr; }
+  .admin-delivery-times .btn { grid-column: 1 / -1; width: 100%; }
+}
+.admin-delivery-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(139, 30, 36, 0.16);
+  border-radius: 18px;
+  background: rgba(139, 30, 36, 0.06);
+  color: #20283b;
+}
+
+.admin-delivery-summary span {
+  color: rgba(32, 40, 59, 0.6);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-delivery-summary strong {
+  font-size: 0.95rem;
+}

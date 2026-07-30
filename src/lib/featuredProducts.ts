@@ -7,6 +7,19 @@ export type FeaturedProductsConfig = {
   ids: string[];
   configured: boolean;
   carouselSlides: StoreCarouselSlide[];
+  deliverySchedule: DeliveryScheduleConfig;
+};
+
+export type DeliveryScheduleConfig = {
+  weekdays: number[];
+  startTime: string;
+  endTime: string;
+};
+
+export const DEFAULT_DELIVERY_SCHEDULE: DeliveryScheduleConfig = {
+  weekdays: [1, 2, 3, 4, 5, 6],
+  startTime: "09:00",
+  endTime: "16:00",
 };
 
 export type CarouselTargetType = "none" | "categories" | "category" | "search" | "cart";
@@ -39,6 +52,25 @@ let pendingConfig: Promise<FeaturedProductsConfig> | null = null;
 function normalizeIds(value: unknown) {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.map((item) => String(item ?? "").trim()).filter(Boolean))];
+}
+
+function normalizeDeliveryTime(value: unknown, fallback: string) {
+  const text = String(value ?? "").trim();
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(text) ? text : fallback;
+}
+
+function normalizeDeliverySchedule(value: unknown): DeliveryScheduleConfig {
+  const item = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const weekdays = Array.isArray(item.weekdays)
+    ? [...new Set(item.weekdays.map(Number).filter((day) => Number.isInteger(day) && day >= 1 && day <= 6))]
+    : DEFAULT_DELIVERY_SCHEDULE.weekdays;
+  const startTime = normalizeDeliveryTime(item.startTime, DEFAULT_DELIVERY_SCHEDULE.startTime);
+  const endTime = normalizeDeliveryTime(item.endTime, DEFAULT_DELIVERY_SCHEDULE.endTime);
+  return {
+    weekdays: weekdays.length ? weekdays.sort((a, b) => a - b) : DEFAULT_DELIVERY_SCHEDULE.weekdays,
+    startTime: startTime < endTime ? startTime : DEFAULT_DELIVERY_SCHEDULE.startTime,
+    endTime: startTime < endTime ? endTime : DEFAULT_DELIVERY_SCHEDULE.endTime,
+  };
 }
 
 function normalizeCarouselSlides(value: unknown): StoreCarouselSlide[] {
@@ -75,7 +107,7 @@ export async function getFeaturedProductsConfig(options?: { refresh?: boolean })
   if (!options?.refresh && cachedConfig) return cachedConfig;
   if (!options?.refresh && pendingConfig) return pendingConfig;
   const db = getDb();
-  if (!db) return { ids: [], configured: false, carouselSlides: [] };
+  if (!db) return { ids: [], configured: false, carouselSlides: [], deliverySchedule: DEFAULT_DELIVERY_SCHEDULE };
 
   pendingConfig = getDoc(doc(db, STORE_CONFIG_PATH))
     .then((snapshot) => {
@@ -83,11 +115,12 @@ export async function getFeaturedProductsConfig(options?: { refresh?: boolean })
         ids: normalizeIds(snapshot.data()?.featuredProductIds),
         configured: snapshot.exists(),
         carouselSlides: normalizeCarouselSlides(snapshot.data()?.carouselSlides),
+        deliverySchedule: normalizeDeliverySchedule(snapshot.data()?.deliverySchedule),
       };
       cachedConfig = result;
       return result;
     })
-    .catch(() => ({ ids: [], configured: false, carouselSlides: [] }))
+    .catch(() => ({ ids: [], configured: false, carouselSlides: [], deliverySchedule: DEFAULT_DELIVERY_SCHEDULE }))
     .finally(() => {
       pendingConfig = null;
     });
@@ -104,12 +137,39 @@ export async function saveFeaturedProductIds(ids: string[], actor: string) {
     updatedAt: serverTimestamp(),
     updatedBy: actor,
   }, { merge: true });
-  cachedConfig = { ids: normalized, configured: true, carouselSlides: cachedConfig?.carouselSlides ?? [] };
+  cachedConfig = {
+    ids: normalized,
+    configured: true,
+    carouselSlides: cachedConfig?.carouselSlides ?? [],
+    deliverySchedule: cachedConfig?.deliverySchedule ?? DEFAULT_DELIVERY_SCHEDULE,
+  };
   return cachedConfig;
 }
 
 export async function getStoreCarouselSlides(options?: { refresh?: boolean }) {
   return (await getFeaturedProductsConfig(options)).carouselSlides;
+}
+
+export async function getDeliveryScheduleConfig(options?: { refresh?: boolean }) {
+  return (await getFeaturedProductsConfig(options)).deliverySchedule;
+}
+
+export async function saveDeliveryScheduleConfig(schedule: DeliveryScheduleConfig, actor: string) {
+  const db = getDb();
+  if (!db) throw new Error("Firebase no está configurado.");
+  const normalized = normalizeDeliverySchedule(schedule);
+  await setDoc(doc(db, STORE_CONFIG_PATH), {
+    deliverySchedule: normalized,
+    deliveryScheduleUpdatedAt: serverTimestamp(),
+    deliveryScheduleUpdatedBy: actor,
+  }, { merge: true });
+  cachedConfig = {
+    ids: cachedConfig?.ids ?? [],
+    configured: true,
+    carouselSlides: cachedConfig?.carouselSlides ?? [],
+    deliverySchedule: normalized,
+  };
+  return normalized;
 }
 
 export async function saveStoreCarouselSlides(slides: StoreCarouselSlide[], actor: string) {
@@ -125,6 +185,7 @@ export async function saveStoreCarouselSlides(slides: StoreCarouselSlide[], acto
     ids: cachedConfig?.ids ?? [],
     configured: true,
     carouselSlides: normalized,
+    deliverySchedule: cachedConfig?.deliverySchedule ?? DEFAULT_DELIVERY_SCHEDULE,
   };
   return normalized;
 }

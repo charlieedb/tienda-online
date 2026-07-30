@@ -4,6 +4,8 @@ import { useAuth } from "@/auth/AuthProvider";
 import { submitCheckoutOrder } from "@/lib/checkoutOrders";
 import { getCachedUserProfile, refreshUserProfile, upsertUserProfile } from "@/lib/userProfile";
 import { notifyTelegramOrder } from "@/lib/telegramOrders";
+import { DEFAULT_DELIVERY_SCHEDULE, getDeliveryScheduleConfig } from "@/lib/featuredProducts";
+import { buildDeliveryDates, buildDeliveryTimes } from "@/lib/deliverySchedule";
 import type { LatLng } from "@/lib/userProfile";
 import { getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
@@ -65,8 +67,33 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
   const [form, setForm] = useState<CheckoutForm>(EMPTY_FORM);
   const [deliveryLocation, setDeliveryLocation] = useState<LatLng | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
+  const [deliverySchedule, setDeliverySchedule] = useState(DEFAULT_DELIVERY_SCHEDULE);
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
+  const [deliveryDate, setDeliveryDate] = useState("");
+  const [deliveryTime, setDeliveryTime] = useState("");
   const orderRequestId = useRef(createRequestId());
   const total = useMemo(() => items.reduce((sum, item) => sum + item.price * item.qty, 0), [items]);
+  const deliveryDates = useMemo(() => buildDeliveryDates(deliverySchedule), [deliverySchedule]);
+  const deliveryTimes = useMemo(() => buildDeliveryTimes(deliverySchedule), [deliverySchedule]);
+
+  useEffect(() => {
+    if (!checkoutOpen) return;
+    let active = true;
+    setDeliveryLoading(true);
+    getDeliveryScheduleConfig()
+      .then((schedule) => {
+        if (!active) return;
+        setDeliverySchedule(schedule);
+        const dates = buildDeliveryDates(schedule);
+        const times = buildDeliveryTimes(schedule);
+        setDeliveryDate((current) => dates.some((date) => date.value === current) ? current : dates[0]?.value || "");
+        setDeliveryTime((current) => times.includes(current) ? current : times[0] || "");
+      })
+      .finally(() => {
+        if (active) setDeliveryLoading(false);
+      });
+    return () => { active = false; };
+  }, [checkoutOpen]);
 
   useEffect(() => {
     if (!checkoutOpen || !user) return;
@@ -90,6 +117,10 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
   }, [checkoutOpen, user]);
 
   const submit = async () => {
+    const selectedDeliveryDate = deliveryDates.find((date) => date.value === deliveryDate);
+    if (!selectedDeliveryDate || !deliveryTime) {
+      setError("Elegí el día y horario para recibir el pedido."); return;
+    }
     const customer = {
       nombre: form.nombre.trim(), telefono: form.telefono.trim(), direccion: form.direccion.trim(), nota: form.nota.trim(), ubicacion: deliveryLocation,
     };
@@ -123,6 +154,11 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
         cartItems: items,
         productsById: new Map(),
         requestId: orderRequestId.current,
+        delivery: {
+          date: selectedDeliveryDate.value,
+          dateLabel: selectedDeliveryDate.label,
+          time: deliveryTime,
+        },
         onProgress: (progress, label) => {
           setSubmitProgress(progress);
           setSubmitProgressLabel(label);
@@ -140,7 +176,7 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
       try {
         localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, address: customer.direccion, city: "", notes: customer.nota, lat: customer.ubicacion?.lat, lng: customer.ubicacion?.lng }));
       } catch { /* el pedido ya fue enviado */ }
-      clear(); setCheckoutOpen(false); setSentWarning(telegramWarning); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); orderRequestId.current = createRequestId();
+      clear(); setCheckoutOpen(false); setSentWarning(telegramWarning); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTime(""); orderRequestId.current = createRequestId();
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "No pudimos enviar el pedido.");
     } finally { setSubmitting(false); }
@@ -164,12 +200,24 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
     <AnimatePresence>{checkoutOpen && !mapOpen ? <><motion.button type="button" className="checkout-backdrop" aria-label="Cerrar confirmación" onClick={() => !submitting && setCheckoutOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.section className="checkout-sheet" role="dialog" aria-modal="true" aria-labelledby="checkout-title" initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: .26, ease: [0.22, 1, 0.36, 1] }}><div className="checkout-head"><div><span>Último paso</span><h2 id="checkout-title">Confirmar compra</h2></div><button type="button" onClick={() => setCheckoutOpen(false)} disabled={submitting} aria-label="Cerrar"><Icon name="close"/></button></div><div className="checkout-body">
       {profileLoading ? <div className="checkout-notice"><span className="tiny-spinner"/> Completando tus datos guardados…</div> : null}
       {error ? <div className="checkout-error" role="alert">{error}</div> : null}
+      <fieldset className="checkout-delivery" disabled={submitting || deliveryLoading}>
+        <legend>¿Cuándo querés recibirlo?</legend>
+        <p>Elegí desde mañana. Los domingos no realizamos entregas.</p>
+        {deliveryLoading ? <div className="checkout-notice"><span className="tiny-spinner"/> Consultando horarios…</div> : <>
+          <div className="checkout-delivery-days">
+            {deliveryDates.map((date) => <button type="button" className={deliveryDate === date.value ? "is-active" : ""} onClick={() => setDeliveryDate(date.value)} aria-pressed={deliveryDate === date.value} key={date.value}>{date.shortLabel}</button>)}
+          </div>
+          <label className="checkout-delivery-time"><span>Horario de entrega</span><select value={deliveryTime} onChange={(event) => setDeliveryTime(event.target.value)}>
+            {deliveryTimes.map((time) => <option value={time} key={time}>{time} hs</option>)}
+          </select></label>
+        </>}
+      </fieldset>
       <label><span>Nombre y apellido</span><input value={form.nombre} onChange={(event) => setForm((current) => ({ ...current, nombre: event.target.value }))} autoComplete="name" placeholder="Tu nombre"/></label>
       <label><span>Teléfono</span><input value={form.telefono} onChange={(event) => setForm((current) => ({ ...current, telefono: event.target.value }))} autoComplete="tel" inputMode="tel" placeholder="WhatsApp o teléfono"/></label>
       <label><span>Dirección de entrega</span><input value={form.direccion} onChange={(event) => { setForm((current) => ({ ...current, direccion: event.target.value })); setDeliveryLocation(null); }} autoComplete="street-address" placeholder="Calle, número y localidad"/></label>
       <button type="button" className={`checkout-location-button ${deliveryLocation ? "is-marked" : ""}`} onClick={() => setMapOpen(true)} disabled={submitting}><span aria-hidden="true">📍</span><span>{deliveryLocation ? "Ubicación guardada" : "Marcar punto de entrega"}</span>{deliveryLocation ? <small>{deliveryLocation.lat.toFixed(5)}, {deliveryLocation.lng.toFixed(5)}</small> : null}</button>
       <label><span>Nota <em>Opcional</em></span><textarea value={form.nota} onChange={(event) => setForm((current) => ({ ...current, nota: event.target.value }))} rows={3} placeholder="Aclaraciones para el pedido"/></label>
-    </div>{submitting ? <div className="checkout-progress" aria-live="polite"><div className="checkout-progress-copy"><span>{submitProgressLabel}</span><strong>{submitProgress}%</strong></div><div className="checkout-progress-track" role="progressbar" aria-label="Progreso del pedido" aria-valuemin={0} aria-valuemax={100} aria-valuenow={submitProgress}><span style={{ width: `${submitProgress}%` }}/></div></div> : null}<div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className="checkout-submit" onClick={submit} disabled={submitting || profileLoading}>{submitting ? <><span className="tiny-spinner"/> Enviando…</> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
+    </div>{submitting ? <div className="checkout-progress" aria-live="polite"><div className="checkout-progress-copy"><span>{submitProgressLabel}</span><strong>{submitProgress}%</strong></div><div className="checkout-progress-track" role="progressbar" aria-label="Progreso del pedido" aria-valuemin={0} aria-valuemax={100} aria-valuenow={submitProgress}><span style={{ width: `${submitProgress}%` }}/></div></div> : null}<div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className="checkout-submit" onClick={submit} disabled={submitting || profileLoading || deliveryLoading || !deliveryDate || !deliveryTime}>{submitting ? <><span className="tiny-spinner"/> Enviando…</> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
     <MapPickerModal open={mapOpen} initial={deliveryLocation} center={deliveryLocation} initialQuery={form.direccion} onClose={() => setMapOpen(false)} onPick={setDeliveryLocation}/>
   </>;
 }

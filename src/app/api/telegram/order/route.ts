@@ -19,10 +19,11 @@ function parsePayload(body: unknown): TelegramOrderPayload | null {
   const root = asRecord(body);
   const pedido = asRecord(root?.pedido);
   const cliente = asRecord(root?.cliente);
+  const delivery = asRecord(root?.delivery);
   const totals = asRecord(root?.totals);
   const rawItems = Array.isArray(root?.items) ? root.items : null;
 
-  if (!pedido || !cliente || !totals || !rawItems) return null;
+  if (!pedido || !cliente || !delivery || !totals || !rawItems) return null;
 
   const items: TelegramOrderPayload["items"] = [];
   for (const item of rawItems) {
@@ -59,6 +60,11 @@ function parsePayload(body: unknown): TelegramOrderPayload | null {
         return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
       })(),
     },
+    delivery: {
+      date: toText(delivery.date),
+      dateLabel: toText(delivery.dateLabel),
+      time: toText(delivery.time),
+    },
     items,
     totals: {
       distinct: Math.max(0, Math.trunc(toNumber(totals.distinct))),
@@ -69,7 +75,13 @@ function parsePayload(body: unknown): TelegramOrderPayload | null {
     },
   };
 
-  if (!payload.pedido.id || !payload.cliente.nombre || !payload.cliente.direccion) {
+  if (
+    !payload.pedido.id
+    || !payload.cliente.nombre
+    || !payload.cliente.direccion
+    || !payload.delivery.date
+    || !payload.delivery.time
+  ) {
     return null;
   }
 

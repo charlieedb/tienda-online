@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
@@ -193,7 +193,9 @@ export function AdminPedidosPage() {
       cancelled = true;
       try {
         unsub?.();
-      } catch {}
+      } catch {
+        // La suscripción puede haberse cerrado antes durante el desmontaje.
+      }
     };
   }, [adminProfile]);
 
@@ -722,6 +724,16 @@ export function AdminPedidosPage() {
 
                 {selectedOrder ? (
                   <>
+                    {selectedOrder.delivery?.date && selectedOrder.delivery.time ? (
+                      <div className="admin-delivery-summary">
+                        <span>Entrega solicitada</span>
+                        <strong>
+                          {selectedOrder.delivery.dateLabel || selectedOrder.delivery.date}
+                          {" · "}
+                          {selectedOrder.delivery.time} hs
+                        </strong>
+                      </div>
+                    ) : null}
                     <div className="mt-4 space-y-3">
                       {selectedOrder.items.map((item) => (
                         <div

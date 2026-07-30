@@ -26,6 +26,10 @@ function buildMessage(payload) {
     (clean(item.codigo).toLowerCase().startsWith("h") ? jonico : regular).push(line);
   }
   let message = `<b>${escapeHtml(client.nombre)}</b>\n${escapeHtml(client.direccion)}`;
+  const delivery = payload?.delivery || {};
+  if (clean(delivery.dateLabel) && clean(delivery.time)) {
+    message += `\n📅 <b>Entrega:</b> ${escapeHtml(delivery.dateLabel)} a las ${escapeHtml(delivery.time)} hs`;
+  }
   if (regular.length) message += `\n\n${regular.join("\n")}`;
   if (jonico.length) message += `\n\n<i>(Prod. de JONICO)</i>\n${jonico.join("\n")}`;
   if (clean(client.nota)) message += `\n\n📝 Nota: ${escapeHtml(client.nota)}`;

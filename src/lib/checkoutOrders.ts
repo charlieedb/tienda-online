@@ -6,6 +6,7 @@ import { getDb } from "@/lib/firebase";
 import type { CartItem } from "@/store/cart";
 import type { Product } from "@/catalog/types";
 import type { TelegramOrderPayload } from "@/lib/telegramOrders";
+import type { DeliverySelection } from "@/lib/deliverySchedule";
 
 type CheckoutCustomer = {
   nombre: string;
@@ -58,6 +59,7 @@ export async function submitCheckoutOrder(params: {
   cartItems: CartItem[];
   productsById: Map<string, Product>;
   requestId: string;
+  delivery: DeliverySelection;
   onProgress?: (progress: number, label: string) => void;
 }) {
   const db = getDb();
@@ -137,6 +139,12 @@ export async function submitCheckoutOrder(params: {
       nota: String(params.customer.nota || "").trim(),
       ubicacion: params.customer.ubicacion ?? null,
     },
+    delivery: {
+      date: params.delivery.date,
+      dateLabel: params.delivery.dateLabel,
+      time: params.delivery.time,
+      requestedAtIso: nowIso,
+    },
     items,
     totals: {
       distinct: items.length,
@@ -191,6 +199,11 @@ export async function submitCheckoutOrder(params: {
       direccion: payload.cliente.direccion,
       nota: payload.cliente.nota,
       ubicacion: payload.cliente.ubicacion,
+    },
+    delivery: {
+      date: payload.delivery.date,
+      dateLabel: payload.delivery.dateLabel,
+      time: payload.delivery.time,
     },
     items: items.map((item) => ({
       codigo: item.codigo,

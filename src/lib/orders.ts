@@ -52,6 +52,12 @@ export type OrderRecord = {
     direccion: string;
     nota: string;
   };
+  delivery?: {
+    date: string;
+    dateLabel: string;
+    time: string;
+    requestedAtIso?: string;
+  };
   items: OrderItem[];
   totals: {
     distinct: number;
@@ -181,6 +187,14 @@ function mapOrder(
       direccion: asString(data?.cliente?.direccion),
       nota: asString(data?.cliente?.nota),
     },
+    delivery: data?.delivery
+      ? {
+          date: asString(data.delivery.date),
+          dateLabel: asString(data.delivery.dateLabel),
+          time: asString(data.delivery.time),
+          requestedAtIso: asString(data.delivery.requestedAtIso),
+        }
+      : undefined,
     items: Array.isArray(data?.items)
         ? data.items.map((item: DocumentData) => ({
           codigo: asString(item?.codigo),

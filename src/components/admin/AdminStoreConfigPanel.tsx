@@ -2,7 +2,21 @@ import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { Product } from "@/catalog/types";
-import { getFeaturedProductsConfig, saveFeaturedProductIds } from "@/lib/featuredProducts";
+import {
+  DEFAULT_DELIVERY_SCHEDULE,
+  getFeaturedProductsConfig,
+  saveDeliveryScheduleConfig,
+  saveFeaturedProductIds,
+} from "@/lib/featuredProducts";
+
+const DELIVERY_DAYS = [
+  { value: 1, label: "Lunes" },
+  { value: 2, label: "Martes" },
+  { value: 3, label: "Miércoles" },
+  { value: 4, label: "Jueves" },
+  { value: 5, label: "Viernes" },
+  { value: 6, label: "Sábado" },
+];
 
 function normalize(value: string) {
   return value.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -15,6 +29,9 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [deliverySchedule, setDeliverySchedule] = useState(DEFAULT_DELIVERY_SCHEDULE);
+  const [savingDelivery, setSavingDelivery] = useState(false);
+  const [deliveryMessage, setDeliveryMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -29,6 +46,7 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
         if (!active) return;
         setProducts(catalog);
         setSelectedIds(config.ids);
+        setDeliverySchedule(config.deliverySchedule);
       })
       .catch((error) => {
         if (active) setMessage(error instanceof Error ? error.message : "No se pudo cargar la configuración.");
@@ -81,7 +99,67 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
     }
   };
 
+  const saveDelivery = async () => {
+    setSavingDelivery(true);
+    setDeliveryMessage("");
+    try {
+      const saved = await saveDeliveryScheduleConfig(deliverySchedule, user.email || user.uid);
+      setDeliverySchedule(saved);
+      setDeliveryMessage("Días y horarios de entrega guardados.");
+    } catch (error) {
+      setDeliveryMessage(error instanceof Error ? error.message : "No se pudo guardar la entrega.");
+    } finally {
+      setSavingDelivery(false);
+    }
+  };
+
   return <div className="admin-content-box admin-store-config">
+    <section className="admin-card admin-delivery-config">
+      <div className="admin-card__head">
+        <div className="admin-headline">
+          <h1 className="admin-title">Días y horarios de entrega</h1>
+          <p>El cliente podrá elegir desde el día siguiente. Los domingos siempre quedan excluidos.</p>
+        </div>
+      </div>
+      <div className="admin-card__body">
+        <div className="admin-delivery-days" role="group" aria-label="Días con reparto">
+          {DELIVERY_DAYS.map((day) => {
+            const checked = deliverySchedule.weekdays.includes(day.value);
+            return <label className={checked ? "is-active" : ""} key={day.value}>
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => setDeliverySchedule((current) => ({
+                  ...current,
+                  weekdays: checked
+                    ? current.weekdays.filter((value) => value !== day.value)
+                    : [...current.weekdays, day.value].sort((a, b) => a - b),
+                }))}
+              />
+              <span>{day.label}</span>
+            </label>;
+          })}
+          <label className="is-disabled">
+            <input type="checkbox" checked={false} disabled/>
+            <span>Domingo</span>
+          </label>
+        </div>
+        <div className="admin-delivery-times">
+          <label>
+            <span>Desde</span>
+            <input className="admin-input" type="time" value={deliverySchedule.startTime} onChange={(event) => setDeliverySchedule((current) => ({ ...current, startTime: event.target.value }))}/>
+          </label>
+          <label>
+            <span>Hasta</span>
+            <input className="admin-input" type="time" value={deliverySchedule.endTime} onChange={(event) => setDeliverySchedule((current) => ({ ...current, endTime: event.target.value }))}/>
+          </label>
+          <button type="button" className="btn success" onClick={() => void saveDelivery()} disabled={savingDelivery || !deliverySchedule.weekdays.length || deliverySchedule.startTime >= deliverySchedule.endTime}>
+            {savingDelivery ? "Guardando..." : "Guardar entregas"}
+          </button>
+        </div>
+        {deliveryMessage ? <div className="admin-users-message" role="status">{deliveryMessage}</div> : null}
+      </div>
+    </section>
     <section className="admin-card">
       <div className="admin-card__head">
         <div className="admin-headline">
