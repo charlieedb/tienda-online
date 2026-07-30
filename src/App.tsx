@@ -303,6 +303,9 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const categoryGridScroll = useRef(0);
+  const pendingCategoryScroll = useRef<number | null>(null);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const items = useCartStore((state) => state.items);
   const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.qty, 0), [items]);
   const cartTotal = useMemo(() => items.reduce((sum, item) => sum + item.qty * item.price, 0), [items]);
@@ -355,8 +358,73 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [catalog, query]);
 
+  const restoreCategoryGridScroll = () => {
+    pendingCategoryScroll.current = categoryGridScroll.current;
+    setSelectedCategory(null);
+  };
+
+  useEffect(() => {
+    if (tab !== "categories" || selectedCategory || pendingCategoryScroll.current === null) return;
+    const scrollTop = pendingCategoryScroll.current;
+    pendingCategoryScroll.current = null;
+    const frame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => window.scrollTo({ top: scrollTop, behavior: "auto" }));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedCategory, tab]);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (selectedCategory) restoreCategoryGridScroll();
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    if (!selectedCategory) return;
+    const handleTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      swipeStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+    };
+    const handleTouchEnd = (event: TouchEvent) => {
+      const start = swipeStart.current;
+      const touch = event.changedTouches[0];
+      swipeStart.current = null;
+      if (!start || !touch) return;
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      if (dx < -80 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (window.history.state?.jomaView === "category") window.history.back();
+        else restoreCategoryGridScroll();
+      }
+    };
+    const app = document.querySelector<HTMLElement>(".store-app");
+    app?.addEventListener("touchstart", handleTouchStart, { passive: true });
+    app?.addEventListener("touchend", handleTouchEnd, { passive: true });
+    return () => {
+      app?.removeEventListener("touchstart", handleTouchStart);
+      app?.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [selectedCategory]);
+
   const goTo = (next: Tab) => { setMenuOpen(false); setSelectedCategory(null); setTab(next); window.scrollTo({ top: 0, behavior: "smooth" }); };
-  const openCategory = (category: Category) => { setSelectedCategory(category); setTab("categories"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openCategory = (category: Category) => {
+    if (!selectedCategory && tab === "categories") categoryGridScroll.current = window.scrollY;
+    if (!selectedCategory) {
+      window.history.pushState({ ...window.history.state, jomaView: "category", categoryId: category.id }, "");
+    } else {
+      window.history.replaceState({ ...window.history.state, jomaView: "category", categoryId: category.id }, "");
+    }
+    setSelectedCategory(category);
+    setTab("categories");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const closeCategory = () => {
+    if (!selectedCategory) return;
+    if (window.history.state?.jomaView === "category") window.history.back();
+    else restoreCategoryGridScroll();
+  };
   const openCombos = () => openCategory(manifest?.categories.find((category) => category.id === "combos") ?? { id: "combos", name: "Combos", description: "Promociones de la app", color: "#d92822", image: "/joma-express.png", count: 0 });
   const openCarouselDestination = (slide: StoreCarouselSlide) => {
     if (slide.targetType === "categories") return goTo("categories");
@@ -381,7 +449,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
         <button type="button" className="brand-lockup" onClick={() => goTo("home")} aria-label="JOMA Express. Ir al inicio"><img src="/joma-express.png" alt="JOMA Express" width="561" height="257"/></button>
         <button type="button" className={`header-cart ${tab === "cart" ? "is-active" : ""}`} onClick={() => goTo("cart")} aria-label={`Abrir carrito. ${itemCount} productos`}><Icon name="cart"/>{itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}</button>
       </header>
-      <div className="search-dock"><label className="top-search"><Icon name="search"/><input ref={searchRef} value={query} onFocus={() => { if (tab !== "search") goTo("search"); }} onChange={(event) => { setQuery(event.target.value); if (tab !== "search") setTab("search"); }} placeholder="¿Qué necesitás?" aria-label="Buscar productos"/><span className={searchLoading ? "tiny-spinner" : ""}/></label></div>
+      <div className={`search-dock ${selectedCategory ? "has-back" : ""}`}>{selectedCategory ? <button type="button" className="search-back-button" onClick={closeCategory} aria-label="Volver a todas las categorías"><Icon name="arrow"/></button> : null}<label className="top-search"><Icon name="search"/><input ref={searchRef} value={query} onFocus={() => { if (tab !== "search") goTo("search"); }} onChange={(event) => { setQuery(event.target.value); if (tab !== "search") setTab("search"); }} placeholder="¿Qué necesitás?" aria-label="Buscar productos"/><span className={searchLoading ? "tiny-spinner" : ""}/></label></div>
       <AnimatePresence>{menuOpen ? <><motion.button type="button" className="drawer-scrim" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.nav className="header-menu" aria-label="Menú principal" initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ duration: .24, ease: [0.22, 1, 0.36, 1] }}><div className="drawer-head"><button type="button" className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><Icon name="close"/></button><img src="/joma-express.png" alt="JOMA Express" width="561" height="257"/></div><div className="drawer-content"><button type="button" onClick={() => goTo("profile")}><Icon name="user"/><span><strong>Perfil</strong><small>Mis datos y dirección</small></span><Icon name="arrow"/></button><hr/><button type="button" onClick={() => goTo("categories")}><Icon name="grid"/><span><strong>Categorías</strong><small>Explorar productos</small></span><Icon name="arrow"/></button><button type="button" className="drawer-logout" onClick={() => { setMenuOpen(false); void signOut(); }}><Icon name="logout"/><span><strong>Cerrar sesión</strong><small>Salir de esta cuenta</small></span><Icon name="arrow"/></button></div></motion.nav></> : null}</AnimatePresence>
     </div>
 
@@ -398,7 +466,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
         </motion.div> : null}
 
         {tab === "categories" ? <motion.div className="view" key={`categories-${selectedCategory?.id ?? "grid"}`} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
-          {selectedCategory ? <section><button className="back-button category-back-button" type="button" onClick={() => setSelectedCategory(null)}><span className="back-button-icon"><Icon name="arrow"/></span> Todas las categorías</button><div className="section-heading category-title"><div><span>{selectedCategory.description}</span><h1>{selectedCategory.name}</h1></div><b>{selectedCategory.count}</b></div>{categoryLoading ? <ProductSkeletons/> : categoryError ? <ErrorState message={categoryError} retry={() => { const current = selectedCategory; setSelectedCategory(null); requestAnimationFrame(() => setSelectedCategory(current)); }}/> : categoryProducts.length ? <ProductList products={categoryProducts}/> : <div className="empty-inline">No hay productos en esta categoría.</div>}</section> : <section><div className="page-intro"><span>Explorá sin apuro</span><h1>Categorías</h1><p>Elegí una sección y descargamos únicamente esos productos.</p></div>{initialLoading ? <div className="category-grid">{[1,2,3].map((n) => <div className="category-card skeleton-category" key={n}/>)}</div> : initialError ? <ErrorState message={initialError} retry={loadInitial}/> : <CategoryGrid categories={manifest?.categories ?? []} onSelect={openCategory}/>}</section>}
+          {selectedCategory ? <section><div className="section-heading category-title"><div><span>{selectedCategory.description}</span><h1>{selectedCategory.name}</h1></div><b>{selectedCategory.count}</b></div>{categoryLoading ? <ProductSkeletons/> : categoryError ? <ErrorState message={categoryError} retry={() => { const current = selectedCategory; setSelectedCategory(null); requestAnimationFrame(() => setSelectedCategory(current)); }}/> : categoryProducts.length ? <ProductList products={categoryProducts}/> : <div className="empty-inline">No hay productos en esta categoría.</div>}</section> : <section><div className="page-intro"><span>Explorá sin apuro</span><h1>Categorías</h1><p>Elegí una sección y descargamos únicamente esos productos.</p></div>{initialLoading ? <div className="category-grid">{[1,2,3].map((n) => <div className="category-card skeleton-category" key={n}/>)}</div> : initialError ? <ErrorState message={initialError} retry={loadInitial}/> : <CategoryGrid categories={manifest?.categories ?? []} onSelect={openCategory}/>}</section>}
         </motion.div> : null}
 
         {tab === "search" ? <motion.div className="view" key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
