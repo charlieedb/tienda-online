@@ -724,13 +724,13 @@ export function AdminPedidosPage() {
 
                 {selectedOrder ? (
                   <>
-                    {selectedOrder.delivery?.date && selectedOrder.delivery.time ? (
+                    {selectedOrder.delivery?.date && selectedOrder.delivery.timeRange ? (
                       <div className="admin-delivery-summary">
                         <span>Entrega solicitada</span>
                         <strong>
                           {selectedOrder.delivery.dateLabel || selectedOrder.delivery.date}
                           {" · "}
-                          {selectedOrder.delivery.time} hs
+                          {selectedOrder.delivery.timeRange}
                         </strong>
                       </div>
                     ) : null}

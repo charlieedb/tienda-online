@@ -142,7 +142,7 @@ export async function submitCheckoutOrder(params: {
     delivery: {
       date: params.delivery.date,
       dateLabel: params.delivery.dateLabel,
-      time: params.delivery.time,
+      timeRange: params.delivery.timeRange,
       requestedAtIso: nowIso,
     },
     items,
@@ -203,7 +203,7 @@ export async function submitCheckoutOrder(params: {
     delivery: {
       date: payload.delivery.date,
       dateLabel: payload.delivery.dateLabel,
-      time: payload.delivery.time,
+      timeRange: payload.delivery.timeRange,
     },
     items: items.map((item) => ({
       codigo: item.codigo,

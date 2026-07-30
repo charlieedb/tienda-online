@@ -27,8 +27,9 @@ function buildMessage(payload) {
   }
   let message = `<b>${escapeHtml(client.nombre)}</b>\n${escapeHtml(client.direccion)}`;
   const delivery = payload?.delivery || {};
-  if (clean(delivery.dateLabel) && clean(delivery.time)) {
-    message += `\n📅 <b>Entrega:</b> ${escapeHtml(delivery.dateLabel)} a las ${escapeHtml(delivery.time)} hs`;
+  const timeRange = clean(delivery.timeRange || delivery.time);
+  if (clean(delivery.dateLabel) && timeRange) {
+    message += `\n📅 <b>Entrega:</b> ${escapeHtml(delivery.dateLabel)}, de ${escapeHtml(timeRange)}`;
   }
   if (regular.length) message += `\n\n${regular.join("\n")}`;
   if (jonico.length) message += `\n\n<i>(Prod. de JONICO)</i>\n${jonico.join("\n")}`;

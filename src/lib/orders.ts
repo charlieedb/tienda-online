@@ -55,7 +55,7 @@ export type OrderRecord = {
   delivery?: {
     date: string;
     dateLabel: string;
-    time: string;
+    timeRange: string;
     requestedAtIso?: string;
   };
   items: OrderItem[];
@@ -191,7 +191,7 @@ function mapOrder(
       ? {
           date: asString(data.delivery.date),
           dateLabel: asString(data.delivery.dateLabel),
-          time: asString(data.delivery.time),
+          timeRange: asString(data.delivery.timeRange) || asString(data.delivery.time),
           requestedAtIso: asString(data.delivery.requestedAtIso),
         }
       : undefined,

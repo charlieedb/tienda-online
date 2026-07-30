@@ -23,7 +23,7 @@ export type TelegramOrderPayload = {
   delivery: {
     date: string;
     dateLabel: string;
-    time: string;
+    timeRange: string;
   };
   items: TelegramOrderItem[];
   totals: {
@@ -124,7 +124,7 @@ export function buildTelegramOrderMessage(payload: TelegramOrderPayload) {
   const telefono = cleanText(payload.cliente?.telefono);
   const nota = cleanText(payload.cliente?.nota);
   const deliveryDate = cleanText(payload.delivery?.dateLabel);
-  const deliveryTime = cleanText(payload.delivery?.time);
+  const deliveryTimeRange = cleanText(payload.delivery?.timeRange);
   const lat = Number(payload.cliente?.ubicacion?.lat);
   const lng = Number(payload.cliente?.ubicacion?.lng);
   const mapsUrl = Number.isFinite(lat) && Number.isFinite(lng)
@@ -146,8 +146,8 @@ export function buildTelegramOrderMessage(payload: TelegramOrderPayload) {
   }
 
   let mensaje = `<b>${escapeHtml(cliente)}</b>\n${escapeHtml(direccion)}`;
-  if (deliveryDate && deliveryTime) {
-    mensaje += `\n📅 <b>Entrega:</b> ${escapeHtml(deliveryDate)} a las ${escapeHtml(deliveryTime)} hs`;
+  if (deliveryDate && deliveryTimeRange) {
+    mensaje += `\n📅 <b>Entrega:</b> ${escapeHtml(deliveryDate)}, de ${escapeHtml(deliveryTimeRange)}`;
   }
 
   if (lineasJoma.length || lineasJonico.length) {

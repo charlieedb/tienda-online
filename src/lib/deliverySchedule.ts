@@ -3,7 +3,7 @@ import type { DeliveryScheduleConfig } from "@/lib/featuredProducts";
 export type DeliverySelection = {
   date: string;
   dateLabel: string;
-  time: string;
+  timeRange: string;
 };
 
 function localDateKey(date: Date) {
@@ -46,24 +46,8 @@ export function buildDeliveryDates(
   return dates;
 }
 
-function timeToMinutes(value: string) {
-  const [hours, minutes] = value.split(":").map(Number);
-  return hours * 60 + minutes;
+export function buildDeliveryTimeRanges(schedule: DeliveryScheduleConfig) {
+  return schedule.timeRanges.map(
+    ({ startTime, endTime }) => `${startTime} hs a ${endTime} hs`,
+  );
 }
-
-function minutesToTime(value: number) {
-  return `${String(Math.floor(value / 60)).padStart(2, "0")}:${String(value % 60).padStart(2, "0")}`;
-}
-
-export function buildDeliveryTimes(schedule: DeliveryScheduleConfig) {
-  const start = timeToMinutes(schedule.startTime);
-  const end = timeToMinutes(schedule.endTime);
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start > end) return [];
-  const times: string[] = [];
-  for (let current = start; current <= end; current += 60) {
-    times.push(minutesToTime(current));
-  }
-  if (times.at(-1) !== schedule.endTime) times.push(schedule.endTime);
-  return times;
-}
-

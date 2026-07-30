@@ -5,7 +5,7 @@ import { submitCheckoutOrder } from "@/lib/checkoutOrders";
 import { getCachedUserProfile, refreshUserProfile, upsertUserProfile } from "@/lib/userProfile";
 import { notifyTelegramOrder } from "@/lib/telegramOrders";
 import { DEFAULT_DELIVERY_SCHEDULE, getDeliveryScheduleConfig } from "@/lib/featuredProducts";
-import { buildDeliveryDates, buildDeliveryTimes } from "@/lib/deliverySchedule";
+import { buildDeliveryDates, buildDeliveryTimeRanges } from "@/lib/deliverySchedule";
 import type { LatLng } from "@/lib/userProfile";
 import { getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
@@ -70,11 +70,11 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
   const [deliverySchedule, setDeliverySchedule] = useState(DEFAULT_DELIVERY_SCHEDULE);
   const [deliveryLoading, setDeliveryLoading] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState("");
-  const [deliveryTime, setDeliveryTime] = useState("");
+  const [deliveryTimeRange, setDeliveryTimeRange] = useState("");
   const orderRequestId = useRef(createRequestId());
   const total = useMemo(() => items.reduce((sum, item) => sum + item.price * item.qty, 0), [items]);
   const deliveryDates = useMemo(() => buildDeliveryDates(deliverySchedule), [deliverySchedule]);
-  const deliveryTimes = useMemo(() => buildDeliveryTimes(deliverySchedule), [deliverySchedule]);
+  const deliveryTimeRanges = useMemo(() => buildDeliveryTimeRanges(deliverySchedule), [deliverySchedule]);
 
   useEffect(() => {
     if (!checkoutOpen) return;
@@ -85,9 +85,9 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
         if (!active) return;
         setDeliverySchedule(schedule);
         const dates = buildDeliveryDates(schedule);
-        const times = buildDeliveryTimes(schedule);
+        const timeRanges = buildDeliveryTimeRanges(schedule);
         setDeliveryDate((current) => dates.some((date) => date.value === current) ? current : dates[0]?.value || "");
-        setDeliveryTime((current) => times.includes(current) ? current : times[0] || "");
+        setDeliveryTimeRange((current) => timeRanges.includes(current) ? current : timeRanges[0] || "");
       })
       .finally(() => {
         if (active) setDeliveryLoading(false);
@@ -118,8 +118,8 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
 
   const submit = async () => {
     const selectedDeliveryDate = deliveryDates.find((date) => date.value === deliveryDate);
-    if (!selectedDeliveryDate || !deliveryTime) {
-      setError("Elegí el día y horario para recibir el pedido."); return;
+    if (!selectedDeliveryDate || !deliveryTimeRange) {
+      setError("Elegí el día y la franja horaria para recibir el pedido."); return;
     }
     const customer = {
       nombre: form.nombre.trim(), telefono: form.telefono.trim(), direccion: form.direccion.trim(), nota: form.nota.trim(), ubicacion: deliveryLocation,
@@ -157,7 +157,7 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
         delivery: {
           date: selectedDeliveryDate.value,
           dateLabel: selectedDeliveryDate.label,
-          time: deliveryTime,
+          timeRange: deliveryTimeRange,
         },
         onProgress: (progress, label) => {
           setSubmitProgress(progress);
@@ -176,7 +176,7 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
       try {
         localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, address: customer.direccion, city: "", notes: customer.nota, lat: customer.ubicacion?.lat, lng: customer.ubicacion?.lng }));
       } catch { /* el pedido ya fue enviado */ }
-      clear(); setCheckoutOpen(false); setSentWarning(telegramWarning); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTime(""); orderRequestId.current = createRequestId();
+      clear(); setCheckoutOpen(false); setSentWarning(telegramWarning); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTimeRange(""); orderRequestId.current = createRequestId();
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "No pudimos enviar el pedido.");
     } finally { setSubmitting(false); }
@@ -207,8 +207,8 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
           <div className="checkout-delivery-days">
             {deliveryDates.map((date) => <button type="button" className={deliveryDate === date.value ? "is-active" : ""} onClick={() => setDeliveryDate(date.value)} aria-pressed={deliveryDate === date.value} key={date.value}>{date.shortLabel}</button>)}
           </div>
-          <label className="checkout-delivery-time"><span>Horario de entrega</span><select value={deliveryTime} onChange={(event) => setDeliveryTime(event.target.value)}>
-            {deliveryTimes.map((time) => <option value={time} key={time}>{time} hs</option>)}
+          <label className="checkout-delivery-time"><span>Franja de entrega</span><select value={deliveryTimeRange} onChange={(event) => setDeliveryTimeRange(event.target.value)}>
+            {deliveryTimeRanges.map((timeRange) => <option value={timeRange} key={timeRange}>{timeRange}</option>)}
           </select></label>
         </>}
       </fieldset>
@@ -217,7 +217,7 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
       <label><span>Dirección de entrega</span><input value={form.direccion} onChange={(event) => { setForm((current) => ({ ...current, direccion: event.target.value })); setDeliveryLocation(null); }} autoComplete="street-address" placeholder="Calle, número y localidad"/></label>
       <button type="button" className={`checkout-location-button ${deliveryLocation ? "is-marked" : ""}`} onClick={() => setMapOpen(true)} disabled={submitting}><span aria-hidden="true">📍</span><span>{deliveryLocation ? "Ubicación guardada" : "Marcar punto de entrega"}</span>{deliveryLocation ? <small>{deliveryLocation.lat.toFixed(5)}, {deliveryLocation.lng.toFixed(5)}</small> : null}</button>
       <label><span>Nota <em>Opcional</em></span><textarea value={form.nota} onChange={(event) => setForm((current) => ({ ...current, nota: event.target.value }))} rows={3} placeholder="Aclaraciones para el pedido"/></label>
-    </div>{submitting ? <div className="checkout-progress" aria-live="polite"><div className="checkout-progress-copy"><span>{submitProgressLabel}</span><strong>{submitProgress}%</strong></div><div className="checkout-progress-track" role="progressbar" aria-label="Progreso del pedido" aria-valuemin={0} aria-valuemax={100} aria-valuenow={submitProgress}><span style={{ width: `${submitProgress}%` }}/></div></div> : null}<div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className="checkout-submit" onClick={submit} disabled={submitting || profileLoading || deliveryLoading || !deliveryDate || !deliveryTime}>{submitting ? <><span className="tiny-spinner"/> Enviando…</> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
+    </div>{submitting ? <div className="checkout-progress" aria-live="polite"><div className="checkout-progress-copy"><span>{submitProgressLabel}</span><strong>{submitProgress}%</strong></div><div className="checkout-progress-track" role="progressbar" aria-label="Progreso del pedido" aria-valuemin={0} aria-valuemax={100} aria-valuenow={submitProgress}><span style={{ width: `${submitProgress}%` }}/></div></div> : null}<div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className="checkout-submit" onClick={submit} disabled={submitting || profileLoading || deliveryLoading || !deliveryDate || !deliveryTimeRange}>{submitting ? <><span className="tiny-spinner"/> Enviando…</> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
     <MapPickerModal open={mapOpen} initial={deliveryLocation} center={deliveryLocation} initialQuery={form.direccion} onClose={() => setMapOpen(false)} onPick={setDeliveryLocation}/>
   </>;
 }

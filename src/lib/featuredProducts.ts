@@ -12,14 +12,18 @@ export type FeaturedProductsConfig = {
 
 export type DeliveryScheduleConfig = {
   weekdays: number[];
-  startTime: string;
-  endTime: string;
+  timeRanges: Array<{
+    startTime: string;
+    endTime: string;
+  }>;
 };
 
 export const DEFAULT_DELIVERY_SCHEDULE: DeliveryScheduleConfig = {
   weekdays: [1, 2, 3, 4, 5, 6],
-  startTime: "09:00",
-  endTime: "16:00",
+  timeRanges: [
+    { startTime: "08:00", endTime: "13:00" },
+    { startTime: "15:00", endTime: "18:00" },
+  ],
 };
 
 export type CarouselTargetType = "none" | "categories" | "category" | "search" | "cart";
@@ -64,12 +68,17 @@ function normalizeDeliverySchedule(value: unknown): DeliveryScheduleConfig {
   const weekdays = Array.isArray(item.weekdays)
     ? [...new Set(item.weekdays.map(Number).filter((day) => Number.isInteger(day) && day >= 1 && day <= 6))]
     : DEFAULT_DELIVERY_SCHEDULE.weekdays;
-  const startTime = normalizeDeliveryTime(item.startTime, DEFAULT_DELIVERY_SCHEDULE.startTime);
-  const endTime = normalizeDeliveryTime(item.endTime, DEFAULT_DELIVERY_SCHEDULE.endTime);
+  const timeRanges = Array.isArray(item.timeRanges)
+    ? item.timeRanges.flatMap((range) => {
+        const record = range && typeof range === "object" ? range as Record<string, unknown> : {};
+        const startTime = normalizeDeliveryTime(record.startTime, "");
+        const endTime = normalizeDeliveryTime(record.endTime, "");
+        return startTime && endTime && startTime < endTime ? [{ startTime, endTime }] : [];
+      }).slice(0, 6)
+    : [];
   return {
     weekdays: weekdays.length ? weekdays.sort((a, b) => a - b) : DEFAULT_DELIVERY_SCHEDULE.weekdays,
-    startTime: startTime < endTime ? startTime : DEFAULT_DELIVERY_SCHEDULE.startTime,
-    endTime: startTime < endTime ? endTime : DEFAULT_DELIVERY_SCHEDULE.endTime,
+    timeRanges: timeRanges.length ? timeRanges : DEFAULT_DELIVERY_SCHEDULE.timeRanges,
   };
 }
 

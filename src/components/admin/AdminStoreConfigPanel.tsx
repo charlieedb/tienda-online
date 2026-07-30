@@ -144,16 +144,27 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
             <span>Domingo</span>
           </label>
         </div>
-        <div className="admin-delivery-times">
-          <label>
-            <span>Desde</span>
-            <input className="admin-input" type="time" value={deliverySchedule.startTime} onChange={(event) => setDeliverySchedule((current) => ({ ...current, startTime: event.target.value }))}/>
-          </label>
-          <label>
-            <span>Hasta</span>
-            <input className="admin-input" type="time" value={deliverySchedule.endTime} onChange={(event) => setDeliverySchedule((current) => ({ ...current, endTime: event.target.value }))}/>
-          </label>
-          <button type="button" className="btn success" onClick={() => void saveDelivery()} disabled={savingDelivery || !deliverySchedule.weekdays.length || deliverySchedule.startTime >= deliverySchedule.endTime}>
+        <div className="admin-delivery-ranges">
+          {deliverySchedule.timeRanges.map((range, index) => (
+            <div className="admin-delivery-range" key={index}>
+              <strong>Franja {index + 1}</strong>
+              <label>
+                <span>Desde</span>
+                <input className="admin-input" type="time" value={range.startTime} onChange={(event) => setDeliverySchedule((current) => ({
+                  ...current,
+                  timeRanges: current.timeRanges.map((item, itemIndex) => itemIndex === index ? { ...item, startTime: event.target.value } : item),
+                }))}/>
+              </label>
+              <label>
+                <span>Hasta</span>
+                <input className="admin-input" type="time" value={range.endTime} onChange={(event) => setDeliverySchedule((current) => ({
+                  ...current,
+                  timeRanges: current.timeRanges.map((item, itemIndex) => itemIndex === index ? { ...item, endTime: event.target.value } : item),
+                }))}/>
+              </label>
+            </div>
+          ))}
+          <button type="button" className="btn success" onClick={() => void saveDelivery()} disabled={savingDelivery || !deliverySchedule.weekdays.length || deliverySchedule.timeRanges.some((range) => !range.startTime || !range.endTime || range.startTime >= range.endTime)}>
             {savingDelivery ? "Guardando..." : "Guardar entregas"}
           </button>
         </div>

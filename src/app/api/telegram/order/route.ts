@@ -63,7 +63,7 @@ function parsePayload(body: unknown): TelegramOrderPayload | null {
     delivery: {
       date: toText(delivery.date),
       dateLabel: toText(delivery.dateLabel),
-      time: toText(delivery.time),
+      timeRange: toText(delivery.timeRange) || toText(delivery.time),
     },
     items,
     totals: {
@@ -80,7 +80,7 @@ function parsePayload(body: unknown): TelegramOrderPayload | null {
     || !payload.cliente.nombre
     || !payload.cliente.direccion
     || !payload.delivery.date
-    || !payload.delivery.time
+    || !payload.delivery.timeRange
   ) {
     return null;
   }
