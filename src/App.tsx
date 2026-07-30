@@ -460,7 +460,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
         {tab === "home" ? <motion.div className="view" key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <HeroCarousel slides={carouselSlides} onCategories={() => goTo("categories")} onCombos={openCombos} onAction={openCarouselDestination}/>
           <section><div className="section-heading"><div><span>Elegidos para vos</span><h2>Destacados</h2></div><button type="button" onClick={() => goTo("categories")}>Ver todo</button></div>
-            {initialLoading ? <ProductSkeletons/> : initialError ? <ErrorState message={initialError} retry={loadInitial}/> : <ProductList products={featured} eagerCount={3}/>}</section>
+            {initialLoading ? <ProductSkeletons/> : initialError ? <ErrorState message={initialError} retry={loadInitial}/> : <ProductList products={featured} eagerCount={featured.length}/>}</section>
           {initialLoading || offers.length ? <section className="home-offers-section"><div className="section-heading"><div><span>Precios especiales</span><h2>Ofertas</h2></div></div>
             {initialLoading ? <ProductSkeletons count={2}/> : <ProductList products={offers}/>}</section> : null}
         </motion.div> : null}
