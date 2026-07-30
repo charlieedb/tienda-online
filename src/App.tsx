@@ -375,6 +375,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
 
   useEffect(() => {
     const handlePopState = () => {
+      setQuery("");
       if (selectedCategory) restoreCategoryGridScroll();
       else if (tab !== "home") {
         setMenuOpen(false);
@@ -400,6 +401,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
       const dx = touch.clientX - start.x;
       const dy = touch.clientY - start.y;
       if (dx < -80 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        setQuery("");
         if (selectedCategory) {
           if (window.history.state?.jomaView === "category") window.history.back();
           else restoreCategoryGridScroll();
@@ -433,6 +435,7 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const navigateBack = () => {
+    setQuery("");
     if (selectedCategory) {
       if (window.history.state?.jomaView === "category") window.history.back();
       else restoreCategoryGridScroll();
