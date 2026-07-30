@@ -13,7 +13,15 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
   const [visible, setVisible] = useState(eager);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const resolvedUrl = isReusableCombo ? "" : product.imageUrl ?? "";
+  const primaryUrl = isReusableCombo ? "" : product.imageUrl ?? "";
+  const fallbackUrl = isReusableCombo ? "" : product.imageFallbackUrl ?? "";
+  const [resolvedUrl, setResolvedUrl] = useState(primaryUrl);
+
+  useEffect(() => {
+    setResolvedUrl(primaryUrl);
+    setLoaded(false);
+    setFailed(false);
+  }, [primaryUrl]);
 
   useEffect(() => {
     if (visible || !host.current) return;
@@ -28,7 +36,14 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
 
   return <div className={`product-image ${loaded ? "is-loaded" : ""} ${isReusableCombo ? "is-combo" : ""}`} ref={host}>
     {!isReusableCombo ? <div className="image-skeleton" aria-hidden="true" /> : null}
-    {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} /> : null}
+    {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => {
+      if (fallbackUrl && fallbackUrl !== resolvedUrl) {
+        setLoaded(false);
+        setResolvedUrl(fallbackUrl);
+        return;
+      }
+      setFailed(true);
+    }} /> : null}
     {isReusableCombo ? <div className="combo-product-mark" aria-label="Combo con descuento"><span aria-hidden="true">%</span><small>Combo</small></div> : null}
     {!isReusableCombo && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
     {product.offer ? <span className="offer-badge">{product.offerCondition === "pack" ? "Oferta por caja" : product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}

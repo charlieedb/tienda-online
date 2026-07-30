@@ -5,6 +5,7 @@ export type Product = {
   category?: string;
   categoryId: string;
   imageUrl?: string;
+  imageFallbackUrl?: string;
   unit: { label: string; price: number; listPrice?: number; discountPct?: number };
   pack?: { qty: number; label: string; price: number; listPrice?: number; discountPct?: number };
   sortPrice: number;
