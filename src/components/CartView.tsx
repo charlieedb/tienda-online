@@ -8,6 +8,7 @@ import type { LatLng } from "@/lib/userProfile";
 import { getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
 import { MapPickerModal } from "./MapPickerModal";
+import { CartExpiryCountdown } from "./CartExpiryGuard";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const PROFILE_KEY = "joma.profile.v1";
@@ -152,7 +153,7 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
 
   return <>
     {sent ? <section className="order-success"><div className="success-check"><Icon name="check"/></div><h2>Pedido confirmado :)</h2><p>Nos comunicaremos con vos en breve, para coordinar la entrega y la forma de pago.<br/>Muchas gracias</p>{sentWarning ? <div className="checkout-error" role="status">{sentWarning}</div> : null}<button type="button" className="primary-action" onClick={() => window.location.reload()}>Volver al inicio</button></section> : <section className="cart-page">
-      <div className="section-heading cart-heading"><div><span>Tu compra</span><h2>Carrito</h2></div><button type="button" className="clear-button" onClick={clear}><Icon name="trash" /> Vaciar</button></div>
+      <div className="section-heading cart-heading"><div><span>Tu compra</span><h2>Carrito</h2><CartExpiryCountdown /></div><button type="button" className="clear-button" onClick={clear}><Icon name="trash" /> Vaciar</button></div>
       <div className="cart-list"><AnimatePresence initial={false}>{items.map((item) => { const remaining = getRemainingStock(items, item.productId, item.stockLimit); const canAdd = remaining === undefined || remaining >= getCartItemUnits({ ...item, qty: 1 }); return <motion.article layout exit={{ opacity: 0, x: 24 }} key={item.id} className="cart-item">
         <div className="cart-item-copy"><strong>{item.name}</strong><span>{item.label}</span><b>{money.format(item.price * item.qty)}</b></div>
         <div className="cart-item-actions"><div className="stepper compact"><button type="button" onClick={() => decItem(item.id)} aria-label={`Disminuir ${item.name}`}><Icon name="minus" /></button><output>{item.qty}</output><button type="button" onClick={() => addItem({ id: item.id, productId: item.productId, name: item.name, variant: item.variant, label: item.label, price: item.price, listPrice: item.listPrice, discountPct: item.discountPct, unitPriceFinal: item.unitPriceFinal, unitsPerPack: item.unitsPerPack, stockLimit: item.stockLimit }, 1)} aria-label={`Aumentar ${item.name}`} disabled={!canAdd}><Icon name="plus" /></button></div><button className="remove-button" type="button" onClick={() => removeItem(item.id)}>Quitar</button></div>

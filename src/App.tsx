@@ -4,6 +4,7 @@ import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { CatalogManifest, Category, Product } from "@/catalog/types";
 import { getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart";
 import { CartView } from "@/components/CartView";
+import { CartExpiryGuard } from "@/components/CartExpiryGuard";
 import { Icon } from "@/components/Icons";
 import { ProductCard } from "@/components/ProductCard";
 import { ProfileView } from "@/components/ProfileView";
@@ -422,8 +423,18 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
 export function App() {
   const { user, loading } = useAuth();
   const catalog = useMemo(() => user ? createRemoteCatalog() : null, [user]);
-  if (loading) return <AuthLoading/>;
-  if (!user) return <AuthWelcome/>;
-  if (!catalog) return <AuthLoading/>;
-  return <StoreApp catalog={catalog}/>;
+  const content = loading
+    ? <AuthLoading/>
+    : !user
+      ? <AuthWelcome/>
+      : catalog
+        ? <StoreApp catalog={catalog}/>
+        : <AuthLoading/>;
+
+  return (
+    <>
+      <CartExpiryGuard allowPrompt={Boolean(user) && !loading}/>
+      {content}
+    </>
+  );
 }

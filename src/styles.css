@@ -231,6 +231,7 @@ main.has-mini-cart { padding-bottom: 72px; }
 
 .cart-heading { padding-top: 20px; align-items: center; }
 .cart-heading h2 { font-size: 34px; }
+.cart-expiry-countdown { margin: 5px 0 0; color: var(--brand); font-size: 11px; font-weight: 850; font-variant-numeric: tabular-nums; }
 .clear-button { min-height: 44px; display: flex; align-items: center; gap: 5px; border: 0; background: transparent; color: #a33b35; font-size: 11px; font-weight: 800; cursor: pointer; }
 .clear-button svg { width: 17px; }
 .cart-list { display: grid; gap: 10px; }
@@ -249,6 +250,18 @@ main.has-mini-cart { padding-bottom: 72px; }
 .cart-summary strong { font-size: 23px; font-variant-numeric: tabular-nums; }
 .cart-summary p { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.14); color: #aaa39b; font-size: 11px; line-height: 1.4; }
 .checkout-button { width: 100%; min-height: 50px; margin-top: 15px; border: 0; border-radius: 14px; color: var(--brand-dark); background: white; font-size: 13px; font-weight: 900; cursor: pointer; }
+.cart-expiry-open { overflow: hidden; }
+.cart-expiry-backdrop { position: fixed; z-index: 280; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(29,20,18,.58); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
+.cart-expiry-dialog { width: min(100%, 420px); padding: 26px; border: 1px solid rgba(255,255,255,.7); border-radius: 22px; color: var(--ink); background: rgba(255,252,248,.96); box-shadow: 0 22px 70px rgba(46,27,23,.28); }
+.cart-expiry-eyebrow { color: var(--brand); font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .09em; }
+.cart-expiry-dialog h2 { margin: 7px 0 10px; font-size: clamp(24px, 7vw, 31px); line-height: 1.05; letter-spacing: -.04em; }
+.cart-expiry-dialog > p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.cart-expiry-dialog .cart-expiry-grace { margin-top: 15px; padding: 11px 13px; border-radius: 12px; color: #6b3430; background: #f9e7e4; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cart-expiry-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 9px; margin-top: 20px; }
+.cart-expiry-actions button { min-height: 48px; padding: 9px 13px; border: 1px solid transparent; border-radius: 13px; font: inherit; font-size: 12px; font-weight: 850; cursor: pointer; }
+.cart-expiry-actions .ghost { color: #655e57; border-color: var(--line); background: transparent; }
+.cart-expiry-actions .primary { color: white; background: var(--brand); box-shadow: 0 8px 22px rgba(217,40,34,.22); }
+.cart-expiry-actions button:focus-visible { outline: 3px solid rgba(217,40,34,.22); outline-offset: 3px; }
 .checkout-backdrop { position: fixed; z-index: 80; inset: 0; border: 0; background: rgba(29,20,18,.48); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
 .checkout-sheet { position: fixed; z-index: 90; inset-inline: 0; bottom: 0; width: min(100%, 560px); margin-inline: auto; max-height: min(88dvh, 760px); display: flex; flex-direction: column; overflow: hidden; color: var(--ink); border-radius: 20px 20px 0 0; background: #f0ece6; box-shadow: 0 -10px 30px rgba(46,27,23,.22); }
 .checkout-head { flex: 0 0 auto; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 18px; border-bottom: 1px solid var(--line); }

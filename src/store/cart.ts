@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export const CART_STORAGE_KEY = "listita_cart_v1";
+export const CART_DURATION_MS = 10 * 60 * 1000;
 
 export type CartItem = {
   id: string;
@@ -36,6 +37,7 @@ export function getRemainingStock(items: CartItem[], productId: string, stockLim
 type CartState = {
   open: boolean;
   items: CartItem[];
+  expiresAt: number | null;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
@@ -44,14 +46,22 @@ type CartState = {
   decItem: (id: string) => void;
   removeItem: (id: string) => void;
   clear: () => void;
+  extendExpiry: () => void;
   resetSession: () => void;
 };
+
+function nextExpiry(previousItems: CartItem[], nextItems: CartItem[], currentExpiry: number | null) {
+  if (!nextItems.length) return null;
+  if (!previousItems.length || !currentExpiry) return Date.now() + CART_DURATION_MS;
+  return currentExpiry;
+}
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       open: false,
       items: [],
+      expiresAt: null,
       openCart: () => set({ open: true }),
       closeCart: () => set({ open: false }),
       toggleCart: () => set({ open: !get().open }),
@@ -65,19 +75,29 @@ export const useCartStore = create<CartState>()(
           const allowedQty = remaining === undefined ? requestedQty : Math.min(requestedQty, Math.floor(remaining / unitsPerItem));
           if (!allowedQty) return {};
           if (existing) {
+            const items = state.items.map((i) =>
+              i.id === item.id ? { ...i, ...item, qty: i.qty + allowedQty } : i,
+            );
             return {
-              items: state.items.map((i) =>
-                i.id === item.id ? { ...i, ...item, qty: i.qty + allowedQty } : i,
-              ),
+              items,
+              expiresAt: nextExpiry(state.items, items, state.expiresAt),
             };
           }
-          return { items: [...state.items, { ...item, qty: allowedQty }] };
+          const items = [...state.items, { ...item, qty: allowedQty }];
+          return {
+            items,
+            expiresAt: nextExpiry(state.items, items, state.expiresAt),
+          };
         }),
       setItemQty: (id, qty) =>
         set((state) => {
           const nextQty = Math.max(0, Math.min(999, Math.trunc(qty)));
           if (nextQty === 0) {
-            return { items: state.items.filter((i) => i.id !== id) };
+            const items = state.items.filter((i) => i.id !== id);
+            return {
+              items,
+              expiresAt: nextExpiry(state.items, items, state.expiresAt),
+            };
           }
           const existing = state.items.find((i) => i.id === id);
           if (!existing) return {};
@@ -89,27 +109,59 @@ export const useCartStore = create<CartState>()(
             ? 999
             : Math.max(existing.qty, Math.floor((Math.max(0, Math.floor(existing.stockLimit) - otherReserved)) / unitsPerItem));
           const boundedQty = nextQty > existing.qty ? Math.min(nextQty, maxQty) : nextQty;
-          return { items: state.items.map((i) => (i.id === id ? { ...i, qty: boundedQty } : i)) };
+          const items = state.items.map((i) => (i.id === id ? { ...i, qty: boundedQty } : i));
+          return {
+            items,
+            expiresAt: nextExpiry(state.items, items, state.expiresAt),
+          };
         }),
       decItem: (id) =>
         set((state) => {
           const existing = state.items.find((i) => i.id === id);
           if (!existing) return {};
           if (existing.qty <= 1) {
-            return { items: state.items.filter((i) => i.id !== id) };
+            const items = state.items.filter((i) => i.id !== id);
+            return {
+              items,
+              expiresAt: nextExpiry(state.items, items, state.expiresAt),
+            };
           }
+          const items = state.items.map((i) =>
+            i.id === id ? { ...i, qty: i.qty - 1 } : i,
+          );
           return {
-            items: state.items.map((i) =>
-              i.id === id ? { ...i, qty: i.qty - 1 } : i,
-            ),
+            items,
+            expiresAt: nextExpiry(state.items, items, state.expiresAt),
           };
         }),
       removeItem: (id) =>
-        set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
-      clear: () => set({ items: [] }),
-      resetSession: () => set({ open: false, items: [] }),
+        set((state) => {
+          const items = state.items.filter((i) => i.id !== id);
+          return {
+            items,
+            expiresAt: nextExpiry(state.items, items, state.expiresAt),
+          };
+        }),
+      clear: () => set({ items: [], expiresAt: null }),
+      extendExpiry: () =>
+        set((state) => ({
+          expiresAt: state.items.length ? Date.now() + CART_DURATION_MS : null,
+        })),
+      resetSession: () => set({ open: false, items: [], expiresAt: null }),
     }),
-    { name: CART_STORAGE_KEY },
+    {
+      name: CART_STORAGE_KEY,
+      version: 1,
+      migrate: (persistedState) => {
+        const state = persistedState as Partial<CartState>;
+        const items = Array.isArray(state.items) ? state.items : [];
+        return {
+          ...state,
+          items,
+          expiresAt: items.length ? Date.now() + CART_DURATION_MS : null,
+        } as CartState;
+      },
+    },
   ),
 );
 
