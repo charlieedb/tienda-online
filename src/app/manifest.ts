@@ -2,23 +2,25 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Listita de Súper",
-    short_name: "Listita",
-    description: "Armá tu listita y agregá al carrito",
+    name: "JOMA Express",
+    short_name: "JOMA",
+    description: "Catálogo móvil para armar tu compra por unidad o por caja.",
     start_url: "/",
     display: "standalone",
-    background_color: "#E6E3E2",
-    theme_color: "#E10600",
+    background_color: "#c81b16",
+    theme_color: "#c81b16",
     icons: [
       {
-        src: "/favicon.png",
+        src: "/icon-512.png",
         sizes: "512x512",
         type: "image/png",
+        purpose: "any maskable",
       },
       {
-        src: "/favicon.png",
+        src: "/icon-192.png",
         sizes: "192x192",
         type: "image/png",
+        purpose: "any maskable",
       },
     ],
   };
