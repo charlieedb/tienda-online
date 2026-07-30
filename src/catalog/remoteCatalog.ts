@@ -1,5 +1,10 @@
 import type { CatalogManifest, CatalogProvider, Product } from "./types";
 import { getFeaturedProductsConfig } from "@/lib/featuredProducts";
+import {
+  getSpeedProductPriority,
+  isSpeedPrioritySearch,
+  prioritizeSpeedProducts,
+} from "@/lib/productSearchPriority";
 
 const VERSION_URL = "/api/catalog-version";
 const PRODUCTS_URL = "/api/catalog-products";
@@ -161,7 +166,12 @@ export function createRemoteCatalog(): CatalogProvider {
     getCategoryProducts: async (categoryId) => (await loadProducts()).filter((item) => item.active && item.categoryId === categoryId).sort(sortProducts),
     searchProducts: async (query) => {
       const terms = normalize(query).split(/\s+/).filter(Boolean);
-      return (await loadProducts()).filter((item) => item.active && terms.every((term) => normalize(item.keywords.join(" ")).includes(term))).sort(sortProducts).slice(0, 80);
+      const speedSearch = isSpeedPrioritySearch(query);
+      const products = (await loadProducts()).filter((item) =>
+        (item.active && terms.every((term) => normalize(item.keywords.join(" ")).includes(term)))
+        || (speedSearch && getSpeedProductPriority(item.id, query) !== null),
+      );
+      return prioritizeSpeedProducts(products.sort(sortProducts), query).slice(0, 80);
     },
     getCatalogVersion: async () => (await manifest()).version,
   };

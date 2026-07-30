@@ -1,5 +1,10 @@
 import { APP_VERSION } from "@/lib/appVersion";
 import { seedProducts } from "@/lib/seedProducts";
+import {
+  getSpeedProductPriority,
+  isSpeedPrioritySearch,
+  prioritizeSpeedProducts,
+} from "@/lib/productSearchPriority";
 
 export type Product = {
   id: string;
@@ -487,7 +492,14 @@ export async function searchProductsByToken(token: string): Promise<{
 
   // Fallback/augment: local filtering from catalog (covers seed + partial matches).
   const catalog = await getActiveCatalog();
-  const products = catalog.filter((p) => productMatchesToken(p, t));
+  const speedSearch = isSpeedPrioritySearch(t);
+  const products = prioritizeSpeedProducts(
+    catalog.filter((product) =>
+      productMatchesToken(product, t)
+      || (speedSearch && getSpeedProductPriority(product.id, t) !== null),
+    ),
+    t,
+  );
 
   if (products.length > 0) return { products, suggestions: [] };
 
