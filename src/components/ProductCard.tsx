@@ -3,7 +3,6 @@ import { motion, useReducedMotion } from "framer-motion";
 import type { Product } from "@/catalog/types";
 import { getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
-import { getProductImageUrl } from "@/lib/productImages";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const stockNumber = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
@@ -14,8 +13,7 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
   const [visible, setVisible] = useState(eager);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [resolvedUrl, setResolvedUrl] = useState(isReusableCombo ? "" : product.imageUrl ?? "");
-  const [resolved, setResolved] = useState(isReusableCombo || Boolean(product.imageUrl));
+  const resolvedUrl = isReusableCombo ? "" : product.imageUrl ?? "";
 
   useEffect(() => {
     if (visible || !host.current) return;
@@ -28,23 +26,11 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
     return () => observer.disconnect();
   }, [visible]);
 
-  useEffect(() => {
-    if (isReusableCombo || !visible || resolved) return;
-    let active = true;
-    getProductImageUrl(product.id).then((url) => {
-      if (!active) return;
-      setResolvedUrl(url);
-      setResolved(true);
-      if (!url) setFailed(true);
-    });
-    return () => { active = false; };
-  }, [isReusableCombo, product.id, resolved, visible]);
-
   return <div className={`product-image ${loaded ? "is-loaded" : ""} ${isReusableCombo ? "is-combo" : ""}`} ref={host}>
     {!isReusableCombo ? <div className="image-skeleton" aria-hidden="true" /> : null}
     {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} /> : null}
     {isReusableCombo ? <div className="combo-product-mark" aria-label="Combo con descuento"><span aria-hidden="true">%</span><small>Combo</small></div> : null}
-    {!isReusableCombo && resolved && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
+    {!isReusableCombo && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
     {product.offer ? <span className="offer-badge">{product.offerCondition === "pack" ? "Oferta por caja" : product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
   </div>;
 }

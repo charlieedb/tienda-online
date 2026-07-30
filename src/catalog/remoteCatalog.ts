@@ -65,7 +65,14 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay, 
     brand: category.toUpperCase() === "AA" ? "Exclusivos" : category,
     category,
     categoryId: isCombo ? "combos" : slug(category),
-    imageUrl: versionedImageUrl(raw.imagenURL ?? raw.imgUrl ?? raw.ImgUrl ?? raw.foto, catalogVersion),
+    imageUrl: versionedImageUrl(
+      raw.imgUrl ??
+        raw.ImgUrl ??
+        raw.imagenThumbURL ??
+        raw.imagenURL ??
+        raw.foto,
+      catalogVersion,
+    ),
     unit: { label: "1 unidad", price: unitFinalPrice, listPrice: offerDiscount > 0 ? unitPrice : undefined, discountPct: offerDiscount || undefined },
     pack: packQty > 1 ? { qty: packQty, label: `Caja x${packQty}`, price: packPrice, listPrice: packDiscount > 0 ? packListPrice : undefined, discountPct: packDiscount || undefined } : undefined,
     sortPrice: unitPrice,
