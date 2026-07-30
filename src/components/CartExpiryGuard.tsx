@@ -45,7 +45,13 @@ export function CartExpiryGuard({ allowPrompt }: CartExpiryGuardProps) {
   const [hydrated, setHydrated] = useState(useCartStore.persist.hasHydrated());
   const [graceDeadline, setGraceDeadline] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
-  const observedActiveTimer = useRef(false);
+  const armedExpiry = useRef<number | null>(null);
+  const promptOpen = useRef(false);
+  const hiddenSince = useRef<number | null>(
+    typeof document !== "undefined" && document.visibilityState === "hidden"
+      ? Date.now()
+      : null,
+  );
   const extendButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(
@@ -55,33 +61,62 @@ export function CartExpiryGuard({ allowPrompt }: CartExpiryGuardProps) {
 
   useEffect(() => {
     if (!hydrated || !itemCount || !expiresAt) {
-      observedActiveTimer.current = false;
+      armedExpiry.current = null;
+      promptOpen.current = false;
       setGraceDeadline(null);
       return;
     }
 
-    const remaining = expiresAt - Date.now();
-    if (remaining <= 0) {
-      if (!observedActiveTimer.current || !allowPrompt || Date.now() >= expiresAt + RESPONSE_GRACE_MS) {
-        clear();
-      } else {
-        setNow(Date.now());
-        setGraceDeadline(expiresAt + RESPONSE_GRACE_MS);
+    const evaluateExpiry = () => {
+      const currentTime = Date.now();
+      if (currentTime < expiresAt) {
+        armedExpiry.current = expiresAt;
+        return;
       }
-      return;
-    }
+      if (promptOpen.current) return;
 
-    observedActiveTimer.current = true;
-    const timer = window.setTimeout(() => {
-      if (!allowPrompt) {
+      const expiredWhileHidden = Boolean(
+        hiddenSince.current && hiddenSince.current < expiresAt,
+      );
+      const wasRunningInThisSession = armedExpiry.current === expiresAt;
+      const userIsPresent =
+        allowPrompt &&
+        document.visibilityState === "visible" &&
+        document.hasFocus() &&
+        !expiredWhileHidden;
+
+      if (!wasRunningInThisSession || !userIsPresent) {
         clear();
         return;
       }
-      setNow(Date.now());
-      setGraceDeadline(expiresAt + RESPONSE_GRACE_MS);
-    }, remaining);
 
-    return () => window.clearTimeout(timer);
+      setNow(currentTime);
+      promptOpen.current = true;
+      setGraceDeadline(currentTime + RESPONSE_GRACE_MS);
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenSince.current = Date.now();
+        if (promptOpen.current) clear();
+      } else {
+        evaluateExpiry();
+        hiddenSince.current = null;
+      }
+    };
+
+    evaluateExpiry();
+    const timer = window.setInterval(evaluateExpiry, 1000);
+    window.addEventListener("focus", evaluateExpiry);
+    window.addEventListener("pageshow", evaluateExpiry);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", evaluateExpiry);
+      window.removeEventListener("pageshow", evaluateExpiry);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [allowPrompt, clear, expiresAt, hydrated, itemCount]);
 
   useEffect(() => {
@@ -102,11 +137,13 @@ export function CartExpiryGuard({ allowPrompt }: CartExpiryGuardProps) {
   if (!graceDeadline || !itemCount) return null;
 
   const handleExtend = () => {
+    promptOpen.current = false;
     extendExpiry();
     setGraceDeadline(null);
   };
 
   const handleClear = () => {
+    promptOpen.current = false;
     clear();
     setGraceDeadline(null);
   };
