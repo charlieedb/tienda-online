@@ -70,11 +70,18 @@ function Spinner({ className = "h-4 w-4" }: { className?: string }) {
 }
 
 export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
-  const { user } = useAuth();
+  const { user, changePassword } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordVisibility, setPasswordVisibility] = useState({ current: false, next: false, confirm: false });
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSaved, setPasswordSaved] = useState(false);
 
   const empty: FormState = useMemo(
     () => ({
@@ -196,6 +203,51 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
 
   const canAddMoreAddresses = multiAddressEnabled || form.direcciones.length <= 1;
   const hasBasicData = Boolean(form.nombre || form.apellido || form.dni || form.telefono);
+  const hasPasswordProvider = user?.providerData.some((provider) => provider.providerId === "password") ?? false;
+
+  const submitPasswordChange = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPasswordError(null);
+    setPasswordSaved(false);
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("Completá los tres campos.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordError("La contraseña nueva debe tener al menos 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("La contraseña nueva y su confirmación no coinciden.");
+      return;
+    }
+    if (newPassword === currentPassword) {
+      setPasswordError("Elegí una contraseña diferente de la actual.");
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordVisibility({ current: false, next: false, confirm: false });
+      setPasswordSaved(true);
+    } catch (unknownError) {
+      const code = (unknownError as { code?: string })?.code;
+      setPasswordError(
+        code === "auth/invalid-credential" || code === "auth/wrong-password"
+          ? "La contraseña actual no es correcta."
+          : code === "auth/weak-password"
+            ? "La contraseña nueva es demasiado débil."
+            : code === "auth/too-many-requests"
+              ? "Hiciste demasiados intentos. Esperá unos minutos y probá nuevamente."
+              : "No pudimos cambiar la contraseña. Intentá nuevamente.",
+      );
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
 
   return (
     <>
@@ -313,6 +365,55 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                       />
                     </Field>
                   </div>
+                </div>
+
+                <div className="rounded-3xl border border-[rgba(29,53,87,0.08)] bg-[#F3F6F9] p-4">
+                  <div className="mb-3">
+                    <div className="text-sm font-black text-foreground">Contraseña</div>
+                    <div className="mt-1 text-xs font-semibold text-foreground/55">
+                      Actualizá tu clave de acceso de forma segura.
+                    </div>
+                  </div>
+
+                  {hasPasswordProvider ? (
+                    <form className="flex flex-col gap-3" onSubmit={submitPasswordChange}>
+                      <PasswordField
+                        label="Contraseña actual"
+                        value={currentPassword}
+                        visible={passwordVisibility.current}
+                        autoComplete="current-password"
+                        onChange={(value) => { setCurrentPassword(value); setPasswordError(null); setPasswordSaved(false); }}
+                        onToggle={() => setPasswordVisibility((state) => ({ ...state, current: !state.current }))}
+                      />
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <PasswordField
+                          label="Nueva contraseña"
+                          value={newPassword}
+                          visible={passwordVisibility.next}
+                          autoComplete="new-password"
+                          onChange={(value) => { setNewPassword(value); setPasswordError(null); setPasswordSaved(false); }}
+                          onToggle={() => setPasswordVisibility((state) => ({ ...state, next: !state.next }))}
+                        />
+                        <PasswordField
+                          label="Confirmar contraseña"
+                          value={confirmPassword}
+                          visible={passwordVisibility.confirm}
+                          autoComplete="new-password"
+                          onChange={(value) => { setConfirmPassword(value); setPasswordError(null); setPasswordSaved(false); }}
+                          onToggle={() => setPasswordVisibility((state) => ({ ...state, confirm: !state.confirm }))}
+                        />
+                      </div>
+                      {passwordError ? <div className="app-error rounded-2xl p-3 text-sm font-semibold text-red-700" role="alert">{passwordError}</div> : null}
+                      {passwordSaved ? <div className="app-info rounded-2xl p-3 text-sm font-semibold text-emerald-700" role="status">Contraseña actualizada correctamente.</div> : null}
+                      <button type="submit" disabled={passwordSaving} className="h-11 rounded-2xl bg-[#1D3557] px-4 text-sm font-black text-white disabled:opacity-60 sm:self-end">
+                        {passwordSaving ? "Actualizando..." : "Cambiar contraseña"}
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="rounded-2xl border border-border bg-white/88 p-3 text-sm font-semibold text-foreground/65">
+                      Tu cuenta usa Google. La contraseña se administra desde tu cuenta de Google.
+                    </div>
+                  )}
                 </div>
 
                 <div className="rounded-3xl border border-[rgba(29,53,87,0.08)] bg-[#F3F6F9] p-4">
@@ -562,6 +663,49 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-xs font-semibold text-foreground/70">{label}</span>
       {children}
     </label>
+  );
+}
+
+function PasswordField({ label, value, visible, autoComplete, onChange, onToggle }: {
+  label: string;
+  value: string;
+  visible: boolean;
+  autoComplete: "current-password" | "new-password";
+  onChange: (value: string) => void;
+  onToggle: () => void;
+}) {
+  return (
+    <Field label={label}>
+      <div className="relative">
+        <input
+          className="app-input h-11 w-full rounded-2xl px-4 pr-12 text-[16px]"
+          type={visible ? "text" : "password"}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          autoComplete={autoComplete}
+          spellCheck={false}
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-xl text-foreground/60 hover:bg-black/[0.05] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#457B9D]"
+          aria-label={visible ? `Ocultar ${label.toLowerCase()}` : `Mostrar ${label.toLowerCase()}`}
+          aria-pressed={visible}
+        >
+          <EyeIcon hidden={visible} />
+        </button>
+      </div>
+    </Field>
+  );
+}
+
+function EyeIcon({ hidden }: { hidden: boolean }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+      <circle cx="12" cy="12" r="2.5" />
+      {hidden ? <path d="m4 4 16 16" /> : null}
+    </svg>
   );
 }
 

@@ -1,8 +1,6 @@
 "use client";
 
-import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import type { User } from "firebase/auth";
-import { getDb } from "@/lib/firebase";
 import type { CartItem } from "@/store/cart";
 import type { Product } from "@/catalog/types";
 import type { TelegramOrderPayload } from "@/lib/telegramOrders";
@@ -27,7 +25,7 @@ function asActor(user: User | null, customer: CheckoutCustomer) {
 const CONFIRM_INVENTORY_URL =
   "https://us-central1-app-presu.cloudfunctions.net/confirmTiendaOrder";
 
-async function confirmCentralInventory(user: User, orderId: string) {
+async function createOrderAndReserveInventory(user: User, orderId: string, order: object) {
   const token = await user.getIdToken();
   const response = await fetch(CONFIRM_INVENTORY_URL, {
     method: "POST",
@@ -35,7 +33,7 @@ async function confirmCentralInventory(user: User, orderId: string) {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ orderId }),
+    body: JSON.stringify({ orderId, order }),
   });
   const data = await response.json().catch(() => null) as {
     ok?: boolean;
@@ -50,7 +48,7 @@ async function confirmCentralInventory(user: User, orderId: string) {
       : data?.error || "Uno de los artículos ya no tiene stock suficiente.";
     throw new Error(`${detail} Actualizá el carrito e intentá nuevamente.`);
   }
-  throw new Error("No pudimos reservar el stock central. Intentá nuevamente.");
+  throw new Error("No pudimos registrar el pedido y reservar el stock. Intentá nuevamente.");
 }
 
 export async function submitCheckoutOrder(params: {
@@ -62,12 +60,10 @@ export async function submitCheckoutOrder(params: {
   delivery: DeliverySelection;
   onProgress?: (progress: number, label: string) => void;
 }) {
-  const db = getDb();
-  if (!db) throw new Error("Firebase no está configurado.");
   if (!params.user) throw new Error("Necesitás iniciar sesión para confirmar la compra.");
 
   const nowIso = new Date().toISOString();
-  const orderRef = doc(collection(db, "orders"), params.requestId);
+  const orderId = params.requestId;
   const actor = asActor(params.user, params.customer);
 
   const items = params.cartItems.map((item) => {
@@ -124,10 +120,10 @@ export async function submitCheckoutOrder(params: {
 
   const payload = {
     pedido: {
-      id: orderRef.id,
+      id: orderId,
       tienda: "tienda-online-next",
       source: "tienda-online-next",
-      clientRequestId: orderRef.id,
+      clientRequestId: orderId,
       createdAtIso: nowIso,
     },
     cliente: {
@@ -169,9 +165,7 @@ export async function submitCheckoutOrder(params: {
       },
     ],
     audit: {
-      createdAt: serverTimestamp(),
       createdAtIso: nowIso,
-      updatedAt: serverTimestamp(),
       updatedAtIso: nowIso,
       createdBy: actor,
       lastActionBy: actor,
@@ -182,14 +176,13 @@ export async function submitCheckoutOrder(params: {
     },
   };
 
-  await setDoc(orderRef, payload, { merge: true });
-  params.onProgress?.(35, "Pedido registrado");
-  await confirmCentralInventory(params.user, orderRef.id);
+  params.onProgress?.(35, "Registrando pedido y reservando stock");
+  await createOrderAndReserveInventory(params.user, orderId, payload);
   params.onProgress?.(78, "Stock reservado");
 
   const telegramPayload: TelegramOrderPayload = {
     pedido: {
-      id: orderRef.id,
+      id: orderId,
       createdAtIso: nowIso,
       source: "tienda-online-next",
     },
@@ -222,5 +215,5 @@ export async function submitCheckoutOrder(params: {
     },
   };
 
-  return { id: orderRef.id, telegramPayload };
+  return { id: orderId, telegramPayload };
 }

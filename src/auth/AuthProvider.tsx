@@ -5,12 +5,15 @@ import {
   browserLocalPersistence,
   browserSessionPersistence,
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   setPersistence,
   signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
   sendPasswordResetEmail,
+  updatePassword,
   type User,
   type UserCredential,
 } from "firebase/auth";
@@ -28,6 +31,7 @@ type AuthContextValue = {
   resetAdminPassword: (username: string) => Promise<void>;
   signUpEmail: (email: string, password: string) => Promise<UserCredential>;
   signInGoogle: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -166,6 +170,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {
           await signInWithRedirect(auth, provider);
         }
+      },
+      changePassword: async (currentPassword, newPassword) => {
+        if (!auth?.currentUser?.email) throw new Error("No pudimos identificar tu cuenta.");
+        const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+        await reauthenticateWithCredential(auth.currentUser, credential);
+        await updatePassword(auth.currentUser, newPassword);
       },
       signOut: async () => {
         if (!auth) return;

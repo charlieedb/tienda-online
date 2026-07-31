@@ -366,6 +366,9 @@ main.has-mini-cart { padding-bottom: 72px; }
 .profile-intro p { margin: 5px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
 .profile-form { display: grid; gap: 12px; }
 .profile-section { display: grid; gap: 13px; padding: 18px; border: 1px solid var(--line); border-radius: 23px; background: var(--paper); box-shadow: 0 8px 24px rgba(67,52,39,.045); }
+.profile-section--personal { border-color: #eadbc6; background: #f8f1e7; }
+.profile-section--delivery { border-color: #cfe3ef; background: #edf6fb; }
+.profile-section--personal input, .profile-section--personal textarea, .profile-section--delivery input, .profile-section--delivery textarea { background: rgba(255,255,255,.78); }
 .profile-section-title { display: grid; gap: 3px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .profile-section-title strong { font-size: 15px; }
 .profile-section-title small { color: var(--muted); font-size: 10px; }
@@ -379,6 +382,20 @@ main.has-mini-cart { padding-bottom: 72px; }
 .profile-save { min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 7px; color: white; border: 0; border-radius: 16px; background: var(--ink); font-size: 13px; font-weight: 850; cursor: pointer; }
 .profile-save.is-saved { background: var(--green); }
 .profile-save svg { width: 19px; }
+.profile-security { margin-top: 12px; }
+.profile-password-form { display: grid; gap: 13px; }
+.profile-password-form label { display: grid; gap: 6px; color: #59534d; font-size: 11px; font-weight: 750; }
+.profile-password-input { position: relative; }
+.profile-password-input input { padding-right: 50px; }
+.profile-password-input button { position: absolute; top: 50%; right: 7px; width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 10px; color: #655c53; background: transparent; cursor: pointer; transform: translateY(-50%); }
+.profile-password-input button:hover { background: rgba(67,52,39,.06); }
+.profile-password-input button:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.profile-password-input svg { width: 20px; }
+.profile-password-save { min-height: 48px; border: 0; border-radius: 14px; color: white; background: var(--ink); font-size: 12px; font-weight: 850; cursor: pointer; }
+.profile-password-save:disabled { opacity: .6; cursor: wait; }
+.profile-password-success { display: flex; align-items: center; gap: 7px; padding: 11px 12px; border-radius: 12px; color: #176b3a; background: #e9f8ef; font-size: 11px; font-weight: 800; }
+.profile-password-success svg { width: 17px; }
+.profile-provider-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .profile-version { padding: 22px 0 4px; text-align: center; color: #a19a91; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 
 .auth-welcome, .auth-loading { position: relative; width: 100%; max-width: none; min-height: 100dvh; margin: 0; padding: max(18px, env(safe-area-inset-top)) 16px max(18px, env(safe-area-inset-bottom)); overflow: hidden; }

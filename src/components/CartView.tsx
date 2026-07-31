@@ -140,12 +140,14 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
         String(savedProfile.telefono || "").trim() !== customer.telefono ||
         savedAddress !== customer.direccion || String(savedProfile.notes || "").trim() !== customer.nota || locationChanged;
       if (profileChanged) {
-        await upsertUserProfile({
+        void upsertUserProfile({
           uid: user.uid, email: user.email,
           username: savedProfile?.username || user.email?.split("@")[0] || `usuario_${user.uid.slice(0, 8)}`,
           dni: savedProfile?.dni || "", displayName: savedProfile?.displayName || user.displayName,
           nombre: customer.nombre, apellido: "", telefono: customer.telefono, notes: customer.nota,
           direcciones: [{ id: "principal", provincia: "", localidad: "", direccion: customer.direccion, ubicacion: customer.ubicacion }],
+        }).catch((profileError) => {
+          console.error("No se pudo actualizar el perfil después del checkout", profileError);
         });
       }
       setSubmitProgress(15); setSubmitProgressLabel("Validando productos");
@@ -165,19 +167,15 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
           setSubmitProgressLabel(label);
         },
       });
-      let telegramWarning = "";
-      try {
-        setSubmitProgress(88); setSubmitProgressLabel("Enviando aviso");
-        await notifyTelegramOrder(result.telegramPayload);
-      } catch {
-        telegramWarning = "El pedido y el stock quedaron confirmados, pero el aviso de Telegram no pudo enviarse.";
-      }
       setSubmitProgress(100); setSubmitProgressLabel("Pedido confirmado");
-      await new Promise((resolve) => window.setTimeout(resolve, 300));
+      void notifyTelegramOrder(result.telegramPayload).catch((telegramError) => {
+        console.error("El pedido se confirmó, pero falló el aviso de Telegram", telegramError);
+        setSentWarning("El pedido y el stock quedaron confirmados, pero el aviso de Telegram no pudo enviarse.");
+      });
       try {
         localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, address: customer.direccion, city: "", notes: customer.nota, lat: customer.ubicacion?.lat, lng: customer.ubicacion?.lng }));
       } catch { /* el pedido ya fue enviado */ }
-      clear(); setCheckoutOpen(false); setSentWarning(telegramWarning); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTimeRange(""); orderRequestId.current = createRequestId();
+      clear(); setCheckoutOpen(false); setSentWarning(""); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTimeRange(""); orderRequestId.current = createRequestId();
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "No pudimos enviar el pedido.");
     } finally { setSubmitting(false); }
