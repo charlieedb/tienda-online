@@ -338,6 +338,14 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
   }, [tab]);
 
   useEffect(() => {
+    if (tab === "search") return;
+    setQuery("");
+    setSearchResults([]);
+    setSearchLoading(false);
+    setSearchError("");
+  }, [tab]);
+
+  useEffect(() => {
     if (!menuOpen) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";

@@ -1249,6 +1249,7 @@ body {
   padding: 0.85rem;
   text-align: left;
   background: rgba(247, 244, 240, 0.86);
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 .store-variant-toggle__option span {
@@ -1266,8 +1267,30 @@ body {
 }
 
 .store-variant-toggle__option.is-active {
-  border-color: rgba(214, 40, 40, 0.18);
-  background: rgba(214, 40, 40, 0.08);
+  border-color: rgba(22, 163, 74, 0.72);
+  background: rgba(34, 197, 94, 0.16);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+  transform: translateY(-1px);
+}
+
+.store-variant-toggle__option.is-active span,
+.store-variant-toggle__option.is-active strong {
+  color: #14532d;
+}
+
+.store-variant-toggle__option:focus-visible {
+  outline: 3px solid rgba(22, 163, 74, 0.28);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .store-variant-toggle__option {
+    transition: none;
+  }
+
+  .store-variant-toggle__option.is-active {
+    transform: none;
+  }
 }
 
 .store-inline-qty {

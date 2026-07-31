@@ -59,6 +59,12 @@ function ProductCardInner({ product, eager = false }: { product: Product; eager?
   const itemId = `${product.id}:${variant}`;
   const item = items.find((entry) => entry.id === itemId);
   const option = variant === "pack" && product.pack ? product.pack : product.unit;
+  const packUnitPriceFinal = variant === "pack" && product.pack
+    ? option.price / Math.max(1, product.pack.qty)
+    : null;
+  const packHasPromo = variant === "pack" && Boolean(
+    option.discountPct || (option.listPrice && option.listPrice > option.price),
+  );
   const remainingStock = getRemainingStock(items, product.id, product.stockReal);
   const unitsNeeded = variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1;
   const available = product.active && (remainingStock === undefined || remainingStock >= unitsNeeded);
@@ -80,7 +86,9 @@ function ProductCardInner({ product, eager = false }: { product: Product; eager?
       <div className={`product-price ${option.listPrice && option.listPrice > option.price ? "has-offer" : ""}`}>
         {option.listPrice && option.listPrice > option.price ? <span>{money.format(option.listPrice)}</span> : null}
         <strong>{money.format(option.price)}</strong>
-        {option.discountPct ? <small>Ahorrás {Math.round(option.discountPct)}%</small> : null}
+        {packUnitPriceFinal !== null
+          ? <small className={`unit-price-final ${packHasPromo ? "is-promo" : ""}`}>Pr. Unit. Final: <b>{money.format(packUnitPriceFinal)}</b></small>
+          : option.discountPct ? <small>Ahorrás {Math.round(option.discountPct)}%</small> : null}
       </div>
       {product.pack ? <div className="variant-switch" role="group" aria-label={`Presentación de ${product.name}`}>
         <button type="button" className={variant === "unit" ? "is-active" : ""} onClick={() => setVariant("unit")} aria-pressed={variant === "unit"}>Unidad</button>

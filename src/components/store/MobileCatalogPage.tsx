@@ -217,6 +217,7 @@ export function MobileCatalogPage({
                   <button
                     type="button"
                     className={`store-variant-toggle__option ${selectedVariant === "unit" ? "is-active" : ""}`}
+                    aria-pressed={selectedVariant === "unit"}
                     onClick={() =>
                       setVariantByProduct((prev) => ({
                         ...prev,
@@ -232,6 +233,7 @@ export function MobileCatalogPage({
                     <button
                       type="button"
                       className={`store-variant-toggle__option ${selectedVariant === "pack" ? "is-active" : ""}`}
+                      aria-pressed={selectedVariant === "pack"}
                       onClick={() =>
                         setVariantByProduct((prev) => ({
                           ...prev,

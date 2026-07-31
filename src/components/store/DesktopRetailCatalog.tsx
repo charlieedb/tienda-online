@@ -377,6 +377,7 @@ function DesktopProductCard({
           type="button"
           className={`store-variant-toggle__option ${selectedVariant === "unit" ? "is-active" : ""}`}
           onClick={() => onVariantChange("unit")}
+          aria-pressed={selectedVariant === "unit"}
         >
           <span>Unidad</span>
           <strong>{formatArs(product.unit.price)}</strong>
@@ -386,6 +387,7 @@ function DesktopProductCard({
             type="button"
             className={`store-variant-toggle__option ${selectedVariant === "pack" ? "is-active" : ""}`}
             onClick={() => onVariantChange("pack")}
+            aria-pressed={selectedVariant === "pack"}
           >
             <span>{product.pack.label}</span>
             <strong>{formatArs(product.pack.price)}</strong>
