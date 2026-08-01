@@ -305,7 +305,7 @@ function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
   </aside>;
 }
 
-function StoreApp({ catalog, initialTab = "home", initialInfo = "envios" }: { catalog: ReturnType<typeof createRemoteCatalog>; initialTab?: Tab; initialInfo?: InfoPage }) {
+function StoreApp({ catalog, initialTab = "home", initialInfo = "envios", onRequestLogin }: { catalog: ReturnType<typeof createRemoteCatalog>; initialTab?: Tab; initialInfo?: InfoPage; onRequestLogin: () => void }) {
   const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>(initialTab);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -538,8 +538,8 @@ function StoreApp({ catalog, initialTab = "home", initialInfo = "envios" }: { ca
           {query.length < 2 ? <div className="search-start"><p>Probá con</p><div>{["Aceite","Yerba","Gaseosa","Limpieza"].map((term) => <button type="button" onClick={() => setQuery(term)} key={term}>{term}</button>)}</div></div> : searchError ? <ErrorState message={searchError} retry={() => setQuery((value) => `${value} `)}/> : !searchLoading && !searchResults.length ? <div className="empty-state compact-empty"><div className="empty-icon"><Icon name="search"/></div><h2>Sin coincidencias</h2><p>Probá con otra palabra o revisá cómo está escrito.</p></div> : <><div className="result-count">{searchResults.length} {searchResults.length === 1 ? "resultado" : "resultados"}</div><ProductList products={searchResults}/></>}</section>
         </motion.div> : null}
 
-        {tab === "cart" ? <motion.div className="view" key="cart" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><CartView onContinue={() => goTo("home")} onRequireAuth={() => window.location.assign("/?login=1")}/></motion.div> : null}
-        {tab === "profile" ? <motion.div className="view" key="profile" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>{user ? <ProfileView/> : <section className="empty-state"><h2>Ingresá para ver tu perfil</h2><p>Tu cuenta guarda direcciones y pedidos.</p><button type="button" className="primary-action" onClick={() => window.location.assign("/?login=1")}>Iniciar sesión</button></section>}</motion.div> : null}
+        {tab === "cart" ? <motion.div className="view" key="cart" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><CartView onContinue={() => goTo("home")} onRequireAuth={onRequestLogin}/></motion.div> : null}
+        {tab === "profile" ? <motion.div className="view" key="profile" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>{user ? <ProfileView/> : <section className="empty-state"><h2>Ingresá para ver tu perfil</h2><p>Tu cuenta guarda direcciones y pedidos.</p><button type="button" className="primary-action" onClick={onRequestLogin}>Iniciar sesión</button></section>}</motion.div> : null}
         {tab === "info" ? <motion.div className="view" key={`info-${initialInfo}`} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><StoreInfoPage page={initialInfo} onBack={() => goTo("home")}/></motion.div> : null}
       </AnimatePresence>
       </main>
@@ -575,13 +575,19 @@ export function App() {
   const infoParam = params.get("info");
   const initialInfo: InfoPage = infoParam === "locales" || infoParam === "nosotros" || infoParam === "contacto" || infoParam === "privacidad" ? infoParam : "envios";
   const loginRequested = params.get("login") === "1";
+  const requestLogin = () => {
+    const nextLocation = "/?login=1";
+    window.history.pushState({ ...window.history.state, jomaView: "login" }, "", nextLocation);
+    setLocation(nextLocation);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
   useEffect(() => {
     if (loginRequested) setDocumentMetadata("Iniciar sesión | Joma Group", "Acceso de clientes de Joma Group.", "/", true);
   }, [loginRequested]);
   const content = loginRequested && !loading && !user
     ? <AuthWelcome/>
     : path === "/"
-      ? <StoreApp catalog={catalog} initialTab={infoParam ? "info" : params.get("view") === "cart" ? "cart" : params.get("view") === "search" ? "search" : params.get("view") === "profile" ? "profile" : params.get("view") === "categories" ? "categories" : "home"} initialInfo={initialInfo}/>
+      ? <StoreApp catalog={catalog} initialTab={infoParam ? "info" : params.get("view") === "cart" ? "cart" : params.get("view") === "search" ? "search" : params.get("view") === "profile" ? "profile" : params.get("view") === "categories" ? "categories" : "home"} initialInfo={initialInfo} onRequestLogin={requestLogin}/>
       : <PublicRoutePage catalog={catalog} path={path}/>;
 
   return (
@@ -600,7 +606,6 @@ export function App() {
             transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
             <img src="/joma-express.png" alt="Joma Group" width="561" height="257"/>
-            <span className="startup-splash__progress" aria-hidden="true"/>
           </motion.div>
         ) : null}
       </AnimatePresence>

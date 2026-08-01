@@ -18,7 +18,11 @@
     <meta property="og:image" content="https://jomagroup.com.ar/icon-512.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="canonical" href="https://jomagroup.com.ar/" />
-    <style>html,body,#root{background-color:#c81b16}</style>
+    <style>
+      html,body,#root{background-color:#c81b16}
+      .boot-logo{position:fixed;z-index:2147483647;inset:0;display:grid;place-items:center;padding:24px;background:#f7f4ef}
+      .boot-logo img{display:block;width:min(168px,48vw);height:auto}
+    </style>
     <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossorigin />
     <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -28,7 +32,7 @@
     <title>Joma Group | Mayorista y tienda online en Corrientes</title>
   </head>
   <body>
-    <div id="root"><main style="max-width:760px;margin:auto;padding:32px 20px;color:#211f1c;background:#f7f4ef"><h1>Joma Group, mayorista y tienda online en Corrientes</h1><p>Consultá productos por unidad o por caja y prepará tu pedido con entrega programada en Corrientes Capital.</p><nav aria-label="Catálogo"><a href="/categorias">Ver productos</a> · <a href="/ofertas">Ver ofertas</a> · <a href="/envios-corrientes">Envíos en Corrientes</a> · <a href="/locales">Nuestros locales</a></nav></main></div>
+    <div id="root"><span class="boot-logo" role="status" aria-label="Cargando Joma Group"><img src="/joma-express.png" alt="Joma Group" width="561" height="257" /></span><main style="max-width:760px;margin:auto;padding:32px 20px;color:#211f1c;background:#f7f4ef"><h1>Joma Group, mayorista y tienda online en Corrientes</h1><p>Consultá productos por unidad o por caja y prepará tu pedido con entrega programada en Corrientes Capital.</p><nav aria-label="Catálogo"><a href="/categorias">Ver productos</a> · <a href="/ofertas">Ver ofertas</a> · <a href="/envios-corrientes">Envíos en Corrientes</a> · <a href="/locales">Nuestros locales</a></nav></main></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -48,7 +48,8 @@ function withHead(html, { title, description, canonical, type = "website", image
 }
 
 function withBody(html, content) {
-  return html.replace(/<div id="root">[\s\S]*?<\/div>/i, `<div id="root">${content}</div>`);
+  const bootLogo = '<span class="boot-logo" role="status" aria-label="Cargando Joma Group"><img src="/joma-express.png" alt="Joma Group" width="561" height="257" /></span>';
+  return html.replace(/<div id="root">[\s\S]*?<\/div>/i, `<div id="root">${bootLogo}${content}</div>`);
 }
 
 async function writeRoute(route, html) {

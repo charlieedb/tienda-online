@@ -34,36 +34,10 @@ img { display: block; max-width: 100%; }
   display: grid;
   place-content: center;
   justify-items: center;
-  gap: 20px;
   padding: 24px;
   background: #f7f4ef;
 }
 .startup-splash img { width: min(168px, 48vw); height: auto; }
-.startup-splash__progress {
-  width: 42px;
-  height: 3px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #eadbd5;
-}
-.startup-splash__progress::after {
-  content: "";
-  width: 55%;
-  height: 100%;
-  display: block;
-  border-radius: inherit;
-  background: var(--brand);
-  animation: startup-progress .75s ease-in-out infinite alternate;
-}
-
-@keyframes startup-progress {
-  from { transform: translateX(-40%); }
-  to { transform: translateX(120%); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .startup-splash__progress::after { animation: none; transform: none; }
-}
 
 .store-app { min-height: 100dvh; overflow-x: clip; padding-bottom: calc(24px + env(safe-area-inset-bottom)); background: #f7f4ef; }
 .top-shell { position: fixed; z-index: 50; inset: 0 0 auto; background: #c81b16; box-shadow: 0 5px 12px rgba(83,18,15,.2); }
