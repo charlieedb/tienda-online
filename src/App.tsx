@@ -520,7 +520,7 @@ function StoreApp({ catalog, initialTab = "home", initialInfo = "envios" }: { ca
     <div className="desktop-layout">
       <DesktopCategoryRail categories={manifest?.categories ?? []} selectedCategory={selectedCategory} tab={tab} onShowAll={() => goTo("categories")} onSelect={openCategory}/>
       <main id="main-content" className={itemCount ? "has-mini-cart" : ""}>
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="popLayout" initial={false}>
         {tab === "home" ? <motion.div className="view" key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <HeroCarousel slides={carouselSlides} onCategories={() => goTo("categories")} onCombos={openCombos} onAction={openCarouselDestination}/>
           <section><div className="section-heading"><div><span>Elegidos para vos</span><h2>Destacados</h2></div><button type="button" onClick={() => goTo("categories")}>Ver todo</button></div>
@@ -556,8 +556,14 @@ function StoreApp({ catalog, initialTab = "home", initialInfo = "envios" }: { ca
 
 export function App() {
   const { user, loading } = useAuth();
+  const prefersReducedMotion = useReducedMotion();
   const catalog = useMemo(() => createRemoteCatalog(), []);
+  const [splashMinimumElapsed, setSplashMinimumElapsed] = useState(false);
   const [location, setLocation] = useState(() => `${window.location.pathname}${window.location.search}`);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSplashMinimumElapsed(true), 520);
+    return () => window.clearTimeout(timer);
+  }, []);
   useEffect(() => {
     const syncLocation = () => setLocation(`${window.location.pathname}${window.location.search}`);
     window.addEventListener("popstate", syncLocation);
@@ -582,6 +588,22 @@ export function App() {
     <>
       <CartExpiryGuard allowPrompt={Boolean(user) && !loading}/>
       {content}
+      <AnimatePresence>
+        {(!splashMinimumElapsed || loading) ? (
+          <motion.div
+            className="startup-splash"
+            role="status"
+            aria-label="Cargando Joma Group"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <img src="/joma-express.png" alt="Joma Group" width="561" height="257"/>
+            <span className="startup-splash__progress" aria-hidden="true"/>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </>
   );
 }
