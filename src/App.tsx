@@ -8,11 +8,14 @@ import { CartExpiryGuard } from "@/components/CartExpiryGuard";
 import { Icon } from "@/components/Icons";
 import { ProductCard } from "@/components/ProductCard";
 import { ProfileView } from "@/components/ProfileView";
-import { AuthLoading, AuthWelcome } from "@/components/AuthWelcome";
+import { AuthWelcome } from "@/components/AuthWelcome";
+import { PublicRoutePage } from "@/components/PublicRoutePage";
+import { setDocumentMetadata } from "@/lib/seo";
 import { useAuth } from "@/auth/AuthProvider";
 import { getStoreCarouselSlides, type StoreCarouselSlide } from "@/lib/featuredProducts";
 
-type Tab = "home" | "categories" | "search" | "cart" | "profile";
+type Tab = "home" | "categories" | "search" | "cart" | "profile" | "info";
+type InfoPage = "envios" | "locales" | "nosotros" | "contacto" | "privacidad";
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const carouselImageCache = new Map<string, HTMLImageElement>();
 
@@ -201,6 +204,24 @@ function StoreCreditBar() {
   </footer>;
 }
 
+function StoreInfoFooter() {
+  return <footer className="store-info-footer">
+    <div><strong>Joma Group</strong><p>Mayorista y tienda online con entregas programadas en Corrientes Capital.</p></div>
+    <nav aria-label="Información de Joma Group"><a href="/?info=envios">Envíos</a><a href="/?info=locales">Locales</a><a href="/?info=nosotros">Nosotros</a><a href="/?info=contacto">Contacto</a><a href="/?info=privacidad">Privacidad</a></nav>
+  </footer>;
+}
+
+function StoreInfoPage({ page }: { page: InfoPage }) {
+  const content: Record<InfoPage, { title: string; body: React.ReactNode }> = {
+    envios: { title: "Envíos en Corrientes Capital", body: <><p>Realizamos entregas programadas dentro de Corrientes Capital. Al confirmar tu compra podrás elegir entre las fechas y franjas disponibles.</p><p>La cobertura se valida con la dirección del pedido. Por el momento no realizamos entregas en otras localidades.</p></> },
+    locales: { title: "Nuestros locales en Corrientes", body: <><h2>Joma Group</h2><p>Distribuidora, mayorista y tienda online con atención en Av. Maipú 7249, Corrientes Capital.</p><h2>Jónico</h2><p>Jónico Supermercado Mayorista y Minorista es una empresa vinculada, con operación y presencia propias junto a Joma Group.</p></> },
+    nosotros: { title: "Joma Group", body: <p>Somos una empresa de Corrientes dedicada a la distribución y venta mayorista y minorista de productos de consumo diario. Nuestra tienda online permite consultar el catálogo y preparar pedidos desde cualquier dispositivo.</p> },
+    contacto: { title: "Contacto", body: <><p><strong>Dirección:</strong> Av. Maipú 7249, Corrientes Capital.</p><p><strong>Teléfono:</strong> <a href="tel:+543794390919">0379 439-0919</a></p></> },
+    privacidad: { title: "Política de privacidad", body: <><p>Utilizamos los datos que ingresás para gestionar tu cuenta, preparar pedidos, coordinar entregas y responder consultas. No vendemos información personal a terceros.</p><p>Podés solicitar la actualización o eliminación de tus datos contactando a Joma Group.</p></> },
+  };
+  return <section className="store-info-page"><h1>{content[page].title}</h1>{content[page].body}<a href="/">Volver a la tienda</a></section>;
+}
+
 function ProductList({ products, eagerCount = 0 }: { products: Product[]; eagerCount?: number }) {
   useEffect(() => {
     products.slice(eagerCount, eagerCount + 3).forEach((product) => {
@@ -284,9 +305,9 @@ function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
   </aside>;
 }
 
-function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog> }) {
-  const { signOut } = useAuth();
-  const [tab, setTab] = useState<Tab>("home");
+function StoreApp({ catalog, initialTab = "home", initialInfo = "envios" }: { catalog: ReturnType<typeof createRemoteCatalog>; initialTab?: Tab; initialInfo?: InfoPage }) {
+  const { user, signOut } = useAuth();
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [menuOpen, setMenuOpen] = useState(false);
   const [manifest, setManifest] = useState<CatalogManifest | null>(null);
   const [featured, setFeatured] = useState<Product[]>([]);
@@ -309,6 +330,15 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
   const items = useCartStore((state) => state.items);
   const itemCount = useMemo(() => items.reduce((sum, item) => sum + item.qty, 0), [items]);
   const cartTotal = useMemo(() => items.reduce((sum, item) => sum + item.qty * item.price, 0), [items]);
+
+  useEffect(() => {
+    setDocumentMetadata(
+      "Joma Group | Mayorista y tienda online en Corrientes",
+      "Mayorista y tienda online de alimentos, bebidas y productos de consumo diario en Corrientes Capital.",
+      "/",
+      tab === "cart" || tab === "profile" || tab === "search",
+    );
+  }, [tab]);
 
   const loadInitial = () => {
     const controller = new AbortController();
@@ -398,10 +428,18 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
   useEffect(() => {
     if (tab === "home") return;
     const handleTouchStart = (event: TouchEvent) => {
+      if (document.querySelector(".checkout-sheet, .delivery-map-view")) {
+        swipeStart.current = null;
+        return;
+      }
       const touch = event.touches[0];
       swipeStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
     };
     const handleTouchEnd = (event: TouchEvent) => {
+      if (document.querySelector(".checkout-sheet, .delivery-map-view")) {
+        swipeStart.current = null;
+        return;
+      }
       const start = swipeStart.current;
       const touch = event.changedTouches[0];
       swipeStart.current = null;
@@ -500,13 +538,15 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
           {query.length < 2 ? <div className="search-start"><p>Probá con</p><div>{["Aceite","Yerba","Gaseosa","Limpieza"].map((term) => <button type="button" onClick={() => setQuery(term)} key={term}>{term}</button>)}</div></div> : searchError ? <ErrorState message={searchError} retry={() => setQuery((value) => `${value} `)}/> : !searchLoading && !searchResults.length ? <div className="empty-state compact-empty"><div className="empty-icon"><Icon name="search"/></div><h2>Sin coincidencias</h2><p>Probá con otra palabra o revisá cómo está escrito.</p></div> : <><div className="result-count">{searchResults.length} {searchResults.length === 1 ? "resultado" : "resultados"}</div><ProductList products={searchResults}/></>}</section>
         </motion.div> : null}
 
-        {tab === "cart" ? <motion.div className="view" key="cart" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><CartView onContinue={() => goTo("home")}/></motion.div> : null}
-        {tab === "profile" ? <motion.div className="view" key="profile" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><ProfileView/></motion.div> : null}
+        {tab === "cart" ? <motion.div className="view" key="cart" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><CartView onContinue={() => goTo("home")} onRequireAuth={() => window.location.assign("/?login=1")}/></motion.div> : null}
+        {tab === "profile" ? <motion.div className="view" key="profile" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>{user ? <ProfileView/> : <section className="empty-state"><h2>Ingresá para ver tu perfil</h2><p>Tu cuenta guarda direcciones y pedidos.</p><button type="button" className="primary-action" onClick={() => window.location.assign("/?login=1")}>Iniciar sesión</button></section>}</motion.div> : null}
+        {tab === "info" ? <motion.div className="view" key={`info-${initialInfo}`} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><StoreInfoPage page={initialInfo}/></motion.div> : null}
       </AnimatePresence>
       </main>
       <DesktopCartRail onOpenCart={() => goTo("cart")}/>
     </div>
 
+    <StoreInfoFooter/>
     <StoreCreditBar/>
 
     {itemCount && tab !== "cart" ? <button type="button" className="mini-cart" onClick={() => goTo("cart")} aria-label={`Abrir carrito. Subtotal ${money.format(cartTotal)}`}><span>Subtotal</span><strong>{money.format(cartTotal)}</strong></button> : null}
@@ -516,14 +556,27 @@ function StoreApp({ catalog }: { catalog: ReturnType<typeof createRemoteCatalog>
 
 export function App() {
   const { user, loading } = useAuth();
-  const catalog = useMemo(() => user ? createRemoteCatalog() : null, [user]);
-  const content = loading
-    ? <AuthLoading/>
-    : !user
-      ? <AuthWelcome/>
-      : catalog
-        ? <StoreApp catalog={catalog}/>
-        : <AuthLoading/>;
+  const catalog = useMemo(() => createRemoteCatalog(), []);
+  const [location, setLocation] = useState(() => `${window.location.pathname}${window.location.search}`);
+  useEffect(() => {
+    const syncLocation = () => setLocation(`${window.location.pathname}${window.location.search}`);
+    window.addEventListener("popstate", syncLocation);
+    return () => window.removeEventListener("popstate", syncLocation);
+  }, []);
+  const currentUrl = new URL(location, window.location.origin);
+  const path = currentUrl.pathname.replace(/\/+$/, "") || "/";
+  const params = currentUrl.searchParams;
+  const infoParam = params.get("info");
+  const initialInfo: InfoPage = infoParam === "locales" || infoParam === "nosotros" || infoParam === "contacto" || infoParam === "privacidad" ? infoParam : "envios";
+  const loginRequested = params.get("login") === "1";
+  useEffect(() => {
+    if (loginRequested) setDocumentMetadata("Iniciar sesión | Joma Group", "Acceso de clientes de Joma Group.", "/", true);
+  }, [loginRequested]);
+  const content = loginRequested && !loading && !user
+    ? <AuthWelcome/>
+    : path === "/"
+      ? <StoreApp catalog={catalog} initialTab={infoParam ? "info" : params.get("view") === "cart" ? "cart" : params.get("view") === "search" ? "search" : params.get("view") === "profile" ? "profile" : params.get("view") === "categories" ? "categories" : "home"} initialInfo={initialInfo}/>
+      : <PublicRoutePage catalog={catalog} path={path}/>;
 
   return (
     <>

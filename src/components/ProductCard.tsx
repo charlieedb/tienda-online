@@ -1,18 +1,21 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Product } from "@/catalog/types";
 import { getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
+import { trackEvent } from "@/lib/analytics";
+import { navigateInStore, productPath } from "@/lib/seo";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const stockNumber = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 
-function ProductImage({ product, eager }: { product: Product; eager: boolean }) {
+function ProductImage({ product, eager, linkToDetail }: { product: Product; eager: boolean; linkToDetail: boolean }) {
   const isReusableCombo = product.categoryId === "combos" && /^P/i.test(product.id.trim());
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(eager);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
   const primaryUrl = isReusableCombo ? "" : product.imageUrl ?? "";
   const fallbackUrl = isReusableCombo ? "" : product.imageFallbackUrl ?? "";
   const [resolvedUrl, setResolvedUrl] = useState(primaryUrl);
@@ -34,7 +37,7 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
     return () => observer.disconnect();
   }, [visible]);
 
-  return <div className={`product-image ${loaded ? "is-loaded" : ""} ${isReusableCombo ? "is-combo" : ""}`} ref={host}>
+  const imageContent = <div className={`product-image ${loaded ? "is-loaded" : ""} ${isReusableCombo ? "is-combo" : ""}`} ref={host}>
     {!isReusableCombo ? <div className="image-skeleton" aria-hidden="true" /> : null}
     {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority="auto" decoding="async" onLoad={() => setLoaded(true)} onError={() => {
       if (fallbackUrl && fallbackUrl !== resolvedUrl) {
@@ -48,9 +51,24 @@ function ProductImage({ product, eager }: { product: Product; eager: boolean }) 
     {!isReusableCombo && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
     {product.offer ? <span className="offer-badge">{product.offerCondition === "pack" ? "Oferta por caja" : product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
   </div>;
+
+  if (linkToDetail) return <a className="product-image-link" href={productPath(product)} aria-label={`Ver ficha de ${product.name}`} onClick={(event) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    trackEvent("select_item", { item_id: product.id, item_name: product.name, item_category: product.category });
+    navigateInStore(productPath(product));
+  }}>{imageContent}</a>;
+
+  return <>
+    <button type="button" className="product-image-link product-image-zoom-trigger" aria-label={`Ampliar foto de ${product.name}`} onClick={() => setZoomed(true)}>{imageContent}</button>
+    <AnimatePresence>{zoomed ? <motion.div className="product-image-zoom" role="dialog" aria-modal="true" aria-label={`Foto ampliada de ${product.name}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setZoomed(false)}>
+      <button type="button" className="product-image-zoom-close" onClick={() => setZoomed(false)} aria-label="Cerrar foto ampliada">Cerrar</button>
+      {resolvedUrl && !failed ? <motion.img src={resolvedUrl} alt={product.name} width="900" height="900" initial={{ scale: .96 }} animate={{ scale: 1 }} exit={{ scale: .96 }} onClick={(event) => event.stopPropagation()}/> : imageContent}
+    </motion.div> : null}</AnimatePresence>
+  </>;
 }
 
-function ProductCardInner({ product, eager = false }: { product: Product; eager?: boolean }) {
+function ProductCardInner({ product, eager = false, linkImageToDetail = true }: { product: Product; eager?: boolean; linkImageToDetail?: boolean }) {
   const reduceMotion = useReducedMotion();
   const [variant, setVariant] = useState<"unit" | "pack">("unit");
   const items = useCartStore((state) => state.items);
@@ -70,11 +88,14 @@ function ProductCardInner({ product, eager = false }: { product: Product; eager?
   const available = product.active && (remainingStock === undefined || remainingStock >= unitsNeeded);
   const exhausted = product.active && remainingStock !== undefined && remainingStock <= 0;
 
-  const add = () => addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.stockReal }, 1);
+  const add = () => {
+    addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.stockReal }, 1);
+    trackEvent("add_to_cart", { item_id: product.id, item_name: product.name, item_category: product.category, price: option.price, currency: "ARS", variant });
+  };
 
   return <motion.article className={`product-card ${!product.active ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
     <div className="product-media">
-      <ProductImage product={product} eager={eager} />
+      <ProductImage product={product} eager={eager} linkToDetail={linkImageToDetail} />
       {remainingStock !== undefined ? <div className={`product-stock ${remainingStock <= 0 ? "is-empty" : ""}`}><span>Stock disponible:</span> <strong>{stockNumber.format(remainingStock)} unidades</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div>}
     </div>
     <div className="product-content">

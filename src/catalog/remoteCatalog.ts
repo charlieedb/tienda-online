@@ -173,6 +173,8 @@ export function createRemoteCatalog(): CatalogProvider {
       );
       return prioritizeSpeedProducts(products.sort(sortProducts), query).slice(0, 80);
     },
+    getProduct: async (productId) => (await loadProducts()).find((item) => item.id === productId || slug(item.id) === productId) ?? null,
+    getAllProducts: async () => (await loadProducts()).filter((item) => !/^R/i.test(item.id)).sort(sortProducts),
     getCatalogVersion: async () => (await manifest()).version,
   };
 }

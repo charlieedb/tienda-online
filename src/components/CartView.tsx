@@ -11,6 +11,7 @@ import { getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart"
 import { Icon } from "./Icons";
 import { MapPickerModal } from "./MapPickerModal";
 import { CartExpiryCountdown } from "./CartExpiryGuard";
+import { trackEvent } from "@/lib/analytics";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const PROFILE_KEY = "joma.profile.v1";
@@ -49,7 +50,7 @@ function readLocalLocation(uid: string): LatLng | null {
   } catch { return null; }
 }
 
-export function CartView({ onContinue }: { onContinue: () => void }) {
+export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void; onRequireAuth?: () => void }) {
   const { user } = useAuth();
   const items = useCartStore((state) => state.items);
   const addItem = useCartStore((state) => state.addItem);
@@ -193,7 +194,11 @@ export function CartView({ onContinue }: { onContinue: () => void }) {
         <div className="cart-item-copy"><strong>{item.name}</strong><span>{item.label}</span><b>{money.format(item.price * item.qty)}</b></div>
         <div className="cart-item-actions"><div className="stepper compact"><button type="button" onClick={() => decItem(item.id)} aria-label={`Disminuir ${item.name}`}><Icon name="minus" /></button><output>{item.qty}</output><button type="button" onClick={() => addItem({ id: item.id, productId: item.productId, name: item.name, variant: item.variant, label: item.label, price: item.price, listPrice: item.listPrice, discountPct: item.discountPct, unitPriceFinal: item.unitPriceFinal, unitsPerPack: item.unitsPerPack, stockLimit: item.stockLimit }, 1)} aria-label={`Aumentar ${item.name}`} disabled={!canAdd}><Icon name="plus" /></button></div><button className="remove-button" type="button" onClick={() => removeItem(item.id)}>Quitar</button></div>
       </motion.article>; })}</AnimatePresence></div>
-      <div className="cart-summary"><div><span>Total estimado</span><strong>{money.format(total)}</strong></div><p>Revisá las cantidades antes de confirmar.</p><button type="button" className="checkout-button" onClick={() => { setError(""); setDeliveryAcknowledged(false); setCheckoutOpen(true); }}>Confirmar compra</button></div>
+      <div className="cart-summary"><div><span>Total estimado</span><strong>{money.format(total)}</strong></div><p>Revisá las cantidades antes de confirmar.</p><button type="button" className="checkout-button" onClick={() => {
+        if (!user && onRequireAuth) { onRequireAuth(); return; }
+        trackEvent("begin_checkout", { value: total, currency: "ARS", item_count: items.length });
+        setError(""); setDeliveryAcknowledged(false); setCheckoutOpen(true);
+      }}>{user ? "Confirmar compra" : "Iniciar sesión para confirmar"}</button></div>
     </section>}
 
     <AnimatePresence>{checkoutOpen && !mapOpen ? <><motion.button type="button" className="checkout-backdrop" aria-label="Cerrar confirmación" onClick={() => !submitting && setCheckoutOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.section className={`checkout-sheet ${deliveryAcknowledged ? "" : "is-delivery-pending"}`} role="dialog" aria-modal="true" aria-labelledby="checkout-title" initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: .26, ease: [0.22, 1, 0.36, 1] }}><div className="checkout-head"><div><span>Último paso</span><h2 id="checkout-title">Confirmar compra</h2></div><button type="button" onClick={() => setCheckoutOpen(false)} disabled={submitting} aria-label="Cerrar"><Icon name="close"/></button></div><div className="checkout-body">

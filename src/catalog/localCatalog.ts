@@ -55,5 +55,14 @@ export const localCatalog: CatalogProvider = {
     const byId = new Map(chunks.flat().map((product) => [product.id, product]));
     return matches.map((entry) => byId.get(entry.id)).filter((item): item is Product => Boolean(item));
   },
+  getAllProducts: async (signal) => {
+    const manifest = await localCatalog.getManifest(signal);
+    const groups = await Promise.all(manifest.categories.map((category) => localCatalog.getCategoryProducts(category.id, signal)));
+    return groups.flat();
+  },
+  getProduct: async (productId, signal) => {
+    const products = await localCatalog.getAllProducts(signal);
+    return products.find((product) => product.id === productId || normalize(product.id).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") === productId) ?? null;
+  },
   getCatalogVersion: async (signal) => (await localCatalog.getManifest(signal)).version,
 };

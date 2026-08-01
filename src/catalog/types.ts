@@ -40,5 +40,7 @@ export interface CatalogProvider {
   getOfferProducts(signal?: AbortSignal): Promise<Product[]>;
   getCategoryProducts(categoryId: string, signal?: AbortSignal): Promise<Product[]>;
   searchProducts(query: string, signal?: AbortSignal): Promise<Product[]>;
+  getProduct(productId: string, signal?: AbortSignal): Promise<Product | null>;
+  getAllProducts(signal?: AbortSignal): Promise<Product[]>;
   getCatalogVersion(signal?: AbortSignal): Promise<number>;
 }
