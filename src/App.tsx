@@ -211,7 +211,7 @@ function StoreInfoFooter() {
   </footer>;
 }
 
-function StoreInfoPage({ page }: { page: InfoPage }) {
+function StoreInfoPage({ page, onBack }: { page: InfoPage; onBack: () => void }) {
   const content: Record<InfoPage, { title: string; body: React.ReactNode }> = {
     envios: { title: "Envíos en Corrientes Capital", body: <><p>Realizamos entregas programadas dentro de Corrientes Capital. Al confirmar tu compra podrás elegir entre las fechas y franjas disponibles.</p><p>La cobertura se valida con la dirección del pedido. Por el momento no realizamos entregas en otras localidades.</p></> },
     locales: { title: "Nuestros locales en Corrientes", body: <><h2>Joma Group</h2><p>Distribuidora, mayorista y tienda online con atención en Av. Maipú 7249, Corrientes Capital.</p><h2>Jónico</h2><p>Jónico Supermercado Mayorista y Minorista es una empresa vinculada, con operación y presencia propias junto a Joma Group.</p></> },
@@ -219,7 +219,7 @@ function StoreInfoPage({ page }: { page: InfoPage }) {
     contacto: { title: "Contacto", body: <><p><strong>Dirección:</strong> Av. Maipú 7249, Corrientes Capital.</p><p><strong>Teléfono:</strong> <a href="tel:+543794390919">0379 439-0919</a></p></> },
     privacidad: { title: "Política de privacidad", body: <><p>Utilizamos los datos que ingresás para gestionar tu cuenta, preparar pedidos, coordinar entregas y responder consultas. No vendemos información personal a terceros.</p><p>Podés solicitar la actualización o eliminación de tus datos contactando a Joma Group.</p></> },
   };
-  return <section className="store-info-page"><h1>{content[page].title}</h1>{content[page].body}<a href="/">Volver a la tienda</a></section>;
+  return <section className="store-info-page"><button type="button" className="store-info-back" onClick={onBack}><Icon name="arrow"/> Volver a la tienda</button><h1>{content[page].title}</h1>{content[page].body}</section>;
 }
 
 function ProductList({ products, eagerCount = 0 }: { products: Product[]; eagerCount?: number }) {
@@ -540,13 +540,13 @@ function StoreApp({ catalog, initialTab = "home", initialInfo = "envios" }: { ca
 
         {tab === "cart" ? <motion.div className="view" key="cart" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><CartView onContinue={() => goTo("home")} onRequireAuth={() => window.location.assign("/?login=1")}/></motion.div> : null}
         {tab === "profile" ? <motion.div className="view" key="profile" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>{user ? <ProfileView/> : <section className="empty-state"><h2>Ingresá para ver tu perfil</h2><p>Tu cuenta guarda direcciones y pedidos.</p><button type="button" className="primary-action" onClick={() => window.location.assign("/?login=1")}>Iniciar sesión</button></section>}</motion.div> : null}
-        {tab === "info" ? <motion.div className="view" key={`info-${initialInfo}`} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><StoreInfoPage page={initialInfo}/></motion.div> : null}
+        {tab === "info" ? <motion.div className="view" key={`info-${initialInfo}`} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><StoreInfoPage page={initialInfo} onBack={() => goTo("home")}/></motion.div> : null}
       </AnimatePresence>
       </main>
       <DesktopCartRail onOpenCart={() => goTo("cart")}/>
     </div>
 
-    <StoreInfoFooter/>
+    {tab === "home" ? <StoreInfoFooter/> : null}
     <StoreCreditBar/>
 
     {itemCount && tab !== "cart" ? <button type="button" className="mini-cart" onClick={() => goTo("cart")} aria-label={`Abrir carrito. Subtotal ${money.format(cartTotal)}`}><span>Subtotal</span><strong>{money.format(cartTotal)}</strong></button> : null}

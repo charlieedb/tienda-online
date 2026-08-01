@@ -172,7 +172,9 @@ main.has-mini-cart { padding-bottom: 72px; }
 .store-info-page h1 { margin: 0 0 20px; color: var(--ink); font-size: 34px; line-height: 1.08; letter-spacing: -.035em; }
 .store-info-page h2 { margin: 28px 0 8px; font-size: 21px; }
 .store-info-page p { max-width: 68ch; margin: 0 0 14px; color: #625d56; font-size: 15px; line-height: 1.65; }
-.store-info-page > a { min-height: 44px; display: inline-flex; align-items: center; margin-top: 12px; color: var(--brand); font-size: 13px; font-weight: 750; }
+.store-info-back { min-height: 44px; display: inline-flex; align-items: center; gap: 8px; margin: 0 0 20px; padding: 0 14px 0 10px; color: #9e211b; border: 0; border-radius: 12px; background: #fde9e6; font-size: 13px; font-weight: 750; cursor: pointer; }
+.store-info-back svg { width: 18px; transform: rotate(180deg); }
+.store-info-back:hover { background: #f8d8d4; }
 @media (max-width: 600px) {
   .store-info-footer { flex-direction: column; }
   .store-info-footer nav { justify-content: flex-start; }
