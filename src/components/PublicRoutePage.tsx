@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icons";
 import { BUSINESS, navigateInStore, productIdFromPath, productPath, setDocumentMetadata, SITE_URL } from "@/lib/seo";
 import { useCartStore } from "@/store/cart";
 import { AnimatePresence, motion } from "framer-motion";
+import { StoreCreditBar, StoreInfoFooter } from "@/components/StoreFooter";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 
@@ -84,7 +85,7 @@ function PublicHeader() {
 }
 
 function PublicShell({ children }: { children: React.ReactNode }) {
-  return <div className="public-site"><PublicHeader/><main className="public-main">{children}</main><footer className="public-footer"><div><strong>Joma Group</strong><span>Mayorista y tienda online en Corrientes Capital</span></div><nav aria-label="Información"><a href="/nosotros">Nosotros</a><a href="/contacto">Contacto</a><a href="/privacidad">Privacidad</a><a href="/condiciones">Condiciones</a></nav></footer></div>;
+  return <div className="public-site"><PublicHeader/><main className="public-main">{children}</main><StoreInfoFooter/><StoreCreditBar/></div>;
 }
 
 function StaticPage({ path }: { path: string }) {
@@ -98,6 +99,10 @@ export function PublicRoutePage({ catalog, path }: { catalog: CatalogProvider; p
   const categoryId = path.startsWith("/categorias/") ? decodeURIComponent(path.slice("/categorias/".length)) : "";
   const productId = path.startsWith("/productos/") ? productIdFromPath(path) : "";
   const knownStaticPage = staticPages[path];
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [path]);
 
   useEffect(() => {
     if (knownStaticPage) return;

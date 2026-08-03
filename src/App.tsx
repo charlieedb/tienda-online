@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { CatalogManifest, Category, Product } from "@/catalog/types";
 import { getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart";
@@ -10,12 +10,13 @@ import { ProductCard } from "@/components/ProductCard";
 import { ProfileView } from "@/components/ProfileView";
 import { AuthWelcome } from "@/components/AuthWelcome";
 import { PublicRoutePage } from "@/components/PublicRoutePage";
+import { StoreCreditBar, StoreInfoFooter, type StoreInfoPageKey } from "@/components/StoreFooter";
 import { setDocumentMetadata } from "@/lib/seo";
 import { useAuth } from "@/auth/AuthProvider";
 import { getStoreCarouselSlides, type StoreCarouselSlide } from "@/lib/featuredProducts";
 
 type Tab = "home" | "categories" | "search" | "cart" | "profile" | "info";
-type InfoPage = "envios" | "locales" | "nosotros" | "contacto" | "privacidad";
+type InfoPage = StoreInfoPageKey;
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const carouselImageCache = new Map<string, HTMLImageElement>();
 
@@ -185,36 +186,6 @@ function HeroCarousel({
       {slideCount > 1 && showDesktopArrows ? <button type="button" className="hero-carousel-arrow" onClick={nextSlide} aria-label="Mostrar placa siguiente"><Icon name="arrow"/></button> : null}
     </div>
   </section>;
-}
-
-function StoreCreditBar() {
-  const reduceMotion = useReducedMotion();
-  const shellRef = useRef<HTMLElement>(null);
-  const isVisible = useInView(shellRef, { once: true, amount: .7 });
-  return <footer className="store-credit-shell" ref={shellRef}>
-    <motion.div
-      className="store-credit-bar"
-      initial={false}
-      animate={{ x: reduceMotion || isVisible ? 0 : "100%" }}
-      transition={{ duration: reduceMotion ? 0 : .75, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <span>Create by</span>
-      <a href="https://www.instagram.com/charlieedb" target="_blank" rel="noreferrer">/charlieedb</a>
-    </motion.div>
-  </footer>;
-}
-
-function StoreInfoFooter({ onSelect }: { onSelect: (page: InfoPage) => void }) {
-  return <footer className="store-info-footer">
-    <div><strong>Joma Group</strong><p>Mayorista y tienda online con entregas programadas en Corrientes Capital.</p></div>
-    <nav aria-label="Información de Joma Group">
-      <a href="/?info=envios" onClick={(event) => { event.preventDefault(); onSelect("envios"); }}>Envíos</a>
-      <a href="/?info=locales" onClick={(event) => { event.preventDefault(); onSelect("locales"); }}>Locales</a>
-      <a href="/?info=nosotros" onClick={(event) => { event.preventDefault(); onSelect("nosotros"); }}>Nosotros</a>
-      <a href="/?info=contacto" onClick={(event) => { event.preventDefault(); onSelect("contacto"); }}>Contacto</a>
-      <a href="/?info=privacidad" onClick={(event) => { event.preventDefault(); onSelect("privacidad"); }}>Privacidad</a>
-    </nav>
-  </footer>;
 }
 
 function StoreInfoPage({ page, onBack }: { page: InfoPage; onBack: () => void }) {

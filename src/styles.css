@@ -305,7 +305,7 @@ main.has-mini-cart { padding-bottom: 72px; }
   .public-header nav a { flex: 0 0 auto; }
   .public-cart-link { min-height: 42px; padding-inline: 12px; }
   .public-cart-long { display: none; }
-  .public-main { padding-top: calc(var(--top-shell-h) + env(safe-area-inset-top) + 24px); }
+  .public-main { padding-top: calc(var(--top-shell-h) + env(safe-area-inset-top) + 36px); }
   .public-copy h1, .public-list-heading h1, .public-product h1 { font-size: 31px; }
   .public-product { grid-template-columns: minmax(0, 1fr); gap: 22px; }
   .public-product > .product-card { min-height: 0; grid-template-columns: minmax(140px, .9fr) minmax(0, 1.1fr); gap: 14px; padding: 12px; }
