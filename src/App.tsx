@@ -199,7 +199,7 @@ function StoreInfoPage({ page, onBack }: { page: InfoPage; onBack: () => void })
   return <section className="store-info-page"><button type="button" className="store-info-back" onClick={onBack}><Icon name="arrow"/> Volver a la tienda</button><h1>{content[page].title}</h1>{content[page].body}</section>;
 }
 
-function ProductList({ products, eagerCount = 0 }: { products: Product[]; eagerCount?: number }) {
+function ProductList({ products, eagerCount = 2 }: { products: Product[]; eagerCount?: number }) {
   useEffect(() => {
     products.slice(eagerCount, eagerCount + 3).forEach((product) => {
       if (!product.imageUrl || (product.categoryId === "combos" && /^P/i.test(product.id.trim()))) return;
@@ -544,7 +544,7 @@ function StoreApp({ catalog, initialTab = "home", initialInfo = "envios", onRequ
         {tab === "home" ? <motion.div className="view" key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <HeroCarousel slides={carouselSlides} onCategories={() => goTo("categories")} onCombos={openCombos} onAction={openCarouselDestination}/>
           <section><div className="section-heading"><div><span>Elegidos para vos</span><h2>Destacados</h2></div><button type="button" onClick={() => goTo("categories")}>Ver todo</button></div>
-            {initialLoading ? <ProductSkeletons/> : initialError ? <ErrorState message={initialError} retry={loadInitial}/> : <ProductList products={featured} eagerCount={featured.length}/>}</section>
+            {initialLoading ? <ProductSkeletons/> : initialError ? <ErrorState message={initialError} retry={loadInitial}/> : <ProductList products={featured} eagerCount={Math.min(featured.length, 4)}/>}</section>
           {initialLoading || offers.length ? <section className="home-offers-section"><div className="section-heading"><div><span>Precios especiales</span><h2>Ofertas</h2></div></div>
             {initialLoading ? <ProductSkeletons count={2}/> : <ProductList products={offers}/>}</section> : null}
         </motion.div> : null}

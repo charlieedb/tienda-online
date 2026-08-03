@@ -32,14 +32,14 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
       if (!entry?.isIntersecting) return;
       setVisible(true);
       observer.disconnect();
-    }, { rootMargin: "180px" });
+    }, { rootMargin: "500px" });
     observer.observe(host.current);
     return () => observer.disconnect();
   }, [visible]);
 
   const imageContent = <div className={`product-image ${loaded ? "is-loaded" : ""} ${isReusableCombo ? "is-combo" : ""}`} ref={host}>
     {!isReusableCombo ? <div className="image-skeleton" aria-hidden="true" /> : null}
-    {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority="auto" decoding="async" onLoad={() => setLoaded(true)} onError={() => {
+    {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => {
       if (fallbackUrl && fallbackUrl !== resolvedUrl) {
         setLoaded(false);
         setResolvedUrl(fallbackUrl);
