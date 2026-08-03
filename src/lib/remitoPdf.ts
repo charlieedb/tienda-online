@@ -218,8 +218,8 @@ export async function generateOrderRemitoPdf(params: {
     }
 
     const leyendaY = footBoxY + footBoxH + 12;
-    const texto1 = "Si abona con transferencia, el alias es: ";
-    const texto2 = "JOMA.SRL";
+    const texto1 = "Transferencia a Mercado Pago. Alias: ";
+    const texto2 = "JONICO.SRL";
     const texto3 = " a nombre de Jonico SRL. ";
     const texto4 = "*NO TRANSFERIR A OTRA CUENTA";
 
