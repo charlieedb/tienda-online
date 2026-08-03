@@ -763,12 +763,20 @@ body:has(input:focus, textarea:focus, select:focus) .mini-cart { opacity: 0; poi
   .desktop-category-rail nav small { color: var(--muted); font-size: 9px; font-weight: 700; }
   .desktop-category-rail nav svg { width: 15px; color: var(--muted); }
   .desktop-category-rail nav button.is-active svg { color: var(--brand); }
+  .desktop-cart-rail .desktop-rail-panel {
+    border-color: #b81713;
+    background: #c81b16;
+  }
+  .desktop-cart-rail .desktop-rail-panel > header { border-bottom-color: rgba(255,255,255,.22); }
+  .desktop-cart-rail .desktop-rail-panel > header span { color: rgba(255,255,255,.78); }
+  .desktop-cart-rail .desktop-rail-panel > header h2 { color: white; }
   .desktop-cart-clear {
     min-height: 36px;
-    padding: 0 4px;
-    color: #a33b35;
+    padding: 0 9px;
+    color: white;
     border: 0;
-    background: transparent;
+    border-radius: 9px;
+    background: rgba(255,255,255,.14);
     font-size: 10px;
     font-weight: 800;
     cursor: pointer;
@@ -780,20 +788,23 @@ body:has(input:focus, textarea:focus, select:focus) .mini-cart { opacity: 0; poi
     justify-items: center;
     gap: 7px;
     padding: 24px 16px;
-    color: var(--muted);
+    color: rgba(255,255,255,.82);
     text-align: center;
   }
-  .desktop-cart-empty svg { width: 28px; color: #aaa197; }
-  .desktop-cart-empty strong { color: var(--ink); font-size: 12px; }
+  .desktop-cart-empty svg { width: 28px; color: white; }
+  .desktop-cart-empty strong { color: white; font-size: 12px; }
   .desktop-cart-empty span { max-width: 22ch; font-size: 10px; line-height: 1.45; }
   .desktop-cart-items {
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
     overflow-y: auto;
-    padding: 3px 12px;
+    padding: 10px;
     overscroll-behavior: contain;
   }
-  .desktop-cart-items article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .desktop-cart-items article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px 10px; padding: 12px; border-radius: 12px; background: white; }
   .desktop-cart-items article > div:first-child { min-width: 0; display: grid; gap: 3px; }
   .desktop-cart-items article strong { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 11px; line-height: 1.3; }
   .desktop-cart-items article span { color: var(--muted); font-size: 9px; }
@@ -805,11 +816,16 @@ body:has(input:focus, textarea:focus, select:focus) .mini-cart { opacity: 0; poi
   .desktop-cart-actions output { text-align: center; font-size: 11px; font-weight: 900; }
   .desktop-cart-actions .desktop-cart-remove { justify-self: end; color: #8b413c; background: transparent; }
   .desktop-rail-panel > footer { flex: 0 0 auto; padding: 13px 14px 14px; border-top: 1px solid var(--line); background: #f7f3ed; }
+  .desktop-cart-rail .desktop-rail-panel > footer { border-top-color: rgba(255,255,255,.22); background: #b81713; }
   .desktop-rail-panel > footer > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
   .desktop-rail-panel > footer span { color: var(--muted); font-size: 10px; font-weight: 750; }
   .desktop-rail-panel > footer strong { font-size: 17px; font-variant-numeric: tabular-nums; }
   .desktop-rail-panel > footer > button { width: 100%; min-height: 42px; margin-top: 11px; color: white; border: 0; border-radius: 11px; background: var(--ink); font-size: 11px; font-weight: 850; cursor: pointer; }
   .desktop-rail-panel > footer > button:disabled { color: #9d968d; background: #e4ded6; cursor: not-allowed; }
+  .desktop-cart-rail .desktop-rail-panel > footer span { color: rgba(255,255,255,.78); }
+  .desktop-cart-rail .desktop-rail-panel > footer strong { color: white; }
+  .desktop-cart-rail .desktop-rail-panel > footer > button { color: var(--brand-dark); background: white; }
+  .desktop-cart-rail .desktop-rail-panel > footer > button:disabled { color: rgba(255,255,255,.65); background: rgba(255,255,255,.16); }
   .mini-cart { display: none; }
 }
 

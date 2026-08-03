@@ -79,6 +79,12 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   const deliveryTimeRanges = useMemo(() => buildDeliveryTimeRanges(deliverySchedule), [deliverySchedule]);
 
   useEffect(() => {
+    if (!checkoutOpen || deliveryAcknowledged) return;
+    const timer = window.setTimeout(() => setDeliveryAcknowledged(true), 3000);
+    return () => window.clearTimeout(timer);
+  }, [checkoutOpen, deliveryAcknowledged]);
+
+  useEffect(() => {
     if (!checkoutOpen) return;
     let active = true;
     setDeliveryLoading(true);
