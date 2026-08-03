@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CatalogProvider, Category, Product } from "@/catalog/types";
 import { ProductCard } from "@/components/ProductCard";
 import { Icon } from "@/components/Icons";
-import { BUSINESS, productIdFromPath, productPath, setDocumentMetadata, SITE_URL } from "@/lib/seo";
+import { BUSINESS, navigateInStore, productIdFromPath, productPath, setDocumentMetadata, SITE_URL } from "@/lib/seo";
 import { useCartStore } from "@/store/cart";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -75,7 +75,7 @@ function PublicHeader() {
   return <div className="top-shell public-top-shell">
     <header className="app-header">
       <button type="button" className={`menu-button ${menuOpen ? "is-active" : ""}`} onClick={() => setMenuOpen(true)} aria-label="Abrir menú"><Icon name="menu"/></button>
-      <a className="brand-lockup" href="/" aria-label="Ir al inicio de Joma Group"><img src="/joma-express.png" alt="Joma Group, servicio online Joma Express" width="561" height="257"/></a>
+      <a className="brand-lockup" href="/" onClick={(event) => { event.preventDefault(); navigateInStore("/"); }} aria-label="Ir al inicio de Joma Group"><img src="/joma-express.png" alt="Joma Group, servicio online Joma Express" width="561" height="257"/></a>
       <a className="header-cart" href="/?view=cart" aria-label={`Abrir carrito. ${itemCount} productos`}><Icon name="cart"/>{itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}</a>
     </header>
     <div className="search-dock"><label className="top-search"><Icon name="search"/><input readOnly value="" onFocus={() => window.location.assign("/?view=search")} placeholder="¿Qué necesitás?" aria-label="Buscar productos"/><span/></label></div>

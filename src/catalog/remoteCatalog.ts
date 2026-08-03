@@ -95,6 +95,13 @@ export function createRemoteCatalog(): CatalogProvider {
   let productsPromise: Promise<Product[]> | null = null;
   let catalogVersion = 0;
 
+  const fetchRemoteVersion = async () => {
+    const response = await fetch(`${VERSION_URL}?t=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("No pudimos verificar la versión del catálogo.");
+    const data = await response.json() as { version?: number };
+    return Number(data.version || 0);
+  };
+
   const loadProducts = () => {
     if (productsPromise) return productsPromise;
     productsPromise = (async () => {
@@ -107,10 +114,7 @@ export function createRemoteCatalog(): CatalogProvider {
       } catch { /* caché no disponible */ }
 
       try {
-        const versionResponse = await fetch(`${VERSION_URL}?t=${Date.now()}`, { cache: "no-store" });
-        if (!versionResponse.ok) throw new Error("No pudimos verificar la versión del catálogo.");
-        const versionData = await versionResponse.json() as { version?: number };
-        catalogVersion = Number(versionData.version || 0);
+        catalogVersion = await fetchRemoteVersion();
       } catch (error) {
         if (cachedRows.length) {
           catalogVersion = cachedVersion;
@@ -176,5 +180,12 @@ export function createRemoteCatalog(): CatalogProvider {
     getProduct: async (productId) => (await loadProducts()).find((item) => item.id === productId || slug(item.id) === productId) ?? null,
     getAllProducts: async () => (await loadProducts()).filter((item) => !/^R/i.test(item.id)).sort(sortProducts),
     getCatalogVersion: async () => (await manifest()).version,
+    checkForUpdates: async () => {
+      await loadProducts();
+      const remoteVersion = await fetchRemoteVersion();
+      if (!remoteVersion || remoteVersion === catalogVersion) return false;
+      productsPromise = null;
+      return true;
+    },
   };
 }

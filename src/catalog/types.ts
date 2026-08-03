@@ -43,4 +43,5 @@ export interface CatalogProvider {
   getProduct(productId: string, signal?: AbortSignal): Promise<Product | null>;
   getAllProducts(signal?: AbortSignal): Promise<Product[]>;
   getCatalogVersion(signal?: AbortSignal): Promise<number>;
+  checkForUpdates?(): Promise<boolean>;
 }

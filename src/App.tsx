@@ -204,10 +204,16 @@ function StoreCreditBar() {
   </footer>;
 }
 
-function StoreInfoFooter() {
+function StoreInfoFooter({ onSelect }: { onSelect: (page: InfoPage) => void }) {
   return <footer className="store-info-footer">
     <div><strong>Joma Group</strong><p>Mayorista y tienda online con entregas programadas en Corrientes Capital.</p></div>
-    <nav aria-label="Información de Joma Group"><a href="/?info=envios">Envíos</a><a href="/?info=locales">Locales</a><a href="/?info=nosotros">Nosotros</a><a href="/?info=contacto">Contacto</a><a href="/?info=privacidad">Privacidad</a></nav>
+    <nav aria-label="Información de Joma Group">
+      <a href="/?info=envios" onClick={(event) => { event.preventDefault(); onSelect("envios"); }}>Envíos</a>
+      <a href="/?info=locales" onClick={(event) => { event.preventDefault(); onSelect("locales"); }}>Locales</a>
+      <a href="/?info=nosotros" onClick={(event) => { event.preventDefault(); onSelect("nosotros"); }}>Nosotros</a>
+      <a href="/?info=contacto" onClick={(event) => { event.preventDefault(); onSelect("contacto"); }}>Contacto</a>
+      <a href="/?info=privacidad" onClick={(event) => { event.preventDefault(); onSelect("privacidad"); }}>Privacidad</a>
+    </nav>
   </footer>;
 }
 
@@ -308,6 +314,8 @@ function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
 function StoreApp({ catalog, initialTab = "home", initialInfo = "envios", onRequestLogin }: { catalog: ReturnType<typeof createRemoteCatalog>; initialTab?: Tab; initialInfo?: InfoPage; onRequestLogin: () => void }) {
   const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>(initialTab);
+  const [infoPage, setInfoPage] = useState<InfoPage>(initialInfo);
+  const [catalogRevision, setCatalogRevision] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [manifest, setManifest] = useState<CatalogManifest | null>(null);
   const [featured, setFeatured] = useState<Product[]>([]);
@@ -350,7 +358,33 @@ function StoreApp({ catalog, initialTab = "home", initialInfo = "envios", onRequ
     return controller;
   };
 
-  useEffect(() => { const controller = loadInitial(); return () => controller.abort(); }, [catalog]);
+  useEffect(() => { const controller = loadInitial(); return () => controller.abort(); }, [catalog, catalogRevision]);
+
+  useEffect(() => {
+    const checkForUpdates = catalog.checkForUpdates;
+    if (!checkForUpdates) return;
+    let checking = false;
+    let lastCheckAt = Date.now();
+    const checkCatalogVersion = async () => {
+      const now = Date.now();
+      if (checking || now - lastCheckAt < 5 * 60 * 1000) return;
+      checking = true;
+      lastCheckAt = now;
+      try {
+        if (await checkForUpdates()) setCatalogRevision((current) => current + 1);
+      } catch { /* se conserva el catálogo cacheado */ }
+      finally { checking = false; }
+    };
+    const handleVisibility = () => { if (document.visibilityState === "visible") void checkCatalogVersion(); };
+    const timer = window.setInterval(() => void checkCatalogVersion(), 5 * 60 * 1000);
+    window.addEventListener("focus", checkCatalogVersion);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", checkCatalogVersion);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [catalog]);
 
   useEffect(() => {
     if (!selectedCategory) { setCategoryProducts([]); return; }
@@ -361,7 +395,7 @@ function StoreApp({ catalog, initialTab = "home", initialInfo = "envios", onRequ
       .catch((error) => { if (!controller.signal.aborted) setCategoryError(error instanceof Error ? error.message : "Error inesperado."); })
       .finally(() => { if (!controller.signal.aborted) setCategoryLoading(false); });
     return () => controller.abort();
-  }, [catalog, selectedCategory]);
+  }, [catalog, selectedCategory, catalogRevision]);
 
   useEffect(() => {
     if (tab === "search") window.setTimeout(() => searchRef.current?.focus(), 80);
@@ -469,6 +503,21 @@ function StoreApp({ catalog, initialTab = "home", initialInfo = "envios", onRequ
   }, [selectedCategory, tab]);
 
   const goTo = (next: Tab) => { setMenuOpen(false); setSelectedCategory(null); setTab(next); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const openInfo = (page: InfoPage) => {
+    window.history.pushState({ ...window.history.state, jomaView: "info", infoPage: page }, "", `/?info=${page}`);
+    setMenuOpen(false);
+    setSelectedCategory(null);
+    setInfoPage(page);
+    setTab("info");
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
+  const closeInfo = () => {
+    if (window.history.state?.jomaView === "info") window.history.back();
+    else {
+      window.history.replaceState({ ...window.history.state, jomaView: "home" }, "", "/");
+      goTo("home");
+    }
+  };
   const openCategory = (category: Category) => {
     if (!selectedCategory && tab === "categories") categoryGridScroll.current = window.scrollY;
     if (!selectedCategory) {
@@ -540,13 +589,13 @@ function StoreApp({ catalog, initialTab = "home", initialInfo = "envios", onRequ
 
         {tab === "cart" ? <motion.div className="view" key="cart" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><CartView onContinue={() => goTo("home")} onRequireAuth={onRequestLogin}/></motion.div> : null}
         {tab === "profile" ? <motion.div className="view" key="profile" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>{user ? <ProfileView/> : <section className="empty-state"><h2>Ingresá para ver tu perfil</h2><p>Tu cuenta guarda direcciones y pedidos.</p><button type="button" className="primary-action" onClick={onRequestLogin}>Iniciar sesión</button></section>}</motion.div> : null}
-        {tab === "info" ? <motion.div className="view" key={`info-${initialInfo}`} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><StoreInfoPage page={initialInfo} onBack={() => goTo("home")}/></motion.div> : null}
+        {tab === "info" ? <motion.div className="view" key={`info-${infoPage}`} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><StoreInfoPage page={infoPage} onBack={closeInfo}/></motion.div> : null}
       </AnimatePresence>
       </main>
       <DesktopCartRail onOpenCart={() => goTo("cart")}/>
     </div>
 
-    {tab === "home" ? <StoreInfoFooter/> : null}
+    {tab === "home" ? <StoreInfoFooter onSelect={openInfo}/> : null}
     <StoreCreditBar/>
 
     {itemCount && tab !== "cart" ? <button type="button" className="mini-cart" onClick={() => goTo("cart")} aria-label={`Abrir carrito. Subtotal ${money.format(cartTotal)}`}><span>Subtotal</span><strong>{money.format(cartTotal)}</strong></button> : null}
