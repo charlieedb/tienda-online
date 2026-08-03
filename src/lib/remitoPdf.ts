@@ -220,7 +220,7 @@ export async function generateOrderRemitoPdf(params: {
     const leyendaY = footBoxY + footBoxH + 12;
     const texto1 = "Transferencia a Mercado Pago. Alias: ";
     const texto2 = "JONICO.SRL";
-    const texto3 = " a nombre de Jonico SRL. ";
+    const texto3 = "  ";
     const texto4 = "*NO TRANSFERIR A OTRA CUENTA";
 
     let cursorX =
