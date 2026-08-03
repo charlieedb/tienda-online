@@ -605,7 +605,14 @@ export function App() {
             exit={{ opacity: 0 }}
             transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
-            <img src="/joma-express.png" alt="Joma Group" width="561" height="257"/>
+            <div className="startup-splash__mark" aria-hidden="true">
+              <span className="startup-splash__orbit"/>
+              <img src="/joma-express.png" alt="" width="561" height="257"/>
+            </div>
+            <div className="startup-splash__status">
+              <span>Preparando tu tienda</span>
+              <span className="startup-splash__track" aria-hidden="true"><i/></span>
+            </div>
           </motion.div>
         ) : null}
       </AnimatePresence>

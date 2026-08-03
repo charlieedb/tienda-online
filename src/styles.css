@@ -34,10 +34,89 @@ img { display: block; max-width: 100%; }
   display: grid;
   place-content: center;
   justify-items: center;
+  gap: 28px;
   padding: 24px;
   background: #f7f4ef;
 }
-.startup-splash img { width: min(168px, 48vw); height: auto; }
+.startup-splash__mark {
+  position: relative;
+  width: min(204px, 58vw);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+.startup-splash__mark::before {
+  content: "";
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  background: rgba(217, 40, 34, .08);
+  animation: startup-breathe 1.4s cubic-bezier(.77, 0, .175, 1) infinite alternate;
+}
+.startup-splash__mark img {
+  position: relative;
+  z-index: 1;
+  width: min(168px, 48vw);
+  height: auto;
+}
+.startup-splash__orbit {
+  position: absolute;
+  inset: 4%;
+  border: 2px solid rgba(217, 40, 34, .12);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: startup-spin 1s linear infinite;
+}
+.startup-splash__orbit::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 24px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand);
+  box-shadow: 0 0 0 5px rgba(217, 40, 34, .1);
+}
+.startup-splash__status {
+  width: min(220px, 62vw);
+  display: grid;
+  gap: 10px;
+  color: #625c55;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 750;
+}
+.startup-splash__track {
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e9dfd6;
+}
+.startup-splash__track i {
+  display: block;
+  width: 42%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand);
+  animation: startup-progress 1s cubic-bezier(.77, 0, .175, 1) infinite;
+}
+
+@keyframes startup-spin { to { transform: rotate(360deg); } }
+@keyframes startup-breathe {
+  from { opacity: .45; transform: scale(.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes startup-progress {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(240%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .startup-splash__mark::before,
+  .startup-splash__orbit,
+  .startup-splash__track i { animation: none !important; }
+  .startup-splash__track i { width: 100%; opacity: .55; transform: none; }
+}
 
 .store-app { min-height: 100dvh; overflow-x: clip; padding-bottom: calc(24px + env(safe-area-inset-bottom)); background: #f7f4ef; }
 .top-shell { position: fixed; z-index: 50; inset: 0 0 auto; background: #c81b16; box-shadow: 0 5px 12px rgba(83,18,15,.2); }
