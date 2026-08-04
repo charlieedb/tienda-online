@@ -61,7 +61,6 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   const [profileLoading, setProfileLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitProgress, setSubmitProgress] = useState(0);
-  const [submitProgressLabel, setSubmitProgressLabel] = useState("Preparando pedido");
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const [sentWarning, setSentWarning] = useState("");
@@ -72,17 +71,23 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   const [deliveryLoading, setDeliveryLoading] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryTimeRange, setDeliveryTimeRange] = useState("");
-  const [deliveryAcknowledged, setDeliveryAcknowledged] = useState(false);
   const orderRequestId = useRef(createRequestId());
+  const submitCompleteRef = useRef(false);
   const total = useMemo(() => items.reduce((sum, item) => sum + item.price * item.qty, 0), [items]);
   const deliveryDates = useMemo(() => buildDeliveryDates(deliverySchedule), [deliverySchedule]);
   const deliveryTimeRanges = useMemo(() => buildDeliveryTimeRanges(deliverySchedule), [deliverySchedule]);
 
   useEffect(() => {
-    if (!checkoutOpen || deliveryAcknowledged) return;
-    const timer = window.setTimeout(() => setDeliveryAcknowledged(true), 3000);
-    return () => window.clearTimeout(timer);
-  }, [checkoutOpen, deliveryAcknowledged]);
+    if (!submitting) return;
+    const timer = window.setInterval(() => {
+      if (submitCompleteRef.current) return;
+      setSubmitProgress((current) => {
+        const increment = current < 70 ? .72 : current < 88 ? .28 : .07;
+        return Math.min(94, current + increment);
+      });
+    }, 50);
+    return () => window.clearInterval(timer);
+  }, [submitting]);
 
   useEffect(() => {
     if (!checkoutOpen) return;
@@ -135,7 +140,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
     if (!customer.nombre || !customer.telefono || !customer.direccion) {
       setError("Completá nombre, teléfono y dirección para confirmar la compra."); return;
     }
-    setSubmitting(true); setSubmitProgress(5); setSubmitProgressLabel("Preparando pedido"); setError("");
+    submitCompleteRef.current = false; setSubmitting(true); setSubmitProgress(3); setError("");
     try {
       if (!user) throw new Error("Necesitás iniciar sesión para confirmar la compra.");
       const savedProfile = getCachedUserProfile(user.uid) ?? await refreshUserProfile(user.uid);
@@ -157,7 +162,6 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
           console.error("No se pudo actualizar el perfil después del checkout", profileError);
         });
       }
-      setSubmitProgress(15); setSubmitProgressLabel("Validando productos");
       const result = await submitCheckoutOrder({
         user,
         customer,
@@ -169,12 +173,10 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
           dateLabel: selectedDeliveryDate.label,
           timeRange: deliveryTimeRange,
         },
-        onProgress: (progress, label) => {
-          setSubmitProgress(progress);
-          setSubmitProgressLabel(label);
-        },
       });
-      setSubmitProgress(100); setSubmitProgressLabel("Pedido confirmado");
+      submitCompleteRef.current = true;
+      setSubmitProgress(100);
+      await new Promise((resolve) => window.setTimeout(resolve, 360));
       void notifyTelegramOrder(result.telegramPayload).catch((telegramError) => {
         console.error("El pedido se confirmó, pero falló el aviso de Telegram", telegramError);
         setSentWarning("El pedido y el stock quedaron confirmados, pero el aviso de Telegram no pudo enviarse.");
@@ -184,6 +186,8 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       } catch { /* el pedido ya fue enviado */ }
       clear(); setCheckoutOpen(false); setSentWarning(""); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTimeRange(""); orderRequestId.current = createRequestId();
     } catch (nextError) {
+      submitCompleteRef.current = false;
+      setSubmitProgress(0);
       setError(nextError instanceof Error ? nextError.message : "No pudimos enviar el pedido.");
     } finally { setSubmitting(false); }
   };
@@ -203,17 +207,16 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       <div className="cart-summary"><div><span>Total estimado</span><strong>{money.format(total)}</strong></div><p>Revisá las cantidades antes de confirmar.</p><button type="button" className="checkout-button" onClick={() => {
         if (!user && onRequireAuth) { onRequireAuth(); return; }
         trackEvent("begin_checkout", { value: total, currency: "ARS", item_count: items.length });
-        setError(""); setDeliveryAcknowledged(false); setCheckoutOpen(true);
+        setError(""); setCheckoutOpen(true);
       }}>{user ? "Confirmar compra" : "Iniciar sesión para confirmar"}</button></div>
     </section>}
 
-    <AnimatePresence>{checkoutOpen && !mapOpen ? <><motion.button type="button" className="checkout-backdrop" aria-label="Cerrar confirmación" onClick={() => !submitting && setCheckoutOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.section className={`checkout-sheet ${deliveryAcknowledged ? "" : "is-delivery-pending"}`} role="dialog" aria-modal="true" aria-labelledby="checkout-title" initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: .26, ease: [0.22, 1, 0.36, 1] }}><div className="checkout-head"><div><span>Último paso</span><h2 id="checkout-title">Confirmar compra</h2></div><button type="button" onClick={() => setCheckoutOpen(false)} disabled={submitting} aria-label="Cerrar"><Icon name="close"/></button></div><div className="checkout-body">
+    <AnimatePresence>{checkoutOpen && !mapOpen ? <><motion.button type="button" className="checkout-backdrop" aria-label="Cerrar confirmación" onClick={() => !submitting && setCheckoutOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.section className="checkout-sheet" role="dialog" aria-modal="true" aria-labelledby="checkout-title" initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: .26, ease: [0.22, 1, 0.36, 1] }}><div className="checkout-head"><div><span>Último paso</span><h2 id="checkout-title">Confirmar compra</h2></div><button type="button" onClick={() => setCheckoutOpen(false)} disabled={submitting} aria-label="Cerrar"><Icon name="close"/></button></div><div className="checkout-body">
       {profileLoading ? <div className="checkout-notice"><span className="tiny-spinner"/> Completando tus datos guardados…</div> : null}
       {error ? <div className="checkout-error" role="alert">{error}</div> : null}
-      <fieldset className="checkout-delivery" disabled={submitting || deliveryLoading} onPointerDown={() => setDeliveryAcknowledged(true)} onFocusCapture={() => setDeliveryAcknowledged(true)}>
-        <legend>¿Cuándo querés recibirlo?</legend>
+      <fieldset className="checkout-delivery" disabled={submitting || deliveryLoading}>
+        <h3>¿Cuándo querés recibir tu compra?</h3>
         <p>Elegí desde mañana. Los domingos no realizamos entregas.</p>
-        {!deliveryAcknowledged && !deliveryLoading ? <div className="checkout-delivery-prompt">Tocá una fecha o una franja para continuar</div> : null}
         {deliveryLoading ? <div className="checkout-notice"><span className="tiny-spinner"/> Consultando horarios…</div> : <>
           <div className="checkout-delivery-days">
             {deliveryDates.map((date) => <button type="button" className={deliveryDate === date.value ? "is-active" : ""} onClick={() => setDeliveryDate(date.value)} aria-pressed={deliveryDate === date.value} key={date.value}>{date.shortLabel}</button>)}
@@ -228,7 +231,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       <label><span>Dirección de entrega</span><input value={form.direccion} onChange={(event) => { setForm((current) => ({ ...current, direccion: event.target.value })); setDeliveryLocation(null); }} autoComplete="street-address" placeholder="Calle, número y localidad"/></label>
       <button type="button" className={`checkout-location-button ${deliveryLocation ? "is-marked" : ""}`} onClick={() => setMapOpen(true)} disabled={submitting}><span aria-hidden="true">📍</span><span>{deliveryLocation ? "Ubicación guardada" : "Marcar punto de entrega"}</span>{deliveryLocation ? <small>{deliveryLocation.lat.toFixed(5)}, {deliveryLocation.lng.toFixed(5)}</small> : null}</button>
       <label><span>Nota <em>Opcional</em></span><textarea value={form.nota} onChange={(event) => setForm((current) => ({ ...current, nota: event.target.value }))} rows={3} placeholder="Aclaraciones para el pedido"/></label>
-    </div>{submitting ? <div className="checkout-progress" aria-live="polite"><div className="checkout-progress-copy"><span>{submitProgressLabel}</span><strong>{submitProgress}%</strong></div><div className="checkout-progress-track" role="progressbar" aria-label="Progreso del pedido" aria-valuemin={0} aria-valuemax={100} aria-valuenow={submitProgress}><span style={{ width: `${submitProgress}%` }}/></div></div> : null}<div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className="checkout-submit" onClick={submit} disabled={submitting || profileLoading || deliveryLoading || !deliveryAcknowledged || !deliveryDate || !deliveryTimeRange}>{submitting ? <><span className="tiny-spinner"/> Enviando…</> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
+    </div><div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className={`checkout-submit ${submitting ? "is-submitting" : ""}`} onClick={submit} disabled={submitting || profileLoading || deliveryLoading || !deliveryDate || !deliveryTimeRange} aria-label={submitting ? `Enviando pedido, ${submitProgress}% completado` : "Enviar pedido"} aria-busy={submitting}>{submitting ? <><span className="checkout-submit-progress" style={{ transform: `scaleX(${submitProgress / 100})` }} aria-hidden="true"/><span className="checkout-submit-label">Enviando pedido...</span></> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
     <MapPickerModal open={mapOpen} initial={deliveryLocation} center={deliveryLocation} initialQuery={form.direccion} onClose={() => setMapOpen(false)} onPick={setDeliveryLocation}/>
   </>;
 }
