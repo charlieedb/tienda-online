@@ -1,4 +1,17 @@
 {
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "jomaexpress.vercel.app"
+        }
+      ],
+      "destination": "https://www.jomagroup.com.ar/:path*",
+      "permanent": true
+    }
+  ]
 }
