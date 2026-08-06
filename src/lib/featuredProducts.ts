@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 
 const STORE_CONFIG_PATH = "config/tiendaOnlineStore";
@@ -52,6 +52,15 @@ export type StoreCarouselSlide = {
 
 let cachedConfig: FeaturedProductsConfig | null = null;
 let pendingConfig: Promise<FeaturedProductsConfig> | null = null;
+
+function configFromSnapshot(snapshot: { exists(): boolean; data(): Record<string, unknown> | undefined }) {
+  return {
+    ids: normalizeIds(snapshot.data()?.featuredProductIds),
+    configured: snapshot.exists(),
+    carouselSlides: normalizeCarouselSlides(snapshot.data()?.carouselSlides),
+    deliverySchedule: normalizeDeliverySchedule(snapshot.data()?.deliverySchedule),
+  };
+}
 
 function normalizeIds(value: unknown) {
   if (!Array.isArray(value)) return [];
@@ -120,12 +129,7 @@ export async function getFeaturedProductsConfig(options?: { refresh?: boolean })
 
   pendingConfig = getDoc(doc(db, STORE_CONFIG_PATH))
     .then((snapshot) => {
-      const result = {
-        ids: normalizeIds(snapshot.data()?.featuredProductIds),
-        configured: snapshot.exists(),
-        carouselSlides: normalizeCarouselSlides(snapshot.data()?.carouselSlides),
-        deliverySchedule: normalizeDeliverySchedule(snapshot.data()?.deliverySchedule),
-      };
+      const result = configFromSnapshot(snapshot);
       cachedConfig = result;
       return result;
     })
@@ -135,6 +139,19 @@ export async function getFeaturedProductsConfig(options?: { refresh?: boolean })
     });
 
   return pendingConfig;
+}
+
+export function subscribeToStoreConfig(onChange: () => void) {
+  const db = getDb();
+  if (!db) return () => {};
+  let receivedInitialSnapshot = false;
+  return onSnapshot(doc(db, STORE_CONFIG_PATH), (snapshot) => {
+    cachedConfig = configFromSnapshot(snapshot);
+    if (receivedInitialSnapshot) onChange();
+    receivedInitialSnapshot = true;
+  }, () => {
+    // Keep the last valid configuration when the realtime connection is unavailable.
+  });
 }
 
 export async function saveFeaturedProductIds(ids: string[], actor: string) {

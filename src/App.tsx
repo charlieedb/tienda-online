@@ -13,7 +13,7 @@ import { PublicRoutePage } from "@/components/PublicRoutePage";
 import { StoreCreditBar, StoreInfoFooter, type StoreInfoPageKey } from "@/components/StoreFooter";
 import { setDocumentMetadata } from "@/lib/seo";
 import { useAuth } from "@/auth/AuthProvider";
-import { getStoreCarouselSlides, type StoreCarouselSlide } from "@/lib/featuredProducts";
+import { getStoreCarouselSlides, subscribeToStoreConfig, type StoreCarouselSlide } from "@/lib/featuredProducts";
 
 type Tab = "home" | "categories" | "search" | "cart" | "profile" | "info";
 type InfoPage = StoreInfoPageKey;
@@ -330,6 +330,10 @@ function StoreApp({ catalog, initialTab = "home", initialInfo = "envios", onRequ
   };
 
   useEffect(() => { const controller = loadInitial(); return () => controller.abort(); }, [catalog, catalogRevision]);
+
+  useEffect(() => subscribeToStoreConfig(() => {
+    setCatalogRevision((current) => current + 1);
+  }), []);
 
   useEffect(() => {
     const checkForUpdates = catalog.checkForUpdates;
