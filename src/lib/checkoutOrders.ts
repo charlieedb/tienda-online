@@ -11,6 +11,7 @@ type CheckoutCustomer = {
   telefono: string;
   direccion: string;
   nota?: string;
+  preventistaReferido?: string;
   ubicacion?: { lat: number; lng: number } | null;
 };
 
@@ -133,6 +134,7 @@ export async function submitCheckoutOrder(params: {
       telefono: params.customer.telefono.trim(),
       direccion: params.customer.direccion.trim(),
       nota: String(params.customer.nota || "").trim(),
+      preventistaReferido: String(params.customer.preventistaReferido || "").trim(),
       ubicacion: params.customer.ubicacion ?? null,
     },
     delivery: {
@@ -191,6 +193,7 @@ export async function submitCheckoutOrder(params: {
       telefono: payload.cliente.telefono,
       direccion: payload.cliente.direccion,
       nota: payload.cliente.nota,
+      preventistaReferido: payload.cliente.preventistaReferido,
       ubicacion: payload.cliente.ubicacion,
     },
     delivery: {

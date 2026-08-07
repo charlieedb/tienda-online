@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AuthModal } from "@/components/AuthModal";
+import { GoogleProfileCompletionModal } from "@/components/GoogleProfileCompletionModal";
 import { CartPanel } from "@/components/CartPanel";
 import { AccountSettingsPage } from "@/components/AccountSettingsPage";
 import { DesktopRetailCatalog } from "@/components/store/DesktopRetailCatalog";
@@ -18,6 +19,7 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { normalizeToken } from "@/lib/normalize";
 import { getActiveCatalog, getProductById, startCatalogAutoRefresh } from "@/lib/products";
 import { APP_VERSION } from "@/lib/appVersion";
+import { refreshUserProfile } from "@/lib/userProfile";
 import { clearPersistedCart, useCartStore } from "@/store/cart";
 
 type Stage = "landing" | "builder" | "catalog" | "settings" | "orders";
@@ -91,6 +93,7 @@ export function StoreApp({ forcedDesktop = false, initialStage = "landing" }: Pr
   const [catalogOffersOnly, setCatalogOffersOnly] = useState(false);
   const [categories, setCategories] = useState<StoreCategory[]>([]);
   const [demoAccess, setDemoAccess] = useState(false);
+  const [googleProfileIncomplete, setGoogleProfileIncomplete] = useState(false);
   const lastUserUidRef = useRef<string | null>(null);
   const cartItems = useCartStore((state) => state.items);
   const hasBuilderAccess = Boolean(user) || demoAccess;
@@ -190,6 +193,18 @@ export function StoreApp({ forcedDesktop = false, initialStage = "landing" }: Pr
     }
     setPendingEntry(null);
   }, [user, authLoading, pendingEntry, stage]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (authLoading || !user || !user.providerData.some((provider) => provider.providerId === "google.com")) {
+      setGoogleProfileIncomplete(false);
+      return () => { cancelled = true; };
+    }
+    refreshUserProfile(user.uid).then((profile) => {
+      if (!cancelled) setGoogleProfileIncomplete(!profile?.dni);
+    });
+    return () => { cancelled = true; };
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -594,6 +609,11 @@ export function StoreApp({ forcedDesktop = false, initialStage = "landing" }: Pr
           setPendingEntry(null);
         }}
         onModeChange={setAuthMode}
+      />
+
+      <GoogleProfileCompletionModal
+        open={googleProfileIncomplete}
+        onComplete={() => setGoogleProfileIncomplete(false)}
       />
 
       <OffersModal open={showOffers} onClose={() => setShowOffers(false)} onOfferAdded={onAddedFromOffer} />

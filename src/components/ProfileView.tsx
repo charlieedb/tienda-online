@@ -64,6 +64,7 @@ export function ProfileView() {
         username: current?.username || user.email?.split("@")[0] || `usuario_${user.uid.slice(0, 8)}`,
         dni: current?.dni || "",
         displayName: current?.displayName || user.displayName,
+        preventistaReferido: current?.preventistaReferido || "",
         nombre: profile.name.trim(), apellido: "", telefono: profile.phone.trim(), notes: profile.notes.trim(),
         direcciones: [{ id: "principal", provincia: "", localidad: profile.city.trim(), direccion: profile.address.trim(), ubicacion: null }],
       });

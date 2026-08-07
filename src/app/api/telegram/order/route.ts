@@ -52,6 +52,7 @@ function parsePayload(body: unknown): TelegramOrderPayload | null {
       telefono: toText(cliente.telefono),
       direccion: toText(cliente.direccion),
       nota: toText(cliente.nota),
+      preventistaReferido: toText(cliente.preventistaReferido),
       ubicacion: (() => {
         const point = asRecord(cliente.ubicacion);
         if (!point) return null;

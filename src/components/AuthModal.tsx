@@ -1,15 +1,12 @@
-﻿"use client";
+"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
 import { MotionButton } from "@/components/MotionButton";
+import { PasswordVisibilityButton } from "@/components/PasswordVisibilityButton";
 import { useAuth } from "@/auth/AuthProvider";
 import { useBodyScrollLock } from "@/hooks/useBodyScrollLock";
-import {
-  reserveUsername,
-  resolveEmailFromUsername,
-  upsertUserProfile,
-} from "@/lib/userProfile";
+import { upsertUserProfile } from "@/lib/userProfile";
 import { updateProfile } from "firebase/auth";
 
 type Mode = "login" | "signup";
@@ -55,8 +52,9 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false, o
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [dni, setDni] = useState("");
+  const [preventistaReferido, setPreventistaReferido] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,9 +63,10 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false, o
     setError(null);
     setBusy(false);
     setPassword("");
+    setPasswordVisible(false);
     if (mode === "signup") {
-      setUsername("");
       setDni("");
+      setPreventistaReferido("");
     }
   }, [open, mode]);
 
@@ -89,46 +88,39 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false, o
     setBusy(true);
     setError(null);
     try {
-      const eOrUser = email.trim();
-      if (!eOrUser || !password) {
-        setError("Completá usuario/email y contraseña.");
+      const emailValue = email.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue) || !password) {
+        setError("Completá un correo válido y la contraseña.");
         return;
       }
 
       if (mode === "login") {
-        const emailToUse = eOrUser.includes("@")
-          ? eOrUser
-          : await resolveEmailFromUsername(eOrUser);
-        if (!emailToUse) {
-          setError("No existe una cuenta con ese usuario.");
-          return;
-        }
-        await signInEmail(emailToUse, password);
+        await signInEmail(emailValue, password);
         onClose();
         return;
       }
 
-      const emailValue = eOrUser;
-      const usernameValue = username.trim();
       const dniValue = dni.trim();
-      if (!usernameValue || !dniValue) {
-        setError("Completá usuario y DNI.");
+      const passwordValid = password.length >= 6 && /[a-záéíóúñ]/.test(password) && /[A-ZÁÉÍÓÚÑ]/.test(password) && !password.includes(dniValue);
+      if (!/^\d{7,9}$/.test(dniValue)) {
+        setError("Ingresá un DNI válido, solo con números.");
+        return;
+      }
+      if (!passwordValid) {
+        setError("La contraseña debe cumplir todos los consejos indicados.");
         return;
       }
 
       const cred = await signUpEmail(emailValue, password);
-      const reserved = await reserveUsername({
-        uid: cred.user.uid,
-        email: cred.user.email ?? null,
-        username: usernameValue,
-      });
-      await updateProfile(cred.user, { displayName: reserved });
+      const displayName = emailValue.split("@")[0];
+      await updateProfile(cred.user, { displayName });
       await upsertUserProfile({
         uid: cred.user.uid,
         email: cred.user.email ?? null,
-        username: reserved,
+        username: emailValue.toLowerCase(),
         dni: dniValue,
-        displayName: cred.user.displayName ?? null,
+        displayName,
+        preventistaReferido: preventistaReferido.trim(),
       });
 
       onClose();
@@ -138,6 +130,15 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false, o
       setBusy(false);
     }
   };
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const dniValid = /^\d{7,9}$/.test(dni.trim());
+  const passwordChecks = {
+    length: password.length >= 6,
+    mixedCase: /[a-záéíóúñ]/.test(password) && /[A-ZÁÉÍÓÚÑ]/.test(password),
+    excludesDni: Boolean(password && dniValid && !password.includes(dni.trim())),
+  };
+  const passwordValid = Object.values(passwordChecks).every(Boolean);
 
   return (
     <AnimatePresence>
@@ -174,55 +175,68 @@ export function AuthModal({ open, mode, onClose, onModeChange, forced = false, o
               ) : null}
             </div>
 
-            <div className="p-5">
+            <div className="auth-modal-body p-5">
               <div className="space-y-3">
                 <label className="block">
                   <div className="mb-1 text-xs font-semibold text-foreground/70">
-                    {mode === "login" ? "Email o usuario" : "Email"}
+                    Correo electrónico
                   </div>
                   <input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     inputMode="email"
                     autoComplete="email"
-                    className="app-input w-full rounded-2xl px-4 py-3 text-base"
-                    placeholder={mode === "login" ? "tu@email.com o usuario" : "tu@email.com"}
+                    className={`app-input w-full rounded-2xl px-4 py-3 text-base ${emailValid ? "app-input--valid" : ""}`}
+                    placeholder="tu@email.com"
                   />
                 </label>
+                {mode === "signup" ? (
+                  <label className="block">
+                    <div className="mb-1 text-xs font-semibold text-foreground/70">DNI</div>
+                    <input
+                      value={dni}
+                      onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
+                      inputMode="numeric"
+                      autoComplete="off"
+                      className={`app-input w-full rounded-2xl px-4 py-3 text-base ${dniValid ? "app-input--valid" : ""}`}
+                      placeholder="12345678"
+                    />
+                  </label>
+                ) : null}
                 <label className="block">
                   <div className="mb-1 text-xs font-semibold text-foreground/70">Contraseña</div>
-                  <input
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    type="password"
-                    autoComplete={mode === "login" ? "current-password" : "new-password"}
-                    className="app-input w-full rounded-2xl px-4 py-3 text-base"
-                    placeholder="••••••"
-                  />
+                  <div className="auth-password-field">
+                    <input
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      type={passwordVisible ? "text" : "password"}
+                      autoComplete={mode === "login" ? "current-password" : "new-password"}
+                      className={`app-input w-full rounded-2xl px-4 py-3 text-base ${passwordValid || (mode === "login" && password) ? "app-input--valid" : ""}`}
+                    />
+                    <PasswordVisibilityButton visible={passwordVisible} onToggle={() => setPasswordVisible((current) => !current)} />
+                  </div>
                 </label>
 
                 {mode === "signup" ? (
                   <>
+                    <ul className="app-password-tips" aria-label="Requisitos de contraseña">
+                      <li className={passwordChecks.length ? "is-complete" : ""}><span aria-hidden="true">✓</span>Mínimo 6 caracteres</li>
+                      <li className={passwordChecks.mixedCase ? "is-complete" : ""}><span aria-hidden="true">✓</span>Usá al menos una mayúscula y una minúscula</li>
+                      <li className={passwordChecks.excludesDni ? "is-complete" : ""}><span aria-hidden="true">✓</span>No uses tu DNI</li>
+                    </ul>
                     <label className="block">
-                      <div className="mb-1 text-xs font-semibold text-foreground/70">Usuario</div>
+                      <div className="mb-1 text-xs font-semibold text-foreground/70">
+                        Preventista de JOMA <span className="font-normal">(opcional)</span>
+                      </div>
                       <input
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        autoComplete="username"
-                        className="app-input w-full rounded-2xl px-4 py-3 text-base"
-                        placeholder="tuusuario"
-                      />
-                    </label>
-                    <label className="block">
-                      <div className="mb-1 text-xs font-semibold text-foreground/70">DNI</div>
-                      <input
-                        value={dni}
-                        onChange={(e) => setDni(e.target.value)}
-                        inputMode="numeric"
+                        value={preventistaReferido}
+                        onChange={(e) => setPreventistaReferido(e.target.value)}
                         autoComplete="off"
-                        className="app-input w-full rounded-2xl px-4 py-3 text-base"
-                        placeholder="12345678"
+                        className={`app-input w-full rounded-2xl px-4 py-3 text-base ${preventistaReferido.trim() ? "app-input--valid" : ""}`}
                       />
+                      <div className="mt-1 text-xs text-foreground/60">
+                        Completalo si ya te atiende un preventista de Joma.
+                      </div>
                     </label>
                   </>
                 ) : null}

@@ -2465,12 +2465,105 @@ body {
   border: 1px solid rgba(29, 53, 87, 0.15);
   background: rgba(255, 255, 255, 0.96);
   color: var(--foreground);
+  font-weight: 400;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .app-input::placeholder {
   color: rgba(15, 23, 42, 0.9);
+  font-weight: 400;
 }
+
+.app-input--valid {
+  border-color: #2f9e5b !important;
+  background: rgba(247, 255, 249, 0.98);
+  box-shadow: 0 0 0 3px rgba(47, 158, 91, 0.12);
+}
+
+.app-password-tips {
+  display: grid;
+  gap: 0.4rem;
+  margin: -0.15rem 0 0.25rem;
+  padding: 0;
+  color: color-mix(in srgb, var(--foreground) 64%, transparent);
+  font-size: 0.75rem;
+  list-style: none;
+}
+
+.app-password-tips li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.app-password-tips li span {
+  width: 1.1rem;
+  height: 1.1rem;
+  display: inline-grid;
+  flex: 0 0 1.1rem;
+  place-items: center;
+  color: transparent;
+  border: 1px solid color-mix(in srgb, var(--foreground) 24%, transparent);
+  border-radius: 50%;
+  font-size: 0.7rem;
+}
+
+.app-password-tips li.is-complete {
+  color: #267746;
+}
+
+.app-password-tips li.is-complete span {
+  color: white;
+  border-color: #2f9e5b;
+  background: #2f9e5b;
+}
+.auth-password-field {
+  position: relative;
+}
+
+.auth-password-field input {
+  padding-right: 3.25rem;
+}
+
+.password-visibility-button {
+  position: absolute;
+  top: 50%;
+  right: 0.3rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  display: inline-grid;
+  place-items: center;
+  transform: translateY(-50%);
+  color: #6f6861;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  cursor: pointer;
+}
+
+.password-visibility-button:hover {
+  color: #332f2b;
+  background: rgba(31, 27, 24, 0.06);
+}
+
+.password-visibility-button:focus-visible {
+  outline: 2px solid #2f9e5b;
+  outline-offset: -2px;
+}
+
+.password-visibility-button svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.password-visibility-button svg path,
+.password-visibility-button svg circle {
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 
 .app-input:focus {
   border-color: rgba(69, 123, 157, 0.55);
@@ -2478,6 +2571,19 @@ body {
     0 0 0 3px rgba(69, 123, 157, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
   outline: none;
+}
+
+.auth-modal-body {
+  max-height: calc(100dvh - 8rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+@media (max-width: 640px), (max-height: 720px) {
+  .auth-modal-body {
+    max-height: calc(100dvh - 6.5rem);
+  }
 }
 
 .app-note {

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -34,7 +34,6 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
   const items = useCartStore((s) => s.items);
   const decItem = useCartStore((s) => s.decItem);
   const addItem = useCartStore((s) => s.addItem);
-  const removeItem = useCartStore((s) => s.removeItem);
   const clear = useCartStore((s) => s.clear);
 
   const total = items.reduce((acc, i) => acc + i.price * i.qty, 0);
@@ -557,6 +556,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
           telefono,
           direccion,
           nota: String(form.nota || "").trim(),
+          preventistaReferido: getCachedUserProfile(user.uid)?.preventistaReferido || "",
         },
         cartItems: items,
         productsById,

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -612,6 +612,7 @@ export function AccountSettingsPage({ onBack }: { onBack: () => void }) {
                           username: baseProfile.username,
                           dni: form.dni,
                           displayName: baseProfile.displayName ?? null,
+                          preventistaReferido: baseProfile.preventistaReferido ?? "",
                           nombre: form.nombre,
                           apellido: form.apellido,
                           telefono: form.telefono,

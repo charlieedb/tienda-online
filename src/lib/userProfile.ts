@@ -20,6 +20,7 @@ export type UserProfile = {
   nombre?: string;
   apellido?: string;
   telefono?: string;
+  preventistaReferido?: string;
   notes?: string;
   direcciones?: UserAddress[];
 };
@@ -48,6 +49,7 @@ type RawProfile = {
   nombre?: unknown;
   apellido?: unknown;
   telefono?: unknown;
+  preventistaReferido?: unknown;
   notes?: unknown;
   direcciones?: unknown;
   provincia?: unknown;
@@ -131,6 +133,7 @@ function normalizeProfile(uid: string, raw: RawProfile | null | undefined): User
     nombre: typeof raw?.nombre === "string" ? raw.nombre : "",
     apellido: typeof raw?.apellido === "string" ? raw.apellido : "",
     telefono: typeof raw?.telefono === "string" ? raw.telefono : "",
+    preventistaReferido: typeof raw?.preventistaReferido === "string" ? raw.preventistaReferido : "",
     notes: typeof raw?.notes === "string" ? raw.notes : "",
     direcciones,
   } satisfies UserProfile;
@@ -260,6 +263,7 @@ export async function upsertUserProfile(profile: UserProfile) {
     nombre: String(profile.nombre ?? "").trim(),
     apellido: String(profile.apellido ?? "").trim(),
     telefono: String(profile.telefono ?? "").trim(),
+    preventistaReferido: String(profile.preventistaReferido ?? "").trim(),
     notes: String(profile.notes ?? "").trim(),
     direcciones,
   };
@@ -281,6 +285,7 @@ export async function upsertUserProfile(profile: UserProfile) {
       nombre: normalizedProfile.nombre ?? "",
       apellido: normalizedProfile.apellido ?? "",
       telefono: normalizedProfile.telefono ?? "",
+      preventistaReferido: normalizedProfile.preventistaReferido ?? "",
       notes: normalizedProfile.notes ?? "",
       direcciones: direcciones.length ? direcciones : [],
       provincia: first?.provincia ?? "",

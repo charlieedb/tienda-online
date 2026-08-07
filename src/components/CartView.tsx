@@ -156,6 +156,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
           uid: user.uid, email: user.email,
           username: savedProfile?.username || user.email?.split("@")[0] || `usuario_${user.uid.slice(0, 8)}`,
           dni: savedProfile?.dni || "", displayName: savedProfile?.displayName || user.displayName,
+          preventistaReferido: savedProfile?.preventistaReferido || "",
           nombre: customer.nombre, apellido: "", telefono: customer.telefono, notes: customer.nota,
           direcciones: [{ id: "principal", provincia: "", localidad: "", direccion: customer.direccion, ubicacion: customer.ubicacion }],
         }).catch((profileError) => {
@@ -164,7 +165,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       }
       const result = await submitCheckoutOrder({
         user,
-        customer,
+        customer: { ...customer, preventistaReferido: savedProfile?.preventistaReferido || "" },
         cartItems: items,
         productsById: new Map(),
         requestId: orderRequestId.current,

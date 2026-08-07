@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -339,6 +339,7 @@ export function AccountSettingsModal({ open, onClose }: { open: boolean; onClose
                           username: baseProfile.username,
                           dni: form.dni,
                           displayName: baseProfile.displayName ?? null,
+                          preventistaReferido: baseProfile.preventistaReferido ?? "",
                           nombre: form.nombre,
                           apellido: form.apellido,
                           telefono: form.telefono,

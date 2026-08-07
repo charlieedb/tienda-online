@@ -239,6 +239,7 @@ export function AdminPedidosPage() {
         order.cliente.nombre,
         order.cliente.telefono,
         order.cliente.direccion,
+        order.cliente.preventistaReferido,
         ...order.items.flatMap((item) => [item.codigo, item.nombre]),
       ]
         .join(" ")
@@ -701,6 +702,11 @@ export function AdminPedidosPage() {
                       {selectedOrder
                         ? `${selectedOrder.cliente.telefono || "Sin teléfono"} · ${selectedOrder.cliente.direccion || "Sin dirección"}`
                         : "El panel lateral muestra articulos, remito y acciones."}
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-[#394761]">
+                      {selectedOrder.cliente.preventistaReferido
+                        ? `Preventista: ${selectedOrder.cliente.preventistaReferido}`
+                        : "Venta orgánica"}
                     </p>
                   </div>
                   {selectedOrder ? (

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   GoogleAuthProvider,
@@ -19,7 +19,7 @@ import {
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getAuthClient } from "@/lib/firebase";
-import { preloadUserProfile, reserveUsername, upsertUserProfile } from "@/lib/userProfile";
+import { preloadUserProfile } from "@/lib/userProfile";
 
 type AuthContextValue = {
   user: User | null;
@@ -66,45 +66,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     void preloadUserProfile(user.uid).catch(() => {});
-  }, [auth, user, loading]);
-
-  useEffect(() => {
-    if (!auth) return;
-    if (loading) return;
-    if (!user) return;
-
-    const providerIds = new Set(user.providerData.map((p) => p.providerId));
-    if (!providerIds.has("google.com")) return;
-
-    (async () => {
-      const email = user.email ?? null;
-      const displayName = user.displayName ?? null;
-      const base =
-        (email ? email.split("@")[0] : "") ||
-        (displayName ? displayName.split(" ")[0] : "") ||
-        "usuario";
-
-      let username = base;
-      for (let i = 0; i < 5; i++) {
-        try {
-          const reserved = await reserveUsername({
-            uid: user.uid,
-            email,
-            username,
-          });
-          await upsertUserProfile({
-            uid: user.uid,
-            email,
-            username: reserved,
-            dni: "",
-            displayName,
-          });
-          return;
-        } catch {
-          username = `${base}${Math.floor(Math.random() * 900 + 100)}`;
-        }
-      }
-    })();
   }, [auth, user, loading]);
 
   const value = useMemo<AuthContextValue>(() => {

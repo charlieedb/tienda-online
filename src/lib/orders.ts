@@ -51,6 +51,7 @@ export type OrderRecord = {
     telefono: string;
     direccion: string;
     nota: string;
+    preventistaReferido: string;
   };
   delivery?: {
     date: string;
@@ -186,6 +187,7 @@ function mapOrder(
       telefono: asString(data?.cliente?.telefono),
       direccion: asString(data?.cliente?.direccion),
       nota: asString(data?.cliente?.nota),
+      preventistaReferido: asString(data?.cliente?.preventistaReferido),
     },
     delivery: data?.delivery
       ? {

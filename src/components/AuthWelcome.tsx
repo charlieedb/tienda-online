@@ -2,7 +2,10 @@ import { useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/auth/AuthProvider";
 import { APP_VERSION } from "@/lib/appVersion";
+import { upsertUserProfile } from "@/lib/userProfile";
+import { updateProfile } from "firebase/auth";
 import { Icon } from "./Icons";
+import { PasswordVisibilityButton } from "./PasswordVisibilityButton";
 
 type Mode = "welcome" | "login" | "signup";
 
@@ -27,21 +30,44 @@ export function AuthWelcome() {
   const [mode, setMode] = useState<Mode>("welcome");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [dni, setDni] = useState("");
+  const [preventistaReferido, setPreventistaReferido] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const changeMode = (next: Mode) => { setMode(next); setError(""); setPassword(""); setConfirmPassword(""); };
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const dniValid = /^\d{7,9}$/.test(dni.trim());
+  const passwordChecks = {
+    length: password.length >= 6,
+    mixedCase: /[a-záéíóúñ]/.test(password) && /[A-ZÁÉÍÓÚÑ]/.test(password),
+    excludesDni: Boolean(password && dniValid && !password.includes(dni.trim())),
+  };
+  const passwordValid = Object.values(passwordChecks).every(Boolean);
+  const changeMode = (next: Mode) => { setMode(next); setError(""); setPassword(""); setPasswordVisible(false); setDni(""); setPreventistaReferido(""); };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
     if (!firebaseReady) { setError("La autenticación todavía no está configurada."); return; }
-    if (!email.trim() || !password) { setError("Completá el email y la contraseña."); return; }
-    if (mode === "signup" && password !== confirmPassword) { setError("Las contraseñas no coinciden."); return; }
+    if (!emailValid || !password) { setError("Completá un correo válido y la contraseña."); return; }
+    if (mode === "signup" && !dniValid) { setError("Ingresá un DNI válido, solo con números."); return; }
+    if (mode === "signup" && !passwordValid) { setError("La contraseña debe cumplir todos los consejos indicados."); return; }
     setBusy(true);
     try {
-      if (mode === "signup") await signUpEmail(email.trim(), password);
-      else await signInEmail(email.trim(), password);
+      if (mode === "signup") {
+        const credential = await signUpEmail(email.trim(), password);
+        const internalUsername = email.trim().toLowerCase();
+        const displayName = email.trim().split("@")[0];
+        await updateProfile(credential.user, { displayName });
+        await upsertUserProfile({
+          uid: credential.user.uid,
+          email: credential.user.email,
+          username: internalUsername,
+          dni: dni.trim(),
+          displayName,
+          preventistaReferido: preventistaReferido.trim(),
+        });
+      } else await signInEmail(email.trim(), password);
     } catch (nextError) {
       setError(friendlyError(nextError));
     } finally {
@@ -62,9 +88,19 @@ export function AuthWelcome() {
         </motion.div> : <motion.form className="auth-form" key={mode} onSubmit={submit} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}>
           <button type="button" className="auth-back" onClick={() => changeMode("welcome")}><Icon name="arrow"/> Volver</button>
           <div className="auth-form-title"><span>{mode === "login" ? "Qué bueno verte" : "Empecemos"}</span><h1>{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</h1><p>{mode === "login" ? "Ingresá tus datos para continuar." : "Creá tu acceso en menos de un minuto."}</p></div>
-          <label><span>Email</span><input value={email} onChange={(event) => setEmail(event.target.value)} type="email" inputMode="email" autoComplete="email" placeholder="tu@email.com" autoFocus/></label>
-          <label><span>Contraseña</span><input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder="Mínimo 6 caracteres"/></label>
-          {mode === "signup" ? <label><span>Repetir contraseña</span><input value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} type="password" autoComplete="new-password" placeholder="Volvé a escribirla"/></label> : null}
+          <label><span>Correo electrónico</span><input className={emailValid ? "is-valid" : ""} value={email} onChange={(event) => setEmail(event.target.value)} type="email" inputMode="email" autoComplete="email" placeholder="tu@email.com" autoFocus/></label>
+          {mode === "signup" ? <>
+            <label><span>DNI</span><input className={dniValid ? "is-valid" : ""} value={dni} onChange={(event) => setDni(event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoComplete="off" placeholder="12345678"/></label>
+          </> : null}
+          <label><span>Contraseña</span><div className="auth-password-field"><input className={passwordValid || (mode === "login" && password.length > 0) ? "is-valid" : ""} value={password} onChange={(event) => setPassword(event.target.value)} type={passwordVisible ? "text" : "password"} autoComplete={mode === "login" ? "current-password" : "new-password"}/><PasswordVisibilityButton visible={passwordVisible} onToggle={() => setPasswordVisible((current) => !current)} /></div></label>
+          {mode === "signup" ? <>
+            <ul className="auth-password-tips" aria-label="Requisitos de contraseña">
+              <li className={passwordChecks.length ? "is-complete" : ""}><span aria-hidden="true">✓</span>Mínimo 6 caracteres</li>
+              <li className={passwordChecks.mixedCase ? "is-complete" : ""}><span aria-hidden="true">✓</span>Usá al menos una mayúscula y una minúscula</li>
+              <li className={passwordChecks.excludesDni ? "is-complete" : ""}><span aria-hidden="true">✓</span>No uses tu DNI</li>
+            </ul>
+            <label><span>Preventista de JOMA <small>(opcional)</small></span><input className={preventistaReferido.trim() ? "is-valid" : ""} value={preventistaReferido} onChange={(event) => setPreventistaReferido(event.target.value)} autoComplete="off"/><small className="auth-field-help">Completalo si ya te atiende un preventista de Joma.</small></label>
+          </> : null}
           {error ? <div className="auth-error" role="alert">{error}</div> : null}
           <button type="submit" className="auth-primary" disabled={busy}>{busy ? <><span className="auth-spinner"/> Procesando…</> : mode === "login" ? "Entrar" : "Crear mi cuenta"}</button>
           <button type="button" className="auth-switch" onClick={() => changeMode(mode === "login" ? "signup" : "login")}>{mode === "login" ? "No tengo cuenta · Crear una" : "Ya tengo cuenta · Iniciar sesión"}</button>

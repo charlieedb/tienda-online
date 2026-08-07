@@ -18,6 +18,7 @@ export type TelegramOrderPayload = {
     telefono: string;
     direccion: string;
     nota?: string;
+    preventistaReferido?: string;
     ubicacion?: { lat: number; lng: number } | null;
   };
   delivery: {
@@ -123,6 +124,7 @@ export function buildTelegramOrderMessage(payload: TelegramOrderPayload) {
   const direccion = cleanText(payload.cliente?.direccion);
   const telefono = cleanText(payload.cliente?.telefono);
   const nota = cleanText(payload.cliente?.nota);
+  const preventistaReferido = cleanText(payload.cliente?.preventistaReferido);
   const deliveryDate = cleanText(payload.delivery?.dateLabel);
   const deliveryTimeRange = cleanText(payload.delivery?.timeRange);
   const lat = Number(payload.cliente?.ubicacion?.lat);
@@ -146,6 +148,9 @@ export function buildTelegramOrderMessage(payload: TelegramOrderPayload) {
   }
 
   let mensaje = `<b>${escapeHtml(cliente)}</b>\n${escapeHtml(direccion)}`;
+  mensaje += preventistaReferido
+    ? `\n<b>Preventista:</b> ${escapeHtml(preventistaReferido)}`
+    : "\n<b>Origen:</b> Venta orgánica";
   if (deliveryDate && deliveryTimeRange) {
     mensaje += `\n📅 <b>Entrega:</b> ${escapeHtml(deliveryDate)}, de ${escapeHtml(deliveryTimeRange)}`;
   }
