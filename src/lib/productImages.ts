@@ -15,6 +15,18 @@ function variants(code: string) {
   return [...new Set([raw, underscored, raw.toUpperCase(), underscored.toUpperCase(), raw.toLowerCase(), underscored.toLowerCase()])].filter(Boolean);
 }
 
+function publicStorageUrl(folder: string, filename: string) {
+  const bucket = String(import.meta.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "").trim();
+  if (!bucket || !filename) return "";
+  const objectPath = encodeURIComponent(`${folder}/${filename}`);
+  return `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(bucket)}/o/${objectPath}?alt=media`;
+}
+
+export function getProductThumbnailUrl(code: string) {
+  const filename = code.trim().replaceAll("/", "_");
+  return filename ? publicStorageUrl("fotosProductosThumb", `${filename}.jpg`) : "";
+}
+
 export async function getProductImageUrl(code: string) {
   const key = code.trim().toUpperCase();
   if (!key) return "";

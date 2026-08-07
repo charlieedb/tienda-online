@@ -5,7 +5,7 @@ import { getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
 import { trackEvent } from "@/lib/analytics";
 import { navigateInStore, productPath } from "@/lib/seo";
-import { getProductImageUrl } from "@/lib/productImages";
+import { getProductImageUrl, getProductThumbnailUrl } from "@/lib/productImages";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const stockNumber = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
@@ -17,7 +17,8 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   const [zoomed, setZoomed] = useState(false);
-  const primaryUrl = isReusableCombo ? "" : product.imageUrl ?? "";
+  const generatedThumbnailUrl = isReusableCombo ? "" : getProductThumbnailUrl(product.id);
+  const primaryUrl = isReusableCombo ? "" : product.imageUrl || generatedThumbnailUrl;
   const fallbackUrl = isReusableCombo ? "" : product.imageFallbackUrl ?? "";
   const [resolvedUrl, setResolvedUrl] = useState(primaryUrl);
   const storageAttempted = useRef(false);
@@ -32,6 +33,16 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
     setResolvedUrl(url);
     return true;
   }, [isReusableCombo, product.id]);
+
+  const improveEagerThumbnail = useCallback(() => {
+    if (!eager || !generatedThumbnailUrl || resolvedUrl !== generatedThumbnailUrl) return;
+    const run = () => { void resolveFromStorage(); };
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(run, { timeout: 1800 });
+    } else {
+      setTimeout(run, 500);
+    }
+  }, [eager, generatedThumbnailUrl, resolveFromStorage, resolvedUrl]);
 
   useEffect(() => {
     storageAttempted.current = false;
@@ -62,7 +73,10 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
 
   const imageContent = <div className={`product-image ${loaded ? "is-loaded" : ""} ${isReusableCombo ? "is-combo" : ""}`} ref={host}>
     {!isReusableCombo ? <div className="image-skeleton" aria-hidden="true" /> : null}
-    {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => {
+    {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => {
+      setLoaded(true);
+      improveEagerThumbnail();
+    }} onError={() => {
       if (fallbackUrl && fallbackUrl !== resolvedUrl) {
         setLoaded(false);
         setResolvedUrl(fallbackUrl);
@@ -85,7 +99,10 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
   }}>{imageContent}</a>;
 
   return <>
-    <button type="button" className="product-image-link product-image-zoom-trigger" aria-label={`Ampliar foto de ${product.name}`} onClick={() => setZoomed(true)}>{imageContent}</button>
+    <button type="button" className="product-image-link product-image-zoom-trigger" aria-label={`Ampliar foto de ${product.name}`} onClick={() => {
+      setZoomed(true);
+      void resolveFromStorage();
+    }}>{imageContent}</button>
     <AnimatePresence>{zoomed ? <motion.div className="product-image-zoom" role="dialog" aria-modal="true" aria-label={`Foto ampliada de ${product.name}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setZoomed(false)}>
       <button type="button" className="product-image-zoom-close" onClick={() => setZoomed(false)} aria-label="Cerrar foto ampliada">Cerrar</button>
       {resolvedUrl && !failed ? <motion.img src={resolvedUrl} alt={product.name} width="900" height="900" initial={{ scale: .96 }} animate={{ scale: 1 }} exit={{ scale: .96 }} onClick={(event) => event.stopPropagation()}/> : imageContent}
