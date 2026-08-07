@@ -1,10 +1,11 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Product } from "@/catalog/types";
 import { getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
 import { trackEvent } from "@/lib/analytics";
 import { navigateInStore, productPath } from "@/lib/seo";
+import { getProductImageUrl } from "@/lib/productImages";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const stockNumber = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
@@ -19,12 +20,25 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
   const primaryUrl = isReusableCombo ? "" : product.imageUrl ?? "";
   const fallbackUrl = isReusableCombo ? "" : product.imageFallbackUrl ?? "";
   const [resolvedUrl, setResolvedUrl] = useState(primaryUrl);
+  const storageAttempted = useRef(false);
+
+  const resolveFromStorage = useCallback(async () => {
+    if (isReusableCombo || storageAttempted.current) return false;
+    storageAttempted.current = true;
+    const url = await getProductImageUrl(product.id);
+    if (!url) return false;
+    setFailed(false);
+    setLoaded(false);
+    setResolvedUrl(url);
+    return true;
+  }, [isReusableCombo, product.id]);
 
   useEffect(() => {
+    storageAttempted.current = false;
     setResolvedUrl(primaryUrl);
     setLoaded(false);
     setFailed(false);
-  }, [primaryUrl]);
+  }, [primaryUrl, product.id]);
 
   useEffect(() => {
     if (visible || !host.current) return;
@@ -37,6 +51,15 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
     return () => observer.disconnect();
   }, [visible]);
 
+  useEffect(() => {
+    if (!visible || resolvedUrl || isReusableCombo) return;
+    let active = true;
+    void resolveFromStorage().then((found) => {
+      if (active && !found) setFailed(true);
+    });
+    return () => { active = false; };
+  }, [isReusableCombo, resolveFromStorage, resolvedUrl, visible]);
+
   const imageContent = <div className={`product-image ${loaded ? "is-loaded" : ""} ${isReusableCombo ? "is-combo" : ""}`} ref={host}>
     {!isReusableCombo ? <div className="image-skeleton" aria-hidden="true" /> : null}
     {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => setLoaded(true)} onError={() => {
@@ -45,7 +68,9 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
         setResolvedUrl(fallbackUrl);
         return;
       }
-      setFailed(true);
+      void resolveFromStorage().then((found) => {
+        if (!found) setFailed(true);
+      });
     }} /> : null}
     {isReusableCombo ? <div className="combo-product-mark" aria-label="Combo con descuento"><span aria-hidden="true">%</span><small>Combo</small></div> : null}
     {!isReusableCombo && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
