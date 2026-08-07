@@ -2,6 +2,7 @@ import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/fires
 import { getDb } from "@/lib/firebase";
 
 const STORE_CONFIG_PATH = "config/tiendaOnlineStore";
+const STORE_CONFIG_CACHE_KEY = "joma.storeConfig.v1";
 
 export type FeaturedProductsConfig = {
   ids: string[];
@@ -121,19 +122,54 @@ function normalizeCarouselSlides(value: unknown): StoreCarouselSlide[] {
   });
 }
 
+function normalizeStoredConfig(value: unknown): FeaturedProductsConfig | null {
+  if (!value || typeof value !== "object") return null;
+  const item = value as Record<string, unknown>;
+  if (item.configured !== true) return null;
+  return {
+    ids: normalizeIds(item.ids),
+    configured: true,
+    carouselSlides: normalizeCarouselSlides(item.carouselSlides),
+    deliverySchedule: normalizeDeliverySchedule(item.deliverySchedule),
+  };
+}
+
+function readStoredConfig() {
+  if (typeof window === "undefined") return null;
+  try {
+    return normalizeStoredConfig(JSON.parse(window.localStorage.getItem(STORE_CONFIG_CACHE_KEY) || "null"));
+  } catch {
+    return null;
+  }
+}
+
+function storeValidConfig(config: FeaturedProductsConfig) {
+  cachedConfig = config;
+  if (!config.configured || typeof window === "undefined") return config;
+  try {
+    window.localStorage.setItem(STORE_CONFIG_CACHE_KEY, JSON.stringify(config));
+  } catch {
+    // La configuraciÃ³n en memoria sigue disponible si el navegador bloquea localStorage.
+  }
+  return config;
+}
+
+function emptyConfig(): FeaturedProductsConfig {
+  return { ids: [], configured: false, carouselSlides: [], deliverySchedule: DEFAULT_DELIVERY_SCHEDULE };
+}
+
 export async function getFeaturedProductsConfig(options?: { refresh?: boolean }) {
   if (!options?.refresh && cachedConfig) return cachedConfig;
   if (!options?.refresh && pendingConfig) return pendingConfig;
   const db = getDb();
-  if (!db) return { ids: [], configured: false, carouselSlides: [], deliverySchedule: DEFAULT_DELIVERY_SCHEDULE };
+  if (!db) return cachedConfig ?? readStoredConfig() ?? emptyConfig();
 
   pendingConfig = getDoc(doc(db, STORE_CONFIG_PATH))
     .then((snapshot) => {
       const result = configFromSnapshot(snapshot);
-      cachedConfig = result;
-      return result;
+      return storeValidConfig(result);
     })
-    .catch(() => ({ ids: [], configured: false, carouselSlides: [], deliverySchedule: DEFAULT_DELIVERY_SCHEDULE }))
+    .catch(() => cachedConfig ?? readStoredConfig() ?? emptyConfig())
     .finally(() => {
       pendingConfig = null;
     });
@@ -146,7 +182,7 @@ export function subscribeToStoreConfig(onChange: () => void) {
   if (!db) return () => {};
   let receivedInitialSnapshot = false;
   return onSnapshot(doc(db, STORE_CONFIG_PATH), (snapshot) => {
-    cachedConfig = configFromSnapshot(snapshot);
+    storeValidConfig(configFromSnapshot(snapshot));
     if (receivedInitialSnapshot) onChange();
     receivedInitialSnapshot = true;
   }, () => {
@@ -169,6 +205,7 @@ export async function saveFeaturedProductIds(ids: string[], actor: string) {
     carouselSlides: cachedConfig?.carouselSlides ?? [],
     deliverySchedule: cachedConfig?.deliverySchedule ?? DEFAULT_DELIVERY_SCHEDULE,
   };
+  storeValidConfig(cachedConfig);
   return cachedConfig;
 }
 
@@ -195,6 +232,7 @@ export async function saveDeliveryScheduleConfig(schedule: DeliveryScheduleConfi
     carouselSlides: cachedConfig?.carouselSlides ?? [],
     deliverySchedule: normalized,
   };
+  storeValidConfig(cachedConfig);
   return normalized;
 }
 
@@ -213,5 +251,6 @@ export async function saveStoreCarouselSlides(slides: StoreCarouselSlide[], acto
     carouselSlides: normalized,
     deliverySchedule: cachedConfig?.deliverySchedule ?? DEFAULT_DELIVERY_SCHEDULE,
   };
+  storeValidConfig(cachedConfig);
   return normalized;
 }
