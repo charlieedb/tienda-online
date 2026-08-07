@@ -122,7 +122,7 @@ img { display: block; max-width: 100%; }
 .top-shell { position: fixed; z-index: 50; inset: 0 0 auto; background: #c81b16; box-shadow: 0 5px 12px rgba(83,18,15,.2); }
 .app-header { height: calc(66px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) var(--gutter) 0; display: grid; grid-template-columns: 46px 1fr 46px; align-items: center; max-width: 760px; margin: auto; background: #c81b16; }
 .brand-lockup { justify-self: center; width: 126px; height: 50px; display: grid; place-items: center; min-width: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
-.brand-lockup img { width: 120px; height: 50px; object-fit: contain; object-position: center; filter: brightness(0) invert(1); }
+.brand-lockup img { width: 120px; height: 50px; object-fit: contain; object-position: center; }
 .menu-button, .header-cart { position: relative; width: 44px; height: 44px; display: grid; place-items: center; color: white; border: 0; border-radius: 13px; background: rgba(255,255,255,.13); cursor: pointer; transition: background-color .18s ease; }
 .menu-button svg, .header-cart svg { width: 23px; }
 .menu-button.is-active, .header-cart.is-active { background: rgba(255,255,255,.27); }
@@ -139,20 +139,27 @@ img { display: block; max-width: 100%; }
 .drawer-scrim { position: fixed; z-index: 60; inset: 0; border: 0; background: rgba(28,19,17,.42); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
 .header-menu { position: fixed; z-index: 70; inset: 0 auto 0 0; width: 80vw; max-width: 520px; height: 100dvh; overflow-y: auto; background: #f7f4ef; box-shadow: 10px 0 28px rgba(38,21,18,.24); }
 .drawer-head { min-height: calc(78px + env(safe-area-inset-top)); display: grid; grid-template-columns: 46px 1fr 46px; align-items: center; padding: env(safe-area-inset-top) var(--gutter) 0; background: #c81b16; }
-.drawer-head > img { justify-self: center; width: 120px; height: 50px; object-fit: contain; filter: brightness(0) invert(1); }
+.drawer-head > img { justify-self: center; width: 120px; height: 50px; object-fit: contain; }
 .drawer-close { width: 44px; height: 44px; display: grid; place-items: center; color: white; border: 0; border-radius: 13px; background: rgba(255,255,255,.14); cursor: pointer; }
 .drawer-close svg { width: 23px; }
 .drawer-content { min-height: calc(100dvh - 78px - env(safe-area-inset-top)); display: flex; flex-direction: column; width: 100%; margin: auto; padding: 24px var(--gutter) max(28px, env(safe-area-inset-bottom)); }
 .drawer-content button { width: 100%; min-height: 72px; display: grid; grid-template-columns: 42px minmax(0,1fr) 22px; align-items: center; gap: 12px; padding: 10px 12px; text-align: left; color: var(--ink); border: 0; border-radius: 14px; background: white; cursor: pointer; }
 .drawer-content button:hover { background: #fff0ee; }
+.drawer-content button:disabled { cursor: wait; opacity: .78; }
 .drawer-content button > svg:first-child { width: 23px; color: var(--brand); }
 .drawer-content button > svg:last-child { width: 18px; color: var(--muted); }
 .drawer-content button span { display: grid; gap: 3px; }
 .drawer-content button strong { font-size: 16px; }
 .drawer-content button small { color: var(--muted); font-size: 12px; }
 .drawer-content hr { height: 1px; margin: 14px 10px; border: 0; background: var(--line); }
-.drawer-content .drawer-logout { margin-top: auto; color: #9b2d28; background: #fff0ee; }
-.drawer-content .drawer-logout > svg:first-child { color: #b12e28; }
+.drawer-content .drawer-logout { margin-top: auto; }
+.drawer-content .drawer-logout.is-active { color: #9b2d28; background: #fff0ee; }
+.drawer-content .drawer-logout.is-active:hover { background: #ffe5e2; }
+.drawer-content .drawer-logout.is-active > svg:first-child { color: #b12e28; }
+.drawer-content .drawer-logout.is-disabled { color: #77736f; background: #ecebea; opacity: 1; cursor: not-allowed; }
+.drawer-content .drawer-logout.is-disabled > svg { color: #96918d; }
+.drawer-content .drawer-logout.is-closing { cursor: wait; }
+.drawer-action-spinner { width: 22px; height: 22px; justify-self: center; border: 2px solid #c9c6c3; border-top-color: #686460; border-radius: 50%; animation: spin .7s linear infinite; }
 main { width: min(100%, 760px); margin: 0 auto; padding: calc(var(--top-shell-h) + env(safe-area-inset-top) + 14px) var(--gutter) 28px; }
 main.has-mini-cart { padding-bottom: 72px; }
 .desktop-layout { display: block; }

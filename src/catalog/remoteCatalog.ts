@@ -150,7 +150,7 @@ export function createRemoteCatalog(): CatalogProvider {
       name: id === "combos" ? "Combos" : items[0]?.category === "AA" ? "Exclusivos" : items[0]?.category || "Sin categoría",
       description: `${items.filter((item) => item.active).length} disponibles`,
       color: "#d92822",
-      image: items.find((item) => item.imageUrl)?.imageUrl || "/joma-express.png",
+      image: items.find((item) => item.imageUrl)?.imageUrl || "/joma-express-icon.png",
       count: items.filter((item) => item.active).length,
     })).sort((a, b) => a.name.localeCompare(b.name, "es"));
     return { version: catalogVersion, featuredCount: featured.length, categories };

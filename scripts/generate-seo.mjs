@@ -48,7 +48,7 @@ function withHead(html, { title, description, canonical, type = "website", image
 }
 
 function withBody(html, content) {
-  const bootLogo = '<span class="boot-logo" role="status" aria-label="Cargando Joma Group"><img src="/joma-express.png" alt="Joma Group" width="561" height="257" /></span>';
+const bootLogo = '<span class="boot-logo" role="status" aria-label="Cargando Joma Group"><img src="/joma-express-black.png" alt="Joma Group" width="800" height="329" /></span>';
   return html.replace(/<div id="root">[\s\S]*?<\/div>/i, `<div id="root">${bootLogo}${content}</div>`);
 }
 

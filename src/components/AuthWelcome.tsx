@@ -22,7 +22,7 @@ function friendlyError(error: unknown) {
 }
 
 export function AuthLoading() {
-  return <main className="auth-loading" aria-label="Cargando sesión"><img src="/joma-express.png" alt="JOMA Express"/><span className="auth-spinner"/></main>;
+  return <main className="auth-loading" aria-label="Cargando sesión"><img src="/joma-express-black.png" alt="JOMA Express"/><span className="auth-spinner"/></main>;
 }
 
 export function AuthWelcome() {
@@ -78,7 +78,7 @@ export function AuthWelcome() {
   return <main className="auth-welcome">
     <div className="auth-backdrop" aria-hidden="true"><i/><i/><i/></div>
     <motion.section className="auth-shell" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .32 }}>
-      <div className="auth-brand"><img src="/joma-express.png" alt="JOMA Express" width="561" height="257"/></div>
+      <div className="auth-brand"><img src="/joma-express-black.png" alt="JOMA Express" width="800" height="329"/></div>
       <AnimatePresence mode="wait" initial={false}>
         {mode === "welcome" ? <motion.div className="welcome-copy" key="welcome" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, y: -6 }}>
           <span>Bienvenido</span>
