@@ -1088,8 +1088,8 @@ function StoreApp({
             <img
               src="/joma-express-white.png"
               alt="JOMA Express"
-              width="561"
-              height="257"
+              width="776"
+              height="329"
             />
           </button>
           <button
@@ -1167,8 +1167,8 @@ function StoreApp({
                   <img
                     src="/joma-express-white.png"
                     alt="JOMA Express"
-                    width="561"
-                    height="257"
+                    width="776"
+                    height="329"
                   />
                 </div>
                 <div className="drawer-content">

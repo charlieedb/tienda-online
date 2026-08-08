@@ -58,10 +58,10 @@ export function StoreShellHeader({
 
         <button type="button" className="store-header__brand" onClick={onGoHome} aria-label="Ir al inicio">
           <Image
-            src={centerBrand ? "/logo-blanco.png" : "/jonico.png"}
+            src={centerBrand ? "/joma-express-white.png" : "/joma-express-black.png"}
             alt="JOMA Express"
-            width={220}
-            height={64}
+            width={centerBrand ? 776 : 800}
+            height={329}
             priority
             className={`store-header__logo ${centerBrand ? "store-header__logo--inverted" : ""}`}
             sizes="(max-width: 768px) 148px, 220px"

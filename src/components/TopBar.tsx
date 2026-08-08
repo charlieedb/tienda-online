@@ -174,10 +174,10 @@ export function TopBar({
             className="app-topbar__brand absolute left-1/2 -translate-x-1/2 rounded-xl px-2 py-1 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/60"
           >
             <Image
-              src="/jonico.png"
+              src="/joma-express-white.png"
               alt="JOMA Express"
-              width={220}
-              height={56}
+              width={776}
+              height={329}
               priority
               className="h-7 w-auto max-w-[160px] select-none object-contain sm:h-8 sm:max-w-[200px] md:h-10 md:max-w-[220px]"
               sizes="(max-width: 640px) 160px, (max-width: 1024px) 200px, 220px"
