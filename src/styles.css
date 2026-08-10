@@ -154,14 +154,14 @@ img { display: block; max-width: 100%; }
 .drawer-close { width: 44px; height: 44px; display: grid; place-items: center; color: white; border: 0; border-radius: 13px; background: rgba(255,255,255,.14); cursor: pointer; }
 .drawer-close svg { width: 23px; }
 .drawer-content { min-height: calc(100dvh - 78px - env(safe-area-inset-top)); display: flex; flex-direction: column; width: 100%; margin: auto; padding: 24px var(--gutter) max(28px, env(safe-area-inset-bottom)); }
-.drawer-content button { width: 100%; min-height: 72px; display: grid; grid-template-columns: 42px minmax(0,1fr) 22px; align-items: center; gap: 12px; padding: 10px 12px; text-align: left; color: var(--ink); border: 0; border-radius: 14px; background: white; cursor: pointer; }
-.drawer-content button:hover { background: #fff0ee; }
+.drawer-content :is(button, .drawer-public-link) { width: 100%; min-height: 72px; display: grid; grid-template-columns: 42px minmax(0,1fr) 22px; align-items: center; gap: 12px; padding: 10px 12px; text-align: left; color: var(--ink); border: 0; border-radius: 14px; background: white; cursor: pointer; text-decoration: none; }
+.drawer-content :is(button, .drawer-public-link):hover { background: #fff0ee; }
 .drawer-content button:disabled { cursor: wait; opacity: .78; }
-.drawer-content button > svg:first-child { width: 23px; color: var(--brand); }
-.drawer-content button > svg:last-child { width: 18px; color: var(--muted); }
-.drawer-content button span { display: grid; gap: 3px; }
-.drawer-content button strong { font-size: 16px; }
-.drawer-content button small { color: var(--muted); font-size: 12px; }
+.drawer-content :is(button, .drawer-public-link) > svg:first-child { width: 23px; color: var(--brand); }
+.drawer-content :is(button, .drawer-public-link) > svg:last-child { width: 18px; color: var(--muted); }
+.drawer-content :is(button, .drawer-public-link) span { display: grid; gap: 3px; }
+.drawer-content :is(button, .drawer-public-link) strong { font-size: 16px; }
+.drawer-content :is(button, .drawer-public-link) small { color: var(--muted); font-size: 12px; }
 .drawer-content hr { height: 1px; margin: 14px 10px; border: 0; background: var(--line); }
 .drawer-content .drawer-logout { margin-top: auto; }
 .drawer-content .drawer-logout.is-active { color: #9b2d28; background: #fff0ee; }

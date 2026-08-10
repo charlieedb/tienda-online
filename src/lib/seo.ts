@@ -28,7 +28,12 @@ export function productIdFromPath(path: string) {
 }
 
 export function navigateInStore(path: string) {
-  window.history.pushState({}, "", path);
+  const currentPath = `${window.location.pathname}${window.location.search}`;
+  window.history.pushState(
+    { ...window.history.state, jomaNavigation: true, jomaFrom: currentPath },
+    "",
+    path,
+  );
   window.dispatchEvent(new PopStateEvent("popstate"));
   window.scrollTo({ top: 0, behavior: "auto" });
 }

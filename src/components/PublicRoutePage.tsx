@@ -70,22 +70,59 @@ const staticPages: Record<string, { title: string; description: string; heading:
   },
 };
 
-function PublicHeader() {
+function PublicHeader({ showBack = false }: { showBack?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const itemCount = useCartStore((state) => state.items.reduce((sum, item) => sum + item.qty, 0));
+  const goBack = () => {
+    if (window.history.state?.jomaNavigation && window.history.state?.jomaFrom) {
+      window.history.back();
+      return;
+    }
+    navigateInStore("/");
+  };
   return <div className="top-shell public-top-shell">
     <header className="app-header">
       <button type="button" className={`menu-button ${menuOpen ? "is-active" : ""}`} onClick={() => setMenuOpen(true)} aria-label="Abrir menú"><Icon name="menu"/></button>
         <a className="brand-lockup" href="/" onClick={(event) => { event.preventDefault(); navigateInStore("/"); }} aria-label="Ir al inicio de Joma Group"><img src="/joma-express-white.png" alt="Joma Group, servicio online Joma Express" width="776" height="329"/></a>
       <a className="header-cart" href="/?view=cart" aria-label={`Abrir carrito. ${itemCount} productos`}><Icon name="cart"/>{itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}</a>
     </header>
-    <div className="search-dock"><label className="top-search"><Icon name="search"/><input readOnly value="" onFocus={() => window.location.assign("/?view=search")} placeholder="¿Qué necesitás?" aria-label="Buscar productos"/><span/></label></div>
-        <AnimatePresence>{menuOpen ? <><motion.button type="button" className="drawer-scrim" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.nav className="header-menu" aria-label="Menú principal" initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ duration: .24, ease: [0.22, 1, 0.36, 1] }}><div className="drawer-head"><button type="button" className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><Icon name="close"/></button><img src="/joma-express-white.png" alt="Joma Group" width="776" height="329"/></div><div className="drawer-content"><a className="drawer-public-link" href="/?view=profile"><Icon name="user"/><span><strong>Perfil</strong><small>Mis datos y dirección</small></span></a><hr/><a className="drawer-public-link" href="/?view=categories"><Icon name="grid"/><span><strong>Categorías</strong><small>Explorar productos</small></span></a><a className="drawer-public-link" href="/?info=envios"><Icon name="arrow"/><span><strong>Envíos en Corrientes</strong><small>Cobertura y entregas</small></span></a></div></motion.nav></> : null}</AnimatePresence>
+    <div className={`search-dock ${showBack ? "has-back" : ""}`}>{showBack ? <button type="button" className="search-back-button" onClick={goBack} aria-label="Volver a la tienda"><Icon name="arrow"/></button> : null}<label className="top-search"><Icon name="search"/><input readOnly value="" onFocus={() => window.location.assign("/?view=search")} placeholder="¿Qué necesitás?" aria-label="Buscar productos"/><span/></label></div>
+        <AnimatePresence>{menuOpen ? <><motion.button type="button" className="drawer-scrim" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.nav className="header-menu" aria-label="Menú principal" initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ duration: .24, ease: [0.22, 1, 0.36, 1] }}><div className="drawer-head"><button type="button" className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><Icon name="close"/></button><img src="/joma-express-white.png" alt="Joma Group" width="776" height="329"/></div><div className="drawer-content"><a className="drawer-public-link" href="/?view=profile"><Icon name="user"/><span><strong>Perfil</strong><small>Mis datos y dirección</small></span></a><hr/><a className="drawer-public-link" href="/?view=categories"><Icon name="grid"/><span><strong>Categorías</strong><small>Explorar productos</small></span></a></div></motion.nav></> : null}</AnimatePresence>
   </div>;
 }
 
-function PublicShell({ children }: { children: React.ReactNode }) {
-  return <div className="public-site"><PublicHeader/><main className="public-main">{children}</main><StoreInfoFooter/><StoreCreditBar/></div>;
+function PublicShell({ children, showBack = false }: { children: React.ReactNode; showBack?: boolean }) {
+  useEffect(() => {
+    if (!showBack) return;
+    let start: { x: number; y: number } | null = null;
+    const onTouchStart = (event: TouchEvent) => {
+      if (document.querySelector(".product-image-zoom")) {
+        start = null;
+        return;
+      }
+      const touch = event.touches[0];
+      start = touch ? { x: touch.clientX, y: touch.clientY } : null;
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      const touch = event.changedTouches[0];
+      const origin = start;
+      start = null;
+      if (!origin || !touch) return;
+      const dx = touch.clientX - origin.x;
+      const dy = touch.clientY - origin.y;
+      if (dx > -80 || Math.abs(dx) <= Math.abs(dy) * 1.5) return;
+      if (window.history.state?.jomaNavigation && window.history.state?.jomaFrom) window.history.back();
+      else navigateInStore("/");
+    };
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [showBack]);
+
+  return <div className="public-site"><PublicHeader showBack={showBack}/><main className="public-main">{children}</main><StoreInfoFooter/><StoreCreditBar/></div>;
 }
 
 function StaticPage({ path }: { path: string }) {
@@ -132,13 +169,13 @@ export function PublicRoutePage({ catalog, path }: { catalog: CatalogProvider; p
   }, [category, knownStaticPage, path, state.loading, state.product]);
 
   if (knownStaticPage) return <StaticPage path={path}/>;
-  if (state.loading) return <PublicShell><motion.div className="public-product-loading" aria-label="Cargando producto" aria-busy="true" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .22 }}><div><i/><i/><i/><i/></div><span/></motion.div></PublicShell>;
-  if (state.error || (productId && !state.product)) return <PublicShell><article className="public-copy"><h1>Página no encontrada</h1><p>El contenido que buscás no está disponible.</p><a className="public-primary-link" href="/categorias">Explorar productos</a></article></PublicShell>;
+  if (state.loading) return <PublicShell showBack={Boolean(productId)}><motion.div className="public-product-loading" aria-label="Cargando producto" aria-busy="true" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .22 }}><div><i/><i/><i/><i/></div><span/></motion.div></PublicShell>;
+  if (state.error || (productId && !state.product)) return <PublicShell showBack={Boolean(productId)}><article className="public-copy"><h1>Página no encontrada</h1><p>El contenido que buscás no está disponible.</p><a className="public-primary-link" href="/categorias">Explorar productos</a></article></PublicShell>;
 
   if (state.product) {
     const product = state.product;
     const structuredData = { "@context": "https://schema.org", "@type": "Product", name: product.name, sku: product.id, image: product.imageUrl ? [product.imageUrl] : undefined, brand: { "@type": "Brand", name: product.brand || BUSINESS.name }, offers: { "@type": "Offer", url: `${SITE_URL}${productPath(product)}`, priceCurrency: "ARS", price: product.unit.price, availability: product.active ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", itemCondition: "https://schema.org/NewCondition" } };
-    return <PublicShell><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}/><motion.article className="public-product" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .22, ease: [0.22, 1, 0.36, 1] }}><div className="public-product-intro"><span className="public-product-category">{product.category || product.brand}</span><h1>{product.name}</h1><p>Disponible por unidad{product.pack ? ` y por ${product.pack.label.toLowerCase()}` : ""}.</p><strong className="public-product-price">Desde {money.format(product.unit.price)}</strong><dl className="public-product-facts"><div><dt>Código</dt><dd>{product.id}</dd></div><div><dt>Categoría</dt><dd>{product.category || "Productos"}</dd></div><div><dt>Presentación</dt><dd>{product.pack ? `${product.unit.label} o ${product.pack.label}` : product.unit.label}</dd></div><div><dt>Disponibilidad</dt><dd>{product.active ? "Disponible" : "Temporalmente sin stock"}</dd></div></dl></div><ProductCard product={product} eager linkImageToDetail={false}/></motion.article></PublicShell>;
+    return <PublicShell showBack><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}/><motion.article className="public-product" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .22, ease: [0.22, 1, 0.36, 1] }}><div className="public-product-intro"><span className="public-product-category">{product.category || product.brand}</span><h1>{product.name}</h1><p>Disponible por unidad{product.pack ? ` y por ${product.pack.label.toLowerCase()}` : ""}.</p><strong className="public-product-price">Desde {money.format(product.unit.price)}</strong><dl className="public-product-facts"><div><dt>Código</dt><dd>{product.id}</dd></div><div><dt>Categoría</dt><dd>{product.category || "Productos"}</dd></div><div><dt>Presentación</dt><dd>{product.pack ? `${product.unit.label} o ${product.pack.label}` : product.unit.label}</dd></div><div><dt>Disponibilidad</dt><dd>{product.active ? "Disponible" : "Temporalmente sin stock"}</dd></div></dl></div><ProductCard product={product} eager linkImageToDetail={false}/></motion.article></PublicShell>;
   }
 
   if (path === "/categorias") return <PublicShell><section className="public-list-heading"><h1>Productos por categoría</h1><p>Consultá el catálogo mayorista y minorista de Joma Group.</p></section><div className="public-category-grid">{state.categories.map((item) => <a href={`/categorias/${item.id}`} key={item.id}><strong>{item.name}</strong><span>{item.count} productos</span></a>)}</div></PublicShell>;
