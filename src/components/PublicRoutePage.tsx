@@ -137,6 +137,7 @@ function StaticPage({ path }: { path: string }) {
 
 export function PublicRoutePage({ catalog, path }: { catalog: CatalogProvider; path: string }) {
   const [state, setState] = useState<PageState>(initialState);
+  const [detailPrice, setDetailPrice] = useState<number | null>(null);
   const categoryId = path.startsWith("/categorias/") ? decodeURIComponent(path.slice("/categorias/".length)) : "";
   const productId = path.startsWith("/productos/") ? productIdFromPath(path) : "";
   const knownStaticPage = staticPages[path];
@@ -144,6 +145,10 @@ export function PublicRoutePage({ catalog, path }: { catalog: CatalogProvider; p
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [path]);
+
+  useEffect(() => {
+    setDetailPrice(null);
+  }, [productId]);
 
   useEffect(() => {
     if (knownStaticPage) return;
@@ -191,10 +196,10 @@ export function PublicRoutePage({ catalog, path }: { catalog: CatalogProvider; p
           }}>{product.category || product.brand}</a>
           <h1>{product.name}</h1>
           <p>Disponible por unidad{product.pack ? ` y por ${product.pack.label.toLowerCase()}` : ""}.</p>
-          <strong className="public-product-price">Desde {money.format(product.unit.price)}</strong>
+          <strong className="public-product-price">Desde {money.format(detailPrice ?? product.unit.price)}</strong>
         </div>
         <div className="public-product-purchase">
-          <ProductCard product={product} eager linkImageToDetail={false} detailCompact/>
+          <ProductCard product={product} eager linkImageToDetail={false} detailCompact onPriceChange={setDetailPrice}/>
           <dl className="public-product-facts">
             <div><dt>Código</dt><dd>{product.id}</dd></div>
             <div><dt>Categoría</dt><dd>{product.category || "Productos"}</dd></div>

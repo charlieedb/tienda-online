@@ -110,7 +110,7 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
   </>;
 }
 
-function ProductCardInner({ product, eager = false, linkImageToDetail = true, detailCompact = false }: { product: Product; eager?: boolean; linkImageToDetail?: boolean; detailCompact?: boolean }) {
+function ProductCardInner({ product, eager = false, linkImageToDetail = true, detailCompact = false, onPriceChange }: { product: Product; eager?: boolean; linkImageToDetail?: boolean; detailCompact?: boolean; onPriceChange?: (price: number) => void }) {
   const reduceMotion = useReducedMotion();
   const [variant, setVariant] = useState<"unit" | "pack">("unit");
   const items = useCartStore((state) => state.items);
@@ -129,6 +129,10 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   const unitsNeeded = variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1;
   const available = product.active && (remainingStock === undefined || remainingStock >= unitsNeeded);
   const exhausted = product.active && remainingStock !== undefined && remainingStock <= 0;
+
+  useEffect(() => {
+    onPriceChange?.(option.price);
+  }, [onPriceChange, option.price]);
 
   const add = () => {
     addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.stockReal }, 1);
