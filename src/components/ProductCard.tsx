@@ -110,7 +110,7 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
   </>;
 }
 
-function ProductCardInner({ product, eager = false, linkImageToDetail = true }: { product: Product; eager?: boolean; linkImageToDetail?: boolean }) {
+function ProductCardInner({ product, eager = false, linkImageToDetail = true, detailCompact = false }: { product: Product; eager?: boolean; linkImageToDetail?: boolean; detailCompact?: boolean }) {
   const reduceMotion = useReducedMotion();
   const [variant, setVariant] = useState<"unit" | "pack">("unit");
   const items = useCartStore((state) => state.items);
@@ -135,13 +135,13 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true }: 
     trackEvent("add_to_cart", { item_id: product.id, item_name: product.name, item_category: product.category, price: option.price, currency: "ARS", variant });
   };
 
-  return <motion.article className={`product-card ${!product.active ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
+  return <motion.article className={`product-card ${detailCompact ? "is-detail-compact" : ""} ${!product.active ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
     <div className="product-media">
       <ProductImage product={product} eager={eager} linkToDetail={linkImageToDetail} />
-      {remainingStock !== undefined ? <div className={`product-stock ${remainingStock <= 0 ? "is-empty" : ""}`}><span>Stock disponible:</span> <strong>{stockNumber.format(remainingStock)} unidades</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div>}
+      {!detailCompact ? remainingStock !== undefined ? <div className={`product-stock ${remainingStock <= 0 ? "is-empty" : ""}`}><span>Stock disponible:</span> <strong>{stockNumber.format(remainingStock)} unidades</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div> : null}
     </div>
     <div className="product-content">
-      <div className="product-copy">
+      {!detailCompact ? <><div className="product-copy">
         <div className="eyebrow-row"><span>{product.brand}</span>{!product.active || exhausted ? <strong>Sin stock</strong> : null}</div>
         <h3>{product.name}</h3>
         <p>{option.label}</p>
@@ -152,7 +152,7 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true }: 
         {packUnitPriceFinal !== null
           ? <small className={`unit-price-final ${packHasPromo ? "is-promo" : ""}`}>Pr. Unit. Final: <b>{money.format(packUnitPriceFinal)}</b></small>
           : option.discountPct ? <small>Ahorrás {Math.round(option.discountPct)}%</small> : null}
-      </div>
+      </div></> : null}
       {product.pack ? <div className="variant-switch" role="group" aria-label={`Presentación de ${product.name}`}>
         <button type="button" className={variant === "unit" ? "is-active" : ""} onClick={() => setVariant("unit")} aria-pressed={variant === "unit"}>Unidad</button>
         <button type="button" className={variant === "pack" ? "is-active" : ""} onClick={() => setVariant("pack")} aria-pressed={variant === "pack"}>Caja</button>

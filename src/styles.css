@@ -288,17 +288,22 @@ main.has-mini-cart { padding-bottom: 72px; }
 .public-product-entry { position: relative; }
 .public-product-detail { position: absolute; z-index: 5; top: 12px; right: 12px; max-width: 110px; color: #a81713; font-size: 10px; font-weight: 800; text-align: right; text-decoration: none; }
 .public-product { display: grid; grid-template-columns: minmax(0, .8fr) minmax(360px, 1.2fr); align-items: start; gap: 36px; }
-.public-product-category { display: inline-block; margin-bottom: 8px; color: var(--brand); font-size: 12px; font-weight: 800; }
+.public-product-category { display: inline-block; margin-bottom: 8px; color: var(--brand); font-size: 12px; font-weight: 800; text-decoration: none; }
+.public-product-category:hover { text-decoration: underline; text-underline-offset: 3px; }
+.public-product-category:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 3px; }
 .public-product-price { display: block; margin-top: 22px; color: #a81713; font-size: 25px; }
-.public-product-facts { display: grid; gap: 0; margin: 28px 0 0; border-top: 1px solid var(--line); }
-.public-product-facts > div { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); }
-.public-product-facts dt { color: #756f67; font-size: 12px; }
-.public-product-facts dd { margin: 0; color: var(--ink); font-size: 13px; font-weight: 700; }
-.public-product > .product-card { min-height: 390px; grid-template-columns: minmax(270px, 1.05fr) minmax(210px, .95fr); gap: 22px; padding: 18px; border-radius: 16px; box-shadow: none; }
-.public-product > .product-card .product-image-link, .public-product > .product-card .product-image { border-radius: 14px; }
-.public-product > .product-card .product-image { aspect-ratio: 1; }
-.public-product > .product-card .product-image img { padding: 14px; }
-.public-product > .product-card .product-copy h3 { font-size: 20px; }
+.public-product-purchase { min-width: 0; display: grid; gap: 12px; }
+.public-product-purchase > .product-card { min-height: 0; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px; border-radius: 16px; box-shadow: none; }
+.public-product-purchase > .product-card .product-image-link, .public-product-purchase > .product-card .product-image { border-radius: 14px; }
+.public-product-purchase > .product-card .product-image { aspect-ratio: 1; }
+.public-product-purchase > .product-card .product-image img { padding: 14px; }
+.public-product-purchase > .product-card .product-content { width: 100%; }
+.public-product-purchase > .product-card .variant-switch { min-height: 40px; }
+.public-product-purchase > .product-card .add-button, .public-product-purchase > .product-card .stepper { margin-top: 8px; }
+.public-product-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--line); }
+.public-product-facts > div { min-width: 0; display: grid; gap: 3px; padding: 9px 10px; background: rgba(255,255,255,.64); }
+.public-product-facts dt { color: #756f67; font-size: 10px; line-height: 1.2; }
+.public-product-facts dd { min-width: 0; margin: 0; overflow: hidden; color: var(--ink); font-size: 11px; font-weight: 750; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .public-status { min-height: 45vh; display: grid; place-items: center; color: #6d675f; font-weight: 750; }
 .public-product-loading { min-height: 390px; display: grid; grid-template-columns: minmax(0, .8fr) minmax(360px, 1.2fr); gap: 36px; }
 .public-product-loading > div { display: grid; align-content: start; gap: 14px; padding-top: 14px; }
@@ -326,7 +331,7 @@ main.has-mini-cart { padding-bottom: 72px; }
   .public-main { padding-top: calc(var(--top-shell-h) + env(safe-area-inset-top) + 36px); }
   .public-copy h1, .public-list-heading h1, .public-product h1 { font-size: 31px; }
   .public-product { grid-template-columns: minmax(0, 1fr); gap: 22px; }
-  .public-product > .product-card { min-height: 0; grid-template-columns: minmax(140px, .9fr) minmax(0, 1.1fr); gap: 14px; padding: 12px; }
+  .public-product-purchase > .product-card { padding: 12px; }
   .public-product-loading { min-height: 430px; grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .public-product-loading > span { min-height: 260px; grid-row: 1; }
   .public-product-grid { grid-template-columns: minmax(0, 1fr); }

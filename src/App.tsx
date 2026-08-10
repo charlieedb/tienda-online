@@ -666,12 +666,14 @@ function StoreApp({
   catalog,
   initialTab = "home",
   initialInfo = "envios",
+  initialCategoryId = "",
   onRequestLogin,
   onSessionClosed,
 }: {
   catalog: ReturnType<typeof createRemoteCatalog>;
   initialTab?: Tab;
   initialInfo?: InfoPage;
+  initialCategoryId?: string;
   onRequestLogin: () => void;
   onSessionClosed: () => void;
 }) {
@@ -702,6 +704,7 @@ function StoreApp({
   const searchRef = useRef<HTMLInputElement>(null);
   const categoryGridScroll = useRef(0);
   const pendingCategoryScroll = useRef<number | null>(null);
+  const initialCategoryApplied = useRef(false);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const items = useCartStore((state) => state.items);
   const itemCount = useMemo(
@@ -761,6 +764,16 @@ function StoreApp({
     const controller = loadInitial();
     return () => controller.abort();
   }, [catalog, catalogRevision]);
+
+  useEffect(() => {
+    if (initialCategoryApplied.current || !initialCategoryId || !manifest) return;
+    initialCategoryApplied.current = true;
+    const initialCategory = manifest.categories.find((category) => category.id === initialCategoryId);
+    if (!initialCategory) return;
+    setSelectedCategory(initialCategory);
+    setTab("categories");
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [initialCategoryId, manifest]);
 
   useEffect(
     () =>
@@ -1591,6 +1604,7 @@ export function App() {
                     : "home"
         }
         initialInfo={initialInfo}
+        initialCategoryId={params.get("category") ?? ""}
         onRequestLogin={requestLogin}
         onSessionClosed={remainInStoreAfterLogout}
       />

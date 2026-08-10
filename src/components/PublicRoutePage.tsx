@@ -178,8 +178,32 @@ export function PublicRoutePage({ catalog, path }: { catalog: CatalogProvider; p
 
   if (state.product) {
     const product = state.product;
+    const categoryPath = `/?view=categories&category=${encodeURIComponent(product.categoryId)}`;
     const structuredData = { "@context": "https://schema.org", "@type": "Product", name: product.name, sku: product.id, image: product.imageUrl ? [product.imageUrl] : undefined, brand: { "@type": "Brand", name: product.brand || BUSINESS.name }, offers: { "@type": "Offer", url: `${SITE_URL}${productPath(product)}`, priceCurrency: "ARS", price: product.unit.price, availability: product.active ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", itemCondition: "https://schema.org/NewCondition" } };
-    return <PublicShell showBack><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}/><motion.article className="public-product" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .22, ease: [0.22, 1, 0.36, 1] }}><div className="public-product-intro"><span className="public-product-category">{product.category || product.brand}</span><h1>{product.name}</h1><p>Disponible por unidad{product.pack ? ` y por ${product.pack.label.toLowerCase()}` : ""}.</p><strong className="public-product-price">Desde {money.format(product.unit.price)}</strong><dl className="public-product-facts"><div><dt>Código</dt><dd>{product.id}</dd></div><div><dt>Categoría</dt><dd>{product.category || "Productos"}</dd></div><div><dt>Presentación</dt><dd>{product.pack ? `${product.unit.label} o ${product.pack.label}` : product.unit.label}</dd></div><div><dt>Disponibilidad</dt><dd>{product.active ? "Disponible" : "Temporalmente sin stock"}</dd></div></dl></div><ProductCard product={product} eager linkImageToDetail={false}/></motion.article></PublicShell>;
+    return <PublicShell showBack>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}/>
+      <motion.article className="public-product" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .22, ease: [0.22, 1, 0.36, 1] }}>
+        <div className="public-product-intro">
+          <a className="public-product-category" href={categoryPath} onClick={(event) => {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            event.preventDefault();
+            navigateInStore(categoryPath);
+          }}>{product.category || product.brand}</a>
+          <h1>{product.name}</h1>
+          <p>Disponible por unidad{product.pack ? ` y por ${product.pack.label.toLowerCase()}` : ""}.</p>
+          <strong className="public-product-price">Desde {money.format(product.unit.price)}</strong>
+        </div>
+        <div className="public-product-purchase">
+          <ProductCard product={product} eager linkImageToDetail={false} detailCompact/>
+          <dl className="public-product-facts">
+            <div><dt>Código</dt><dd>{product.id}</dd></div>
+            <div><dt>Categoría</dt><dd>{product.category || "Productos"}</dd></div>
+            <div><dt>Presentación</dt><dd>{product.pack ? `${product.unit.label} o ${product.pack.label}` : product.unit.label}</dd></div>
+            <div><dt>Disponibilidad</dt><dd>{product.active ? "Disponible" : "Temporalmente sin stock"}</dd></div>
+          </dl>
+        </div>
+      </motion.article>
+    </PublicShell>;
   }
 
   if (path === "/categorias") return <PublicShell><section className="public-list-heading"><h1>Productos por categoría</h1><p>Consultá el catálogo mayorista y minorista de Joma Group.</p></section><div className="public-category-grid">{state.categories.map((item) => <a href={`/categorias/${item.id}`} key={item.id}><strong>{item.name}</strong><span>{item.count} productos</span></a>)}</div></PublicShell>;
