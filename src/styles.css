@@ -120,13 +120,24 @@ img { display: block; max-width: 100%; }
 
 .store-app { min-height: 100dvh; overflow-x: clip; padding-bottom: calc(24px + env(safe-area-inset-bottom)); background: #f7f4ef; }
 .top-shell { position: fixed; z-index: 50; inset: 0 0 auto; background: #c81b16; box-shadow: 0 5px 12px rgba(83,18,15,.2); }
-.app-header { height: calc(66px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) var(--gutter) 0; display: grid; grid-template-columns: 46px 1fr 46px; align-items: center; max-width: 760px; margin: auto; background: #c81b16; }
+.app-header { height: calc(66px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) var(--gutter) 0; display: grid; grid-template-columns: 96px minmax(0, 1fr) 96px; align-items: center; max-width: 760px; margin: auto; background: #c81b16; }
 .brand-lockup { justify-self: center; width: 126px; height: 50px; display: grid; place-items: center; min-width: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .brand-lockup img { width: 108px; height: 46px; object-fit: contain; object-position: center; }
-.menu-button, .header-cart { position: relative; width: 44px; height: 44px; display: grid; place-items: center; color: white; border: 0; border-radius: 13px; background: rgba(255,255,255,.13); cursor: pointer; transition: background-color .18s ease; }
+.menu-button, .header-cart, .header-whatsapp { position: relative; width: 44px; height: 44px; display: grid; place-items: center; color: white; border: 0; border-radius: 13px; background: rgba(255,255,255,.13); cursor: pointer; transition: background-color .18s ease, transform .18s ease; }
 .menu-button svg, .header-cart svg { width: 23px; }
 .menu-button.is-active, .header-cart.is-active { background: rgba(255,255,255,.27); }
 .header-cart b { position: absolute; right: -4px; top: -4px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; color: var(--brand-dark); border: 2px solid #c81b16; border-radius: 999px; background: white; font-size: 8px; }
+.app-header__actions { justify-self: end; display: flex; align-items: center; gap: 6px; }
+.header-whatsapp { color: white; background: rgba(255,255,255,.13); text-decoration: none; }
+.header-whatsapp svg { width: 26px; height: 26px; }
+.header-whatsapp:hover { color: white; background: rgba(255,255,255,.27); transform: translateY(-1px); }
+.header-whatsapp:active { transform: scale(.96); }
+.menu-button:focus-visible, .header-cart:focus-visible, .header-whatsapp:focus-visible { outline: 3px solid rgba(255,255,255,.92); outline-offset: 2px; }
+@media (max-width: 350px) {
+  .app-header { grid-template-columns: 96px minmax(0, 1fr) 96px; }
+  .brand-lockup { width: 96px; }
+  .brand-lockup img { width: 92px; }
+}
 .search-dock { height: 60px; display: grid; align-items: center; max-width: 760px; margin: auto; padding: 7px var(--gutter) 9px; background: #c81b16; }
 .search-dock.has-back { grid-template-columns: 44px minmax(0, 1fr); gap: 8px; }
 .search-back-button { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; color: white; border: 1px solid rgba(255,255,255,.36); border-radius: 13px; background: rgba(255,255,255,.14); cursor: pointer; }

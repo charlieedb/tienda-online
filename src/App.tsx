@@ -9,7 +9,7 @@ import {
 } from "@/store/cart";
 import { CartView } from "@/components/CartView";
 import { CartExpiryGuard } from "@/components/CartExpiryGuard";
-import { Icon } from "@/components/Icons";
+import { Icon, WhatsAppIcon } from "@/components/Icons";
 import { ProductCard } from "@/components/ProductCard";
 import { ProfileView } from "@/components/ProfileView";
 import { AuthWelcome } from "@/components/AuthWelcome";
@@ -20,6 +20,7 @@ import {
   type StoreInfoPageKey,
 } from "@/components/StoreFooter";
 import { setDocumentMetadata } from "@/lib/seo";
+import { WHATSAPP_URL } from "@/lib/whatsapp";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   getStoreCarouselSlides,
@@ -1092,15 +1093,27 @@ function StoreApp({
               height="329"
             />
           </button>
-          <button
-            type="button"
-            className={`header-cart ${tab === "cart" ? "is-active" : ""}`}
-            onClick={() => goTo("cart")}
-            aria-label={`Abrir carrito. ${itemCount} productos`}
-          >
-            <Icon name="cart" />
-            {itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}
-          </button>
+          <div className="app-header__actions">
+            <a
+              className="header-whatsapp"
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Consultar por WhatsApp"
+              title="Consultar por WhatsApp"
+            >
+              <WhatsAppIcon />
+            </a>
+            <button
+              type="button"
+              className={`header-cart ${tab === "cart" ? "is-active" : ""}`}
+              onClick={() => goTo("cart")}
+              aria-label={`Abrir carrito. ${itemCount} productos`}
+            >
+              <Icon name="cart" />
+              {itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}
+            </button>
+          </div>
         </header>
         <div className={`search-dock ${tab !== "home" ? "has-back" : ""}`}>
           {tab !== "home" ? (
