@@ -106,7 +106,8 @@ export async function generateOrderRemitoPdf(params: {
     .map((value) => String(value || "").trim())
     .filter(Boolean);
 
-  const productos = params.order.items.map((item) => {
+  const cajasFormato = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
+  const productos = params.order.items.flatMap((item) => {
     const precioUnitarioBase = Number(item.precioUnitarioBase || item.precioLista || 0);
     const descuentoPct = Number(item.descuentoPct || 0);
     const precioUnitarioFinal =
@@ -117,17 +118,49 @@ export async function generateOrderRemitoPdf(params: {
     const descripcion = presentacion ? `${item.nombre} - ${presentacion}` : item.nombre || "";
     const unidades = item.cantidadUnidades || (item.cantidadCajas && item.unidadesPorCaja ? item.cantidadCajas * item.unidadesPorCaja : 0);
     const unidadesPorCaja = Number(item.unidadesPorCaja || item.promoCaja?.unidadesPorCaja || 0);
+    const unidadesPromo = Math.min(unidades, Math.max(0, Number(item.promoCaja?.unidadesConPromo || 0)));
+    const unidadesSueltas = Math.min(unidades - unidadesPromo, Math.max(0, Number(item.promoCaja?.unidadesPrecioLista || 0)));
+    const precioPromoCaja = Number(item.promoCaja?.precioUnitarioPromo || 0);
+
+    if (unidadesPromo > 0) {
+      const descuentoPromo = precioUnitarioBase > 0 && precioPromoCaja > 0
+        ? Math.max(0, (1 - precioPromoCaja / precioUnitarioBase) * 100)
+        : Number(item.descuentoProductoPct || 0);
+      const filas: Array<Array<string | number>> = [[
+        cajasFormato.format(unidadesPorCaja > 0 ? unidadesPromo / unidadesPorCaja : 0),
+        unidadesPromo,
+        `${item.nombre} - Promo por caja x${unidadesPorCaja || 1}`,
+        fmtMoneyAR(precioUnitarioBase),
+        `${Math.round(descuentoPromo * 100) / 100}%`,
+        fmtMoneyAR(precioPromoCaja),
+        fmtMoneyAR(unidadesPromo * precioPromoCaja),
+      ]];
+      if (unidadesSueltas > 0) {
+        const descuentoCupon = Number(item.descuentoCodigoPct || 0);
+        const precioFinalSuelto = precioUnitarioBase * (1 - descuentoCupon / 100);
+        filas.push([
+          cajasFormato.format(unidadesPorCaja > 0 ? unidadesSueltas / unidadesPorCaja : 0),
+          unidadesSueltas,
+          `${item.nombre} - Unidades sueltas${descuentoCupon > 0 ? " (Cupón)" : ""}`,
+          fmtMoneyAR(precioUnitarioBase),
+          `${Math.round(descuentoCupon * 100) / 100}%`,
+          fmtMoneyAR(precioFinalSuelto),
+          fmtMoneyAR(unidadesSueltas * precioFinalSuelto),
+        ]);
+      }
+      return filas;
+    }
+
     const cajasEquivalentes = unidadesPorCaja > 0 ? unidades / unidadesPorCaja : item.cantidadCajas || 0;
-    const cajasTexto = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(cajasEquivalentes);
-    return [
-      cajasTexto,
+    return [[
+      cajasFormato.format(cajasEquivalentes),
       unidades,
       descripcion,
       fmtMoneyAR(precioUnitarioBase),
       `${descuentoPct}%`,
       fmtMoneyAR(precioUnitarioFinal),
       fmtMoneyAR(item.subtotal),
-    ];
+    ]];
   });
 
   const drawHeader = (copia: string) => {

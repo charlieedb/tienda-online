@@ -25,6 +25,8 @@ export type OrderItem = {
   nombre: string;
   precioLista: number;
   descuentoPct: number;
+  descuentoProductoPct?: number;
+  descuentoCodigoPct?: number;
   precioFinal: number;
   cantidadUnidades: number;
   cantidadCajas: number;
@@ -209,6 +211,8 @@ function mapOrder(
           nombre: asString(item?.nombre),
           precioLista: asNumber(item?.precioLista),
           descuentoPct: asNumber(item?.descuentoPct),
+          descuentoProductoPct: asNumber(item?.descuentoProductoPct),
+          descuentoCodigoPct: asNumber(item?.descuentoCodigoPct),
           precioFinal: asNumber(item?.precioFinal),
           cantidadUnidades: asNumber(item?.cantidadUnidades),
           cantidadCajas: asNumber(item?.cantidadCajas),
