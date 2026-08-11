@@ -752,6 +752,10 @@ function StoreApp({
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const pendingStoreRefresh = useRef(false);
+  const activeScreen = useRef(
+    `${initialTab}:${initialCategoryId}:${initialInfo}`,
+  );
   const categoryGridScroll = useRef(0);
   const pendingCategoryScroll = useRef<number | null>(null);
   const initialCategoryApplied = useRef(false);
@@ -828,7 +832,7 @@ function StoreApp({
   useEffect(
     () =>
       subscribeToStoreConfig(() => {
-        setCatalogRevision((current) => current + 1);
+        pendingStoreRefresh.current = true;
       }),
     [],
   );
@@ -845,7 +849,7 @@ function StoreApp({
       lastCheckAt = now;
       try {
         if (await checkForUpdates())
-          setCatalogRevision((current) => current + 1);
+          pendingStoreRefresh.current = true;
       } catch {
         /* se conserva el catálogo cacheado */
       } finally {
@@ -867,6 +871,15 @@ function StoreApp({
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, [catalog]);
+
+  useEffect(() => {
+    const nextScreen = `${tab}:${selectedCategory?.id ?? ""}:${infoPage}`;
+    if (activeScreen.current === nextScreen) return;
+    activeScreen.current = nextScreen;
+    if (!pendingStoreRefresh.current) return;
+    pendingStoreRefresh.current = false;
+    setCatalogRevision((current) => current + 1);
+  }, [infoPage, selectedCategory?.id, tab]);
 
   useEffect(() => {
     if (!selectedCategory) {
