@@ -92,7 +92,13 @@ function CartContent({
           </div>
         ) : (
           <div className="flex flex-col gap-2.5">
-            {items.map((i) => (
+            {items.map((i) => {
+              const couponApplies = Boolean(appliedCode?.eligibleItemIds.includes(i.id));
+              const originalLineTotal = i.price * i.qty;
+              const discountedLineTotal = couponApplies
+                ? originalLineTotal * (1 - Number(appliedCode?.percentage || 0) / 100)
+                : originalLineTotal;
+              return (
               <div
                 key={i.id}
                 className="rounded-[24px] border border-white/72 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(244,247,250,0.92))] p-3 shadow-[0_14px_28px_rgba(29,53,87,0.06)]"
@@ -107,9 +113,7 @@ function CartContent({
                 </div>
 
                 <div className="mt-3 flex items-center justify-between gap-3">
-                  <div className="text-base font-semibold tracking-[-0.02em] text-foreground">
-                    {formatArs(i.price)}
-                  </div>
+                  {couponApplies ? <div className="grid gap-0.5"><del className="text-xs font-medium text-foreground/48">{formatArs(originalLineTotal)}</del><strong className="text-base tracking-[-0.02em] text-emerald-700">{formatArs(discountedLineTotal)}</strong><span className="text-[10px] font-semibold text-emerald-700">Cupón {appliedCode?.percentage}% aplicado</span></div> : <div className="grid gap-0.5"><strong className="text-base tracking-[-0.02em] text-foreground">{formatArs(originalLineTotal)}</strong>{appliedCode ? <span className="max-w-36 text-[10px] font-semibold leading-3 text-amber-700">Ya tiene promoción, el cupón no aplica</span> : null}</div>}
                   <div className="rounded-full bg-white/72 p-1 shadow-[0_10px_18px_rgba(29,53,87,0.06)]">
                     <div className="flex items-center gap-1">
                     <MotionButton
@@ -147,7 +151,8 @@ function CartContent({
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
