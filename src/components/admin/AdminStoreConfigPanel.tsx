@@ -44,6 +44,7 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
   const [newValidFrom, setNewValidFrom] = useState("");
   const [newValidUntil, setNewValidUntil] = useState("");
   const [newUsageLimit, setNewUsageLimit] = useState(0);
+  const [newAudience, setNewAudience] = useState<"all" | "business">("all");
   const [discountUsages, setDiscountUsages] = useState<DiscountCodeUsage[]>([]);
   const [expandedCode, setExpandedCode] = useState("");
   const [loadingUsages, setLoadingUsages] = useState(false);
@@ -159,12 +160,14 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
       validUntil: newValidUntil,
       usageLimit: Math.max(0, Math.trunc(newUsageLimit || 0)),
       usageCount: 0,
+      audience: newAudience,
     }]);
     setNewCode("");
     setNewPercentage(5);
     setNewValidFrom("");
     setNewValidUntil("");
     setNewUsageLimit(0);
+    setNewAudience("all");
   };
 
   const refreshDiscountData = async () => {
@@ -212,11 +215,12 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
           <label><span>Válido desde <em>Opcional</em></span><input className="admin-input" type="date" value={newValidFrom} onChange={(event) => setNewValidFrom(event.target.value)}/></label>
           <label><span>Válido hasta <em>Opcional</em></span><input className="admin-input" type="date" value={newValidUntil} min={newValidFrom || undefined} onChange={(event) => setNewValidUntil(event.target.value)}/></label>
           <label><span>Límite de usos <em>0 = ilimitado</em></span><input className="admin-input" type="number" min="0" step="1" value={newUsageLimit} onChange={(event) => setNewUsageLimit(Math.max(0, Number(event.target.value)))}/></label>
+          <label><span>Disponible para</span><select className="admin-input" value={newAudience} onChange={(event) => setNewAudience(event.target.value === "business" ? "business" : "all")}><option value="all">Todos los clientes</option><option value="business">Solo comercios</option></select></label>
           <button type="button" className="btn primary" onClick={addDiscountCode}>+ Agregar código</button>
         </div>
         <div className="admin-discount-list-wrap">
           <table className="admin-discount-table">
-            <thead><tr><th>Código</th><th>Descuento</th><th>Vigencia</th><th>Usos</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Código</th><th>Descuento</th><th>Usuarios</th><th>Vigencia</th><th>Usos</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody>{discountCodes.map((item) => {
               const usages = discountUsages.filter((usage) => usage.code === item.code);
               const exhausted = item.usageLimit > 0 && item.usageCount >= item.usageLimit;
@@ -224,6 +228,7 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
                 <tr>
                   <td><strong>{item.code}</strong></td>
                   <td>{item.percentage}%</td>
+                  <td>{item.audience === "business" ? "Solo comercios" : "Todos"}</td>
                   <td><span>{item.validFrom || "Sin inicio"}</span><small>hasta {item.validUntil || "sin vencimiento"}</small></td>
                   <td><button type="button" className="admin-discount-usage-button" onClick={() => setExpandedCode((current) => current === item.code ? "" : item.code)}>{item.usageCount}{item.usageLimit > 0 ? ` / ${item.usageLimit}` : " / ∞"}<small>Ver clientes</small></button></td>
                   <td><span className={`admin-discount-status ${item.active && !exhausted ? "is-active" : "is-inactive"}`}>{exhausted ? "Agotado" : item.active ? "Activo" : "Inactivo"}</span></td>

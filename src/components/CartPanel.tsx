@@ -468,7 +468,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
     const catalog = await getActiveCatalog();
     const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
     productsByIdRef.current = productsById;
-    setAppliedCode(await validateDiscountCode(code, items, productsById));
+    setAppliedCode(await validateDiscountCode(code, items, productsById, user?.uid));
   };
 
   const primeSuccessAudio = async () => {
@@ -631,7 +631,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
       const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
       productsByIdRef.current = productsById;
       const verifiedCode = appliedCode
-        ? await validateDiscountCode(appliedCode.code, items, productsById)
+        ? await validateDiscountCode(appliedCode.code, items, productsById, user?.uid)
         : null;
       if (verifiedCode) setAppliedCode(verifiedCode);
 

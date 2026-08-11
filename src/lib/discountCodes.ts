@@ -1,5 +1,6 @@
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, serverTimestamp } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
+import { refreshUserProfile } from "@/lib/userProfile";
 import type { Product } from "@/lib/products";
 import { getCartItemPricing, type CartItem } from "@/store/cart";
 
@@ -13,6 +14,7 @@ export type DiscountCode = {
   validUntil: string;
   usageLimit: number;
   usageCount: number;
+  audience?: "all" | "business";
 };
 
 export type DiscountCodeUsage = {
@@ -61,6 +63,7 @@ function normalizeCodes(value: unknown): DiscountCode[] {
       validUntil: normalizeDate(item.validUntil),
       usageLimit: Math.max(0, Math.trunc(Number(item.usageLimit) || 0)),
       usageCount: Math.max(0, Math.trunc(Number(item.usageCount) || 0)),
+      audience: item.audience === "business" ? "business" : "all",
     }];
   });
 }
@@ -162,11 +165,17 @@ export async function validateDiscountCode(
   rawCode: string,
   items: CartItem[],
   productsById: Map<string, Product>,
+  customerUid?: string,
 ) {
   const code = normalizeDiscountCode(rawCode);
   if (!code) throw new Error("Ingresá un código de descuento.");
   const match = (await getDiscountCodes()).find((item) => item.active && item.code === code);
   if (!match) throw new Error("El código no existe o ya no está activo.");
+  if (match.audience === "business") {
+    if (!customerUid) throw new Error("Iniciá sesión con tu cuenta comercial para usar este código.");
+    const profile = await refreshUserProfile(customerUid);
+    if (profile?.accountType !== "business") throw new Error("Este código es exclusivo para comercios registrados.");
+  }
   const today = localDateKey();
   if (match.validFrom && today < match.validFrom) throw new Error("Este código todavía no está vigente.");
   if (match.validUntil && today > match.validUntil) throw new Error("Este código está vencido.");

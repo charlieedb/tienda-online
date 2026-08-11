@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/auth/AuthProvider";
 import { APP_VERSION } from "@/lib/appVersion";
-import { upsertUserProfile } from "@/lib/userProfile";
+import { clearBusinessRegistrationDraft, getBusinessRegistrationDraft, refreshUserProfile, upsertUserProfile } from "@/lib/userProfile";
 import { updateProfile } from "firebase/auth";
 import { Icon } from "./Icons";
 import { PasswordVisibilityButton } from "./PasswordVisibilityButton";
@@ -25,9 +25,9 @@ export function AuthLoading() {
   return <main className="auth-loading" aria-label="Cargando sesión"><img src="/joma-express-black.png" alt="JOMA Express"/><span className="auth-spinner"/></main>;
 }
 
-export function AuthWelcome() {
-  const { signInEmail, signUpEmail, firebaseReady } = useAuth();
-  const [mode, setMode] = useState<Mode>("welcome");
+export function AuthWelcome({ initialMode = "welcome" }: { initialMode?: Mode }) {
+  const { signInEmail, signUpEmail, sendVerificationEmail, firebaseReady } = useAuth();
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -59,6 +59,8 @@ export function AuthWelcome() {
         const internalUsername = email.trim().toLowerCase();
         const displayName = email.trim().split("@")[0];
         await updateProfile(credential.user, { displayName });
+        await sendVerificationEmail(credential.user);
+        const business = getBusinessRegistrationDraft();
         await upsertUserProfile({
           uid: credential.user.uid,
           email: credential.user.email,
@@ -66,8 +68,37 @@ export function AuthWelcome() {
           dni: dni.trim(),
           displayName,
           preventistaReferido: preventistaReferido.trim(),
+          accountType: business ? "business" : "consumer",
+          business: business ?? undefined,
         });
-      } else await signInEmail(email.trim(), password);
+        if (business) {
+          clearBusinessRegistrationDraft();
+          window.dispatchEvent(new CustomEvent("joma:business-registered", { detail: business }));
+        }
+      } else {
+        const credential = await signInEmail(email.trim(), password);
+        const business = getBusinessRegistrationDraft();
+        if (business) {
+          const current = await refreshUserProfile(credential.user.uid, { force: true });
+          await upsertUserProfile({
+            uid: credential.user.uid,
+            email: credential.user.email,
+            username: current?.username || credential.user.email?.toLowerCase() || `usuario_${credential.user.uid.slice(0, 8)}`,
+            dni: current?.dni || "",
+            displayName: current?.displayName || credential.user.displayName,
+            nombre: current?.nombre || "",
+            apellido: current?.apellido || "",
+            telefono: current?.telefono || business.phone,
+            preventistaReferido: current?.preventistaReferido || "",
+            notes: current?.notes || "",
+            direcciones: current?.direcciones,
+            accountType: "business",
+            business,
+          });
+          clearBusinessRegistrationDraft();
+          window.dispatchEvent(new CustomEvent("joma:business-registered", { detail: business }));
+        }
+      }
     } catch (nextError) {
       setError(friendlyError(nextError));
     } finally {

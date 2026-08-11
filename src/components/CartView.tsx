@@ -107,7 +107,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       const catalog = await getActiveCatalog();
       const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
       productsByIdRef.current = productsById;
-      setAppliedCode(await validateDiscountCode(discountInput, items, productsById));
+      setAppliedCode(await validateDiscountCode(discountInput, items, productsById, user?.uid));
       setDiscountInput("");
     } catch (nextError) {
       setDiscountError(nextError instanceof Error ? nextError.message : "No pudimos aplicar el código.");
@@ -205,7 +205,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       const catalog = await getActiveCatalog();
       const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
       productsByIdRef.current = productsById;
-      const verifiedCode = appliedCode ? await validateDiscountCode(appliedCode.code, items, productsById) : null;
+      const verifiedCode = appliedCode ? await validateDiscountCode(appliedCode.code, items, productsById, user?.uid) : null;
       if (verifiedCode) setAppliedCode(verifiedCode);
       const result = await submitCheckoutOrder({
         user,

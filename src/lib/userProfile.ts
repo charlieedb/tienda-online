@@ -23,9 +23,22 @@ export type UserProfile = {
   preventistaReferido?: string;
   notes?: string;
   direcciones?: UserAddress[];
+  accountType?: "consumer" | "business";
+  business?: BusinessProfile;
+};
+
+export type BusinessProfile = {
+  fantasyName: string;
+  ownerName: string;
+  address: string;
+  city: string;
+  businessType: string;
+  cuit: string;
+  phone: string;
 };
 
 const profileCacheKey = (uid: string) => `listita.userProfile.${uid}`;
+const BUSINESS_DRAFT_KEY = "joma.businessRegistrationDraft.v1";
 const PROFILE_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
 type CachedProfileEnvelope = {
   profile: UserProfile;
@@ -56,7 +69,23 @@ type RawProfile = {
   localidad?: unknown;
   direccion?: unknown;
   ubicacion?: unknown;
+  accountType?: unknown;
+  business?: unknown;
 };
+
+function normalizeBusiness(raw: unknown): BusinessProfile | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const value = raw as Record<string, unknown>;
+  return {
+    fantasyName: String(value.fantasyName ?? "").trim(),
+    ownerName: String(value.ownerName ?? "").trim(),
+    address: String(value.address ?? "").trim(),
+    city: String(value.city ?? "").trim(),
+    businessType: String(value.businessType ?? "").trim(),
+    cuit: String(value.cuit ?? "").trim(),
+    phone: String(value.phone ?? "").trim(),
+  };
+}
 
 export function normalizeUsername(value: string) {
   return value.toLowerCase().trim().replace(/\s+/g, "");
@@ -136,6 +165,8 @@ function normalizeProfile(uid: string, raw: RawProfile | null | undefined): User
     preventistaReferido: typeof raw?.preventistaReferido === "string" ? raw.preventistaReferido : "",
     notes: typeof raw?.notes === "string" ? raw.notes : "",
     direcciones,
+    accountType: raw?.accountType === "business" ? "business" : "consumer",
+    business: normalizeBusiness(raw?.business),
   } satisfies UserProfile;
 }
 
@@ -176,6 +207,25 @@ function readCachedEnvelope(uid: string) {
 
 export function getCachedUserProfile(uid: string) {
   return readCachedEnvelope(uid)?.profile || null;
+}
+
+export function saveBusinessRegistrationDraft(business: BusinessProfile) {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(BUSINESS_DRAFT_KEY, JSON.stringify(business));
+}
+
+export function getBusinessRegistrationDraft() {
+  if (typeof window === "undefined") return null;
+  try {
+    return normalizeBusiness(JSON.parse(window.sessionStorage.getItem(BUSINESS_DRAFT_KEY) || "null")) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearBusinessRegistrationDraft() {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(BUSINESS_DRAFT_KEY);
 }
 
 function writeCachedUserProfile(profile: UserProfile, cachedAt = nowMs()) {
@@ -251,6 +301,7 @@ export async function preloadUserProfile(uid: string, maxAgeMs = PROFILE_CACHE_M
 
 export async function upsertUserProfile(profile: UserProfile) {
   const db = getDb();
+  const cachedProfile = getCachedUserProfile(profile.uid);
 
   const direcciones = (profile.direcciones ?? [])
     .map((a, idx) => normalizeAddress(a, `addr_${idx + 1}`))
@@ -266,6 +317,8 @@ export async function upsertUserProfile(profile: UserProfile) {
     preventistaReferido: String(profile.preventistaReferido ?? "").trim(),
     notes: String(profile.notes ?? "").trim(),
     direcciones,
+    accountType: (profile.accountType ?? cachedProfile?.accountType) === "business" ? "business" : "consumer",
+    business: normalizeBusiness(profile.business ?? cachedProfile?.business),
   };
 
   writeCachedUserProfile(normalizedProfile);
@@ -292,6 +345,8 @@ export async function upsertUserProfile(profile: UserProfile) {
       localidad: first?.localidad ?? "",
       direccion: first?.direccion ?? "",
       ubicacion: first?.ubicacion ?? null,
+      accountType: normalizedProfile.accountType,
+      business: normalizedProfile.business ?? null,
       updatedAt: serverTimestamp(),
     },
     { merge: true },

@@ -13,6 +13,7 @@ import { CartExpiryGuard } from "@/components/CartExpiryGuard";
 import { Icon, WhatsAppIcon } from "@/components/Icons";
 import { ProductCard } from "@/components/ProductCard";
 import { ProfileView } from "@/components/ProfileView";
+import { BusinessPage } from "@/components/BusinessPage";
 import { AuthWelcome } from "@/components/AuthWelcome";
 import { PublicRoutePage } from "@/components/PublicRoutePage";
 import {
@@ -31,7 +32,7 @@ import {
 import { calculateDiscount, validateDiscountCode } from "@/lib/discountCodes";
 import { getActiveCatalog, type Product as DiscountProduct } from "@/lib/products";
 
-type Tab = "home" | "categories" | "search" | "cart" | "profile" | "info";
+type Tab = "home" | "categories" | "search" | "cart" | "profile" | "business" | "info";
 type InfoPage = StoreInfoPageKey;
 const money = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -572,6 +573,7 @@ function DesktopCategoryRail({
 }
 
 function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
+  const { user } = useAuth();
   const items = useCartStore((state) => state.items);
   const setItemQty = useCartStore((state) => state.setItemQty);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -603,7 +605,7 @@ function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
     try {
       const catalog = await getActiveCatalog();
       const productsById = new Map<string, DiscountProduct>(catalog.map((product) => [product.id, product]));
-      setAppliedCode(await validateDiscountCode(couponInput, items, productsById));
+      setAppliedCode(await validateDiscountCode(couponInput, items, productsById, user?.uid));
       setCouponInput("");
     } catch (error) {
       setCouponError(error instanceof Error ? error.message : "No pudimos aplicar el código.");
@@ -718,13 +720,15 @@ function StoreApp({
   initialInfo = "envios",
   initialCategoryId = "",
   onRequestLogin,
+  onRequestBusinessLogin,
   onSessionClosed,
 }: {
   catalog: ReturnType<typeof createRemoteCatalog>;
   initialTab?: Tab;
   initialInfo?: InfoPage;
   initialCategoryId?: string;
-  onRequestLogin: () => void;
+  onRequestLogin: (mode?: "login" | "signup") => void;
+  onRequestBusinessLogin: (mode?: "login" | "signup") => void;
   onSessionClosed: () => void;
 }) {
   const { user, signOut } = useAuth();
@@ -1150,18 +1154,13 @@ function StoreApp({
   };
 
   return (
-    <div className="store-app">
+    <div className={`store-app ${tab === "business" ? "is-business-section" : ""}`}>
       <div className="top-shell">
         <header className="app-header">
-          <button
-            type="button"
-            className={`menu-button ${menuOpen ? "is-active" : ""}`}
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-label="Abrir menú"
-            aria-expanded={menuOpen}
-          >
-            <Icon name="menu" />
-          </button>
+          <div className="app-header__leading">
+            <button type="button" className={`menu-button ${menuOpen ? "is-active" : ""}`} onClick={() => setMenuOpen((open) => !open)} aria-label="Abrir menú" aria-expanded={menuOpen}><Icon name="menu" /></button>
+            <button type="button" className={`business-header-button ${tab === "business" ? "is-active" : ""}`} onClick={() => goTo("business")} aria-label="Ingresar a JOMA para comercios" title="JOMA para comercios"><Icon name="store" /></button>
+          </div>
           <button
             type="button"
             className="brand-lockup"
@@ -1333,7 +1332,7 @@ function StoreApp({
         </AnimatePresence>
       </div>
 
-      <div className={`desktop-layout ${tab === "cart" ? "is-cart-view" : ""}`}>
+      <div className={`desktop-layout ${tab === "cart" ? "is-cart-view" : ""} ${tab === "business" ? "is-business-view" : ""}`}>
         <DesktopCategoryRail
           categories={manifest?.categories ?? []}
           selectedCategory={selectedCategory}
@@ -1543,7 +1542,7 @@ function StoreApp({
                 exit={{ opacity: 0 }}
               >
                 {user ? (
-                  <ProfileView />
+                  <ProfileView onOpenBusiness={() => goTo("business")} />
                 ) : (
                   <section className="empty-state">
                     <h2>Ingresá para ver tu perfil</h2>
@@ -1551,12 +1550,17 @@ function StoreApp({
                     <button
                       type="button"
                       className="primary-action"
-                      onClick={onRequestLogin}
+                      onClick={() => onRequestLogin("login")}
                     >
                       Iniciar sesión
                     </button>
                   </section>
                 )}
+              </motion.div>
+            ) : null}
+            {tab === "business" ? (
+              <motion.div className="view" key="business" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
+                <BusinessPage onLogin={onRequestBusinessLogin} onShop={() => goTo("categories")} />
               </motion.div>
             ) : null}
             {tab === "info" ? (
@@ -1572,11 +1576,11 @@ function StoreApp({
             ) : null}
           </AnimatePresence>
         </main>
-        {tab !== "cart" ? <DesktopCartRail onOpenCart={() => goTo("cart")} /> : null}
+        {tab !== "cart" && tab !== "business" ? <DesktopCartRail onOpenCart={() => goTo("cart")} /> : null}
       </div>
 
       {tab === "home" ? <StoreInfoFooter onSelect={openInfo} /> : null}
-      <StoreCreditBar />
+      {tab !== "business" ? <StoreCreditBar /> : null}
 
       {itemCount && tab !== "cart" ? (
         <button
@@ -1623,8 +1627,18 @@ export function App() {
       ? infoParam
       : "envios";
   const loginRequested = params.get("login") === "1";
-  const requestLogin = () => {
-    const nextLocation = "/?login=1";
+  const requestLogin = (mode: "login" | "signup" = "login") => {
+    const nextLocation = `/?login=1&mode=${mode}`;
+    window.history.pushState(
+      { ...window.history.state, jomaView: "login" },
+      "",
+      nextLocation,
+    );
+    setLocation(nextLocation);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  };
+  const requestBusinessLogin = (mode: "login" | "signup" = "login") => {
+    const nextLocation = `/?login=1&mode=${mode}&return=business`;
     window.history.pushState(
       { ...window.history.state, jomaView: "login" },
       "",
@@ -1653,9 +1667,15 @@ export function App() {
         true,
       );
   }, [loginRequested]);
+  useEffect(() => {
+    if (!user || params.get("return") !== "business") return;
+    const nextLocation = "/?view=business";
+    window.history.replaceState({ ...window.history.state, jomaView: "business" }, "", nextLocation);
+    setLocation(nextLocation);
+  }, [user, location]);
   const content =
     loginRequested && !loading && !user ? (
-      <AuthWelcome />
+      <AuthWelcome initialMode={params.get("mode") === "signup" ? "signup" : "login"} />
     ) : path === "/" ? (
       <StoreApp
         catalog={catalog}
@@ -1668,6 +1688,8 @@ export function App() {
                 ? "search"
                 : params.get("view") === "profile"
                   ? "profile"
+                  : params.get("view") === "business"
+                    ? "business"
                   : params.get("view") === "categories"
                     ? "categories"
                     : "home"
@@ -1675,6 +1697,7 @@ export function App() {
         initialInfo={initialInfo}
         initialCategoryId={params.get("category") ?? ""}
         onRequestLogin={requestLogin}
+        onRequestBusinessLogin={requestBusinessLogin}
         onSessionClosed={remainInStoreAfterLogout}
       />
     ) : (

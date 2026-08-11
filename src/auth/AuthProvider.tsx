@@ -13,6 +13,7 @@ import {
   signInWithPopup,
   signInWithRedirect,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updatePassword,
   type User,
   type UserCredential,
@@ -30,6 +31,7 @@ type AuthContextValue = {
   signInUsernameSession: (username: string, password: string) => Promise<UserCredential>;
   resetAdminPassword: (username: string) => Promise<void>;
   signUpEmail: (email: string, password: string) => Promise<UserCredential>;
+  sendVerificationEmail: (user: User) => Promise<void>;
   signInGoogle: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -122,6 +124,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!auth) throw new Error("Firebase no está configurado.");
         await setPersistence(auth, browserLocalPersistence);
         return createUserWithEmailAndPassword(auth, email, password);
+      },
+      sendVerificationEmail: async (targetUser) => {
+        await sendEmailVerification(targetUser);
       },
       signInGoogle: async () => {
         if (!auth) throw new Error("Firebase no está configurado.");

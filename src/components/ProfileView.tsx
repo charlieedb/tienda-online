@@ -19,7 +19,7 @@ function toForm(profile: UserProfile | null, email = ""): Profile {
   };
 }
 
-export function ProfileView() {
+export function ProfileView({ onOpenBusiness }: { onOpenBusiness: () => void }) {
   const { user, changePassword } = useAuth();
   const [profile, setProfile] = useState<Profile>(EMPTY_PROFILE);
   const [saved, setSaved] = useState(false);
@@ -32,14 +32,19 @@ export function ProfileView() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [businessName, setBusinessName] = useState("");
 
   useEffect(() => {
     if (!user) return;
     const cached = getCachedUserProfile(user.uid);
     setProfile(toForm(cached, user.email || ""));
+    setBusinessName(cached?.accountType === "business" ? cached.business?.fantasyName || "Mi comercio" : "");
     let active = true;
     refreshUserProfile(user.uid).then((remote) => {
-      if (active) setProfile(toForm(remote, user.email || ""));
+      if (active) {
+        setProfile(toForm(remote, user.email || ""));
+        setBusinessName(remote?.accountType === "business" ? remote.business?.fantasyName || "Mi comercio" : "");
+      }
     });
     return () => { active = false; };
   }, [user]);
@@ -109,6 +114,7 @@ export function ProfileView() {
   const hasPasswordProvider = user?.providerData.some((provider) => provider.providerId === "password") ?? false;
 
   return <section className="profile-page">
+    {businessName ? <button type="button" className="profile-business-link" onClick={onOpenBusiness}><span><Icon name="store" /></span><div><small>Comercio adherido</small><strong>{businessName}</strong><p>Ver o editar los datos comerciales</p></div><Icon name="arrow" /></button> : null}
     <div className="profile-intro"><div className="profile-avatar"><Icon name="user"/></div><div><span>Tu cuenta</span><h1>Mis datos</h1><p>Completalos una vez para agilizar tus próximos pedidos.</p></div></div>
     <form className="profile-form" onSubmit={save}>
       {error ? <div className="checkout-error" role="alert">{error}</div> : null}
