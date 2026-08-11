@@ -34,10 +34,8 @@ function orderLines(item) {
     const promoPct = listPrice > 0 && promoUnitPrice > 0 ? Math.max(0, (1 - promoUnitPrice / listPrice) * 100) : productPct;
     lines.push(`- ${promoUnits} unid. ${escapeHtml(name)}${codeSuffix}\n  <b>Promo por caja x${promoPackQty}:</b> -${escapeHtml(percent(promoPct))}%`);
     if (looseUnits > 0) {
-      const detail = couponPct > 0
-        ? `<b>${couponLabel}:</b> -${escapeHtml(percent(couponPct))}%`
-        : `<b>Sin descuento</b>`;
-      lines.push(`- ${looseUnits} unid. ${escapeHtml(name)}${codeSuffix}\n  ${detail}`);
+      const detail = couponPct > 0 ? `\n  <b>${couponLabel}:</b> -${escapeHtml(percent(couponPct))}%` : "";
+      lines.push(`- ${looseUnits} unid. ${escapeHtml(name)}${codeSuffix}${detail}`);
     }
     return lines;
   }
@@ -46,14 +44,14 @@ function orderLines(item) {
   if (boxes > 0) quantity = `${boxes} ${boxes === 1 ? "caja" : "cajas"}${unitsPerBox ? ` (${units} unid.)` : ""}`;
   if (code.toLowerCase().startsWith("p")) quantity = `${Math.max(1, boxes || units)} ${boxes + units === 1 ? "promo" : "promos"}`;
 
-  let detail = `<b>Sin descuento</b>`;
+  let detail = "";
   if (couponPct > 0) {
-    detail = `<b>${couponLabel}:</b> -${escapeHtml(percent(couponPct))}%`;
+    detail = `\n  <b>${couponLabel}:</b> -${escapeHtml(percent(couponPct))}%`;
   } else if (productPct > 0 || Number(item.descuentoPct) > 0) {
     const appliedPct = productPct || Number(item.descuentoPct) || 0;
-    detail = `<b>Promoción especial:</b> -${escapeHtml(percent(appliedPct))}%`;
+    detail = `\n  <b>Promoción especial:</b> -${escapeHtml(percent(appliedPct))}%`;
   }
-  return [`- ${escapeHtml(quantity)} ${escapeHtml(name)}${codeSuffix}\n  ${detail}`];
+  return [`- ${escapeHtml(quantity)} ${escapeHtml(name)}${codeSuffix}${detail}`];
 }
 
 function buildMessage(payload) {

@@ -892,8 +892,14 @@ function StoreApp({
   }, [catalog, selectedCategory, catalogRevision]);
 
   useEffect(() => {
-    if (tab === "search")
-      window.setTimeout(() => searchRef.current?.focus(), 80);
+    if (tab !== "search") return;
+    window.setTimeout(() => {
+      const input = searchRef.current;
+      if (!input || document.activeElement === input) return;
+      input.focus();
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    }, 80);
   }, [tab]);
 
   useEffect(() => {
@@ -1193,7 +1199,7 @@ function StoreApp({
               <Icon name="arrow" />
             </button>
           ) : null}
-          <label className="top-search">
+          <div className="top-search">
             <Icon name="search" />
             <input
               ref={searchRef}
@@ -1208,8 +1214,8 @@ function StoreApp({
               placeholder="¿Qué necesitás?"
               aria-label="Buscar productos"
             />
-            <span className={searchLoading ? "tiny-spinner" : ""} />
-          </label>
+            {query ? <button type="button" className="search-clear-button" onMouseDown={(event) => event.preventDefault()} onClick={() => { setQuery(""); setSearchResults([]); setSearchError(""); requestAnimationFrame(() => searchRef.current?.focus()); }} aria-label="Borrar búsqueda"><Icon name="close" /></button> : <span className={searchLoading ? "tiny-spinner" : ""} />}
+          </div>
         </div>
         <AnimatePresence>
           {menuOpen ? (
