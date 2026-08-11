@@ -50,6 +50,9 @@ async function createOrderAndReserveInventory(user: User, orderId: string, order
       : data?.error || "Uno de los artículos ya no tiene stock suficiente.";
     throw new Error(`${detail} Actualizá el carrito e intentá nuevamente.`);
   }
+  if ((response.status === 400 || response.status === 422) && data?.error) {
+    throw new Error(data.error);
+  }
   throw new Error("No pudimos registrar el pedido y reservar el stock. Intentá nuevamente.");
 }
 

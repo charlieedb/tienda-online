@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, serverTimestamp } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import type { Product } from "@/lib/products";
 import type { CartItem } from "@/store/cart";
@@ -7,8 +7,25 @@ const STORE_CONFIG_PATH = "config/tiendaOnlineStore";
 
 export type DiscountCode = {
   code: string;
-  percentage: 5 | 10;
+  percentage: number;
   active: boolean;
+  validFrom: string;
+  validUntil: string;
+  usageLimit: number;
+  usageCount: number;
+};
+
+export type DiscountCodeUsage = {
+  id: string;
+  code: string;
+  orderId: string;
+  usedAtIso: string;
+  customerUid: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  percentage: number;
+  discountAmount: number;
 };
 
 export type AppliedDiscountCode = DiscountCode & {
@@ -21,6 +38,11 @@ export function normalizeDiscountCode(value: unknown) {
   return String(value ?? "").trim().toLocaleUpperCase("es-AR").replace(/\s+/g, "");
 }
 
+function normalizeDate(value: unknown) {
+  const text = String(value ?? "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
+}
+
 function normalizeCodes(value: unknown): DiscountCode[] {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();
@@ -28,9 +50,17 @@ function normalizeCodes(value: unknown): DiscountCode[] {
     const item = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
     const code = normalizeDiscountCode(item.code);
     const percentage = Number(item.percentage);
-    if (!code || seen.has(code) || (percentage !== 5 && percentage !== 10)) return [];
+    if (!code || seen.has(code) || !Number.isFinite(percentage) || percentage <= 0 || percentage > 100) return [];
     seen.add(code);
-    return [{ code, percentage: percentage as 5 | 10, active: item.active !== false }];
+    return [{
+      code,
+      percentage: Math.round(percentage * 100) / 100,
+      active: item.active !== false,
+      validFrom: normalizeDate(item.validFrom),
+      validUntil: normalizeDate(item.validUntil),
+      usageLimit: Math.max(0, Math.trunc(Number(item.usageLimit) || 0)),
+      usageCount: Math.max(0, Math.trunc(Number(item.usageCount) || 0)),
+    }];
   });
 }
 
@@ -45,12 +75,57 @@ export async function saveDiscountCodes(codes: DiscountCode[], actor: string) {
   const db = getDb();
   if (!db) throw new Error("Firebase no está configurado.");
   const normalized = normalizeCodes(codes);
-  await setDoc(doc(db, STORE_CONFIG_PATH), {
-    discountCodes: normalized,
-    discountCodesUpdatedAt: serverTimestamp(),
-    discountCodesUpdatedBy: actor,
-  }, { merge: true });
-  return normalized;
+  const configRef = doc(db, STORE_CONFIG_PATH);
+  let saved = normalized;
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(configRef);
+    const current = normalizeCodes(snapshot.data()?.discountCodes);
+    const usageByCode = new Map(current.map((item) => [item.code, item.usageCount]));
+    saved = normalized.map((item) => ({
+      ...item,
+      usageCount: Math.max(item.usageCount, usageByCode.get(item.code) || 0),
+    }));
+    transaction.set(configRef, {
+      discountCodes: saved,
+      discountCodesUpdatedAt: serverTimestamp(),
+      discountCodesUpdatedBy: actor,
+    }, { merge: true });
+  });
+  return saved;
+}
+
+export async function getDiscountCodeUsages(maxResults = 500): Promise<DiscountCodeUsage[]> {
+  const db = getDb();
+  if (!db) throw new Error("Firebase no está configurado.");
+  const snapshot = await getDocs(query(
+    collection(db, "discountCodeUsages"),
+    orderBy("usedAtIso", "desc"),
+    limit(Math.max(1, Math.min(1000, Math.trunc(maxResults)))),
+  ));
+  return snapshot.docs.map((usage) => {
+    const item = usage.data() as Record<string, unknown>;
+    return {
+      id: usage.id,
+      code: normalizeDiscountCode(item.code),
+      orderId: String(item.orderId ?? usage.id),
+      usedAtIso: String(item.usedAtIso ?? ""),
+      customerUid: String(item.customerUid ?? ""),
+      customerName: String(item.customerName ?? ""),
+      customerEmail: String(item.customerEmail ?? ""),
+      customerPhone: String(item.customerPhone ?? ""),
+      percentage: Number(item.percentage) || 0,
+      discountAmount: Number(item.discountAmount) || 0,
+    };
+  });
+}
+
+function localDateKey() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Argentina/Buenos_Aires",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 export function calculateDiscount(
@@ -84,6 +159,10 @@ export async function validateDiscountCode(
   if (!code) throw new Error("Ingresá un código de descuento.");
   const match = (await getDiscountCodes()).find((item) => item.active && item.code === code);
   if (!match) throw new Error("El código no existe o ya no está activo.");
+  const today = localDateKey();
+  if (match.validFrom && today < match.validFrom) throw new Error("Este código todavía no está vigente.");
+  if (match.validUntil && today > match.validUntil) throw new Error("Este código está vencido.");
+  if (match.usageLimit > 0 && match.usageCount >= match.usageLimit) throw new Error("Este código alcanzó su límite de usos.");
   const result = calculateDiscount(match, items, productsById);
   if (!result.eligibleItemIds.length) {
     throw new Error("Este carrito no tiene productos sin promoción para aplicar el descuento.");
