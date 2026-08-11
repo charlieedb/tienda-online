@@ -76,14 +76,17 @@ function mapRowToProduct(row: SourceRow): Product | null {
 
   const packQty = toInt(row.Presentacion);
   const unitPrice = toNumber(row.Precio) ?? 0;
+  const packPromoUnitPrice = toNumber(row.precioUnitarioPromoCaja);
   const packPrice =
-    packQty && unitPrice ? Math.round(unitPrice * packQty * 100) / 100 : null;
+    packQty && unitPrice ? Math.round((packPromoUnitPrice || unitPrice) * packQty * 100) / 100 : null;
 
   const pack = packQty
     ? {
         qty: packQty,
         label: `caja x${packQty}`,
         price: packPrice ?? 0,
+        listPrice: packPromoUnitPrice ? Math.round(unitPrice * packQty * 100) / 100 : undefined,
+        discountPct: packPromoUnitPrice && unitPrice > 0 ? (1 - packPromoUnitPrice / unitPrice) * 100 : undefined,
       }
     : undefined;
 
@@ -117,7 +120,7 @@ function mapRowToProduct(row: SourceRow): Product | null {
     : undefined;
   const imageUrl = String(row.imagenURL ?? "").trim() || fallbackImageUrl;
 
-  const offer = row.oferta === true || row.Promo === true;
+  const offer = row.oferta === true || row.Promo === true || Boolean(packPromoUnitPrice);
   const offerDiscount = toNumber(row.descOferta);
 
   return {
@@ -133,6 +136,8 @@ function mapRowToProduct(row: SourceRow): Product | null {
     active,
     offer,
     offerDiscount: offerDiscount ?? undefined,
+    offerCondition: packPromoUnitPrice ? "pack" : undefined,
+    packPromoUnitPrice: packPromoUnitPrice ?? undefined,
   };
 }
 

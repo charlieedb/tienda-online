@@ -84,6 +84,7 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     offer,
     offerDiscount: offerDiscount || packDiscount || undefined,
     offerCondition: promoPackUnit > 0 ? "pack" : undefined,
+    packPromoUnitPrice: promoPackUnit > 0 ? promoPackUnit : undefined,
   };
 }
 

@@ -476,6 +476,16 @@ main.has-mini-cart { padding-bottom: 72px; }
 .cart-item-coupon-price b { margin: 0; color: #0f6b45; font-size: 16px; }
 .cart-item-coupon-price small { color: #0f6b45; font-size: 9px; font-weight: 800; }
 .cart-item-promo-note { width: fit-content; max-width: 190px; margin-top: 3px; padding: 4px 7px; border-radius: 7px; color: #775312; background: #fff0c9; font-size: 9px; font-weight: 750; line-height: 1.25; }
+.cart-item-price-split { display: grid; gap: 5px; margin-top: 5px; }
+.cart-item-price-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 210px; padding: 6px 8px; border-radius: 9px; background: #eaf5fb; }
+.cart-item-price-row.is-promo { background: #fff0c9; }
+.cart-item-price-row > span:first-child { color: #32647b; font-size: 10px; font-weight: 800; }
+.cart-item-price-row.is-promo > span:first-child, .cart-item-price-row.is-promo b { color: #775312; }
+.cart-item-price-row > span:last-child { display: grid; justify-items: end; }
+.cart-item-price-row b { margin: 0; color: #1b5872; font-size: 13px; }
+.cart-item-price-row del { color: #7a746e; font-size: 10px; font-weight: 650; }
+.cart-item-price-row.is-coupon { background: #e5f6ec; }
+.cart-item-price-row.is-coupon > span:first-child, .cart-item-price-row.is-coupon b { color: #0f6b45; }
 .cart-item.has-coupon-discount { border-color: #a5d9bd; background: #f4fbf7; }
 .cart-item-actions { display: grid; justify-items: end; gap: 3px; }
 .stepper.compact { min-height: 38px; grid-template-columns: 38px 34px 38px; margin: 0; }

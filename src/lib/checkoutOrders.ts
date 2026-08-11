@@ -1,7 +1,7 @@
 "use client";
 
 import type { User } from "firebase/auth";
-import type { CartItem } from "@/store/cart";
+import { getCartItemPricing, type CartItem } from "@/store/cart";
 import type { Product } from "@/lib/products";
 import type { TelegramOrderPayload } from "@/lib/telegramOrders";
 import type { DeliverySelection } from "@/lib/deliverySchedule";
@@ -88,19 +88,28 @@ export async function submitCheckoutOrder(params: {
     const precioFinalCaja = Number(item.price || 0);
     const divisor = item.variant === "pack" ? Math.max(1, unidadesPorCaja || 1) : 1;
     const precioLista = roundMoney(precioListaCaja / divisor);
-    const couponEligible = Boolean(params.discountCode?.eligibleItemIds.includes(item.id));
-    const couponPercentage = couponEligible ? Number(params.discountCode?.percentage || 0) : 0;
-    const precioFinalSinCupon = roundMoney(precioFinalCaja / divisor);
-    const precioFinal = roundMoney(precioFinalSinCupon * (1 - couponPercentage / 100));
-    const subtotal = roundMoney(precioFinal * cantidadUnidades);
+    const mixedPricing = getCartItemPricing(item);
+    const subtotalSinCupon = item.variant === "unit" ? mixedPricing.total : precioFinalCaja * qty;
+    const couponEligibleSubtotal = Math.min(
+      subtotalSinCupon,
+      Math.max(0, Number(params.discountCode?.eligibleSubtotalByItem?.[item.id]) || 0),
+    );
+    const couponPercentage = couponEligibleSubtotal > 0 ? Number(params.discountCode?.percentage || 0) : 0;
+    const couponDiscountAmount = roundMoney(couponEligibleSubtotal * couponPercentage / 100);
+    const subtotal = roundMoney(subtotalSinCupon - couponDiscountAmount);
+    const precioFinal = roundMoney(subtotal / Math.max(1, cantidadUnidades));
+    const effectiveProductDiscount = precioLista > 0
+      ? Math.max(0, roundMoney((1 - (subtotalSinCupon / Math.max(1, cantidadUnidades)) / precioLista) * 100))
+      : descuentoPct;
 
     return {
       codigo: String(product?.id || item.productId || "").trim(),
       nombre: String(product?.name || item.name || "").trim(),
       precioLista,
-      descuentoPct: descuentoPct || couponPercentage,
-      descuentoProductoPct: descuentoPct,
+      descuentoPct: effectiveProductDiscount || couponPercentage,
+      descuentoProductoPct: effectiveProductDiscount,
       descuentoCodigoPct: couponPercentage,
+      descuentoCodigoMonto: couponDiscountAmount,
       precioFinal,
       cantidadUnidades,
       cantidadCajas,
@@ -112,6 +121,12 @@ export async function submitCheckoutOrder(params: {
       unidadesPorCaja: item.variant === "pack" ? unidadesPorCaja || 0 : 0,
       precioUnitarioBase: roundMoney(unitPrice || precioLista || precioFinal),
       variantLabel: item.variant === "pack" ? "Caja" : "Unidad",
+      promoCaja: mixedPricing.promoUnits > 0 ? {
+        unidadesConPromo: mixedPricing.promoUnits,
+        unidadesPrecioLista: mixedPricing.regularUnits,
+        precioUnitarioPromo: item.promoPackUnitPrice,
+        unidadesPorCaja: item.promoPackQty,
+      } : null,
     };
   });
 

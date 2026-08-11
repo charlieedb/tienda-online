@@ -9,7 +9,7 @@ import {
   getSearchPromptSuggestions,
   getTrendingSearchPrompts,
 } from "@/lib/products";
-import { useCartStore } from "@/store/cart";
+import { getCartItemPricing, useCartStore } from "@/store/cart";
 import { formatArs } from "@/lib/format";
 import { StrikeThrough } from "@/components/StrikeThrough";
 
@@ -126,7 +126,7 @@ export function SuperList({
   const trendingExamples = getTrendingSearchPrompts();
   const trimmedValue = value.trim();
   const total = useCartStore((s) =>
-    s.items.reduce((acc, i) => acc + i.price * i.qty, 0),
+    s.items.reduce((acc, i) => acc + getCartItemPricing(i).total, 0),
   );
 
   const updateFades = () => {

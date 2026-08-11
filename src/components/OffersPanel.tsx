@@ -62,7 +62,7 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
         product={selected}
         mode="add"
         onClose={() => setQtyOpen(false)}
-        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack }) => {
+        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice }) => {
           addItem(
             {
               id: `${product.id}:${variant}`,
@@ -73,6 +73,8 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
               price,
               unitPriceFinal,
               unitsPerPack,
+              promoPackQty,
+              promoPackUnitPrice,
             },
             qty,
           );

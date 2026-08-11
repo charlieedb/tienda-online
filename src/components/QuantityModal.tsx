@@ -25,6 +25,8 @@ type Props = {
     price: number;
     unitPriceFinal: number;
     unitsPerPack: number;
+    promoPackQty?: number;
+    promoPackUnitPrice?: number;
   }) => void;
 };
 
@@ -84,6 +86,14 @@ export function QuantityModal({
       originalPrice: product.unit.price,
     };
   }, [product, variant, discountPct]);
+
+  const modalTotal = useMemo(() => {
+    if (!product || !variantInfo) return 0;
+    if (variant !== "unit" || !product.packPromoUnitPrice || !product.pack?.qty) return variantInfo.price * qty;
+    const packQty = Math.max(1, product.pack.qty);
+    const promoUnits = Math.floor(qty / packQty) * packQty;
+    return promoUnits * product.packPromoUnitPrice + (qty - promoUnits) * product.unit.price;
+  }, [product, qty, variant, variantInfo]);
 
   if (!product) return null;
 
@@ -253,7 +263,7 @@ export function QuantityModal({
                 <div className="text-sm text-foreground/70">
                   Total:{" "}
                   <span className="font-semibold text-foreground">
-                    {formatArs((variantInfo?.price ?? 0) * qty)}
+                    {formatArs(modalTotal)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -275,6 +285,8 @@ export function QuantityModal({
                             ? applyDiscount(product.unit.price)
                             : variantInfo.price,
                         unitsPerPack: variant === "pack" ? Math.max(1, product.pack?.qty ?? 1) : 1,
+                        promoPackQty: product.pack?.qty,
+                        promoPackUnitPrice: product.packPromoUnitPrice,
                       });
                     }}
                     disabled={isOut}

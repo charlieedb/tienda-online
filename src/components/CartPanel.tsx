@@ -10,7 +10,7 @@ import { formatArs } from "@/lib/format";
 import { getActiveCatalog, type Product } from "@/lib/products";
 import { notifyTelegramOrder } from "@/lib/telegramOrders";
 import { getCachedUserProfile, refreshUserProfile } from "@/lib/userProfile";
-import { useCartStore } from "@/store/cart";
+import { getCartItemPricing, useCartStore } from "@/store/cart";
 import { calculateDiscount, validateDiscountCode, type AppliedDiscountCode } from "@/lib/discountCodes";
 
 function CartIcon() {
@@ -50,7 +50,7 @@ function CartContent({
   const [codeError, setCodeError] = useState("");
   const [applyingCode, setApplyingCode] = useState(false);
 
-  const total = items.reduce((acc, i) => acc + i.price * i.qty, 0);
+  const total = items.reduce((acc, i) => acc + getCartItemPricing(i).total, 0);
   const finalTotal = Math.max(0, total - (appliedCode?.discountAmount || 0));
 
   const applyCode = async () => {
@@ -93,11 +93,10 @@ function CartContent({
         ) : (
           <div className="flex flex-col gap-2.5">
             {items.map((i) => {
-              const couponApplies = Boolean(appliedCode?.eligibleItemIds.includes(i.id));
-              const originalLineTotal = i.price * i.qty;
-              const discountedLineTotal = couponApplies
-                ? originalLineTotal * (1 - Number(appliedCode?.percentage || 0) / 100)
-                : originalLineTotal;
+              const pricing = getCartItemPricing(i);
+              const couponEligibleSubtotal = Number(appliedCode?.eligibleSubtotalByItem?.[i.id] || 0);
+              const couponApplies = couponEligibleSubtotal > 0;
+              const looseDiscountedTotal = couponEligibleSubtotal * (1 - Number(appliedCode?.percentage || 0) / 100);
               return (
               <div
                 key={i.id}
@@ -113,7 +112,11 @@ function CartContent({
                 </div>
 
                 <div className="mt-3 flex items-center justify-between gap-3">
-                  {couponApplies ? <div className="grid gap-0.5"><del className="text-xs font-medium text-foreground/48">{formatArs(originalLineTotal)}</del><strong className="text-base tracking-[-0.02em] text-emerald-700">{formatArs(discountedLineTotal)}</strong><span className="text-[10px] font-semibold text-emerald-700">Cupón {appliedCode?.percentage}% aplicado</span></div> : <div className="grid gap-0.5"><strong className="text-base tracking-[-0.02em] text-foreground">{formatArs(originalLineTotal)}</strong>{appliedCode ? <span className="max-w-36 text-[10px] font-semibold leading-3 text-amber-700">Ya tiene promoción, el cupón no aplica</span> : null}</div>}
+                  <div className="grid min-w-40 gap-1.5">
+                    {pricing.promoUnits > 0 ? <div className="flex items-center justify-between gap-3 rounded-lg bg-amber-50 px-2 py-1"><span className="text-[10px] font-semibold text-amber-800">Promo caja · {pricing.promoUnits} unid.</span><strong className="text-sm text-amber-800">{formatArs(pricing.promoUnits * Number(i.promoPackUnitPrice || 0))}</strong></div> : null}
+                    {pricing.regularUnits > 0 && pricing.promoUnits > 0 ? <div className="flex items-center justify-between gap-3 rounded-lg bg-sky-50 px-2 py-1"><span className="text-[10px] font-semibold text-sky-800">Unidades sueltas · {pricing.regularUnits}</span><span className="grid text-right">{couponApplies ? <><del className="text-[10px] text-foreground/48">{formatArs(couponEligibleSubtotal)}</del><strong className="text-sm text-emerald-700">{formatArs(looseDiscountedTotal)}</strong></> : <strong className="text-sm text-sky-800">{formatArs(pricing.regularUnits * i.price)}</strong>}</span></div> : null}
+                    {pricing.promoUnits === 0 ? (couponApplies ? <div className="grid gap-0.5"><del className="text-xs font-medium text-foreground/48">{formatArs(couponEligibleSubtotal)}</del><strong className="text-base tracking-[-0.02em] text-emerald-700">{formatArs(looseDiscountedTotal)}</strong><span className="text-[10px] font-semibold text-emerald-700">Cupón {appliedCode?.percentage}% aplicado</span></div> : <div className="grid gap-0.5"><strong className="text-base tracking-[-0.02em] text-foreground">{formatArs(pricing.total)}</strong>{appliedCode ? <span className="max-w-36 text-[10px] font-semibold leading-3 text-amber-700">Ya tiene promoción, el cupón no aplica</span> : null}</div>) : null}
+                  </div>
                   <div className="rounded-full bg-white/72 p-1 shadow-[0_10px_18px_rgba(29,53,87,0.06)]">
                     <div className="flex items-center gap-1">
                     <MotionButton
@@ -137,8 +140,13 @@ function CartContent({
                             variant: i.variant,
                             label: i.label,
                             price: i.price,
+                            listPrice: i.listPrice,
+                            discountPct: i.discountPct,
                             unitPriceFinal: i.unitPriceFinal,
                             unitsPerPack: i.unitsPerPack,
+                            stockLimit: i.stockLimit,
+                            promoPackQty: i.promoPackQty,
+                            promoPackUnitPrice: i.promoPackUnitPrice,
                           },
                           1,
                         )

@@ -5,7 +5,7 @@ import { MotionButton } from "@/components/MotionButton";
 import { formatArs } from "@/lib/format";
 import { normalizeToken } from "@/lib/normalize";
 import type { Product } from "@/lib/products";
-import { useCartStore } from "@/store/cart";
+import { getCartItemPricing, useCartStore } from "@/store/cart";
 import type { Category } from "@/components/TopBar";
 
 type Props = {
@@ -38,6 +38,8 @@ function buildCartItem(product: Product, variant: "unit" | "pack") {
     price,
     unitPriceFinal,
     unitsPerPack: variant === "pack" ? packQty : 1,
+    promoPackQty: product.pack?.qty,
+    promoPackUnitPrice: product.packPromoUnitPrice,
   };
 }
 
@@ -162,7 +164,7 @@ export function DesktopCatalogPage({
   const featuredProducts = visibleProducts.slice(0, 3);
   const shelfProducts = visibleProducts.slice(3);
   const totalCartItems = cartItems.reduce((acc, item) => acc + item.qty, 0);
-  const cartTotal = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+  const cartTotal = cartItems.reduce((acc, item) => acc + getCartItemPricing(item).total, 0);
   const categoriesForSidebar = categories.filter((category) => category.token !== "__offers__");
 
   const productsInCart = useMemo(() => {

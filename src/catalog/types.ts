@@ -15,6 +15,7 @@ export type Product = {
   offer?: boolean;
   offerDiscount?: number;
   offerCondition?: "pack";
+  packPromoUnitPrice?: number;
   featured?: boolean;
   featuredOrder?: number;
 };

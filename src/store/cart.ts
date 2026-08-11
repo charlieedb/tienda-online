@@ -18,8 +18,24 @@ export type CartItem = {
   unitPriceFinal?: number;
   unitsPerPack?: number;
   stockLimit?: number;
+  promoPackQty?: number;
+  promoPackUnitPrice?: number;
   qty: number;
 };
+
+export function getCartItemPricing(item: CartItem) {
+  const qty = Math.max(0, Math.trunc(Number(item.qty) || 0));
+  const listTotal = Math.max(0, Number(item.price) || 0) * qty;
+  const packQty = Math.max(1, Math.trunc(Number(item.promoPackQty) || 0));
+  const promoUnitPrice = Number(item.promoPackUnitPrice);
+  if (item.variant !== "unit" || !Number.isFinite(promoUnitPrice) || promoUnitPrice <= 0 || packQty <= 1) {
+    return { listTotal, total: listTotal, promoUnits: 0, regularUnits: qty };
+  }
+  const promoUnits = Math.floor(qty / packQty) * packQty;
+  const regularUnits = qty - promoUnits;
+  const total = promoUnits * promoUnitPrice + regularUnits * Math.max(0, Number(item.price) || 0);
+  return { listTotal, total, promoUnits, regularUnits };
+}
 
 export type CartDiscountCode = {
   code: string;
@@ -30,6 +46,7 @@ export type CartDiscountCode = {
   usageLimit: number;
   usageCount: number;
   eligibleItemIds: string[];
+  eligibleSubtotalByItem: Record<string, number>;
   eligibleSubtotal: number;
   discountAmount: number;
 };
@@ -172,14 +189,19 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: CART_STORAGE_KEY,
-      version: 2,
+      version: 3,
       migrate: (persistedState) => {
         const state = persistedState as Partial<CartState>;
         const items = Array.isArray(state.items) ? state.items : [];
         return {
           ...state,
           items,
-          appliedDiscountCode: items.length ? state.appliedDiscountCode ?? null : null,
+          appliedDiscountCode: items.length && state.appliedDiscountCode
+            ? {
+                ...state.appliedDiscountCode,
+                eligibleSubtotalByItem: state.appliedDiscountCode.eligibleSubtotalByItem ?? {},
+              }
+            : null,
           expiresAt: items.length ? Date.now() + CART_DURATION_MS : null,
         } as CartState;
       },

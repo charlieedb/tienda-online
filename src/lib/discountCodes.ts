@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, serverTimestamp } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import type { Product } from "@/lib/products";
-import type { CartItem } from "@/store/cart";
+import { getCartItemPricing, type CartItem } from "@/store/cart";
 
 const STORE_CONFIG_PATH = "config/tiendaOnlineStore";
 
@@ -30,6 +30,7 @@ export type DiscountCodeUsage = {
 
 export type AppliedDiscountCode = DiscountCode & {
   eligibleItemIds: string[];
+  eligibleSubtotalByItem: Record<string, number>;
   eligibleSubtotal: number;
   discountAmount: number;
 };
@@ -133,18 +134,25 @@ export function calculateDiscount(
   items: CartItem[],
   productsById: Map<string, Product>,
 ): AppliedDiscountCode {
-  const eligibleItems = items.filter((item) => {
+  const eligibleSubtotalByItem: Record<string, number> = Object.fromEntries(items.flatMap((item) => {
     const product = productsById.get(item.productId);
+    const pricing = getCartItemPricing(item);
+    if (pricing.promoUnits > 0) {
+      const looseSubtotal = pricing.regularUnits * Math.max(0, Number(item.price) || 0);
+      return looseSubtotal > 0 ? [[item.id, looseSubtotal]] : [];
+    }
     const hasExistingDiscount = Number(item.discountPct || 0) > 0 ||
       (Number(item.listPrice || 0) > Number(item.price || 0));
     const hasPromotion = Boolean(product?.offer) || Number(product?.offerDiscount || 0) > 0;
-    return !hasExistingDiscount && !hasPromotion;
-  });
-  const eligibleSubtotal = eligibleItems.reduce((total, item) => total + item.price * item.qty, 0);
+    return !hasExistingDiscount && !hasPromotion && pricing.total > 0 ? [[item.id, pricing.total]] : [];
+  }));
+  const eligibleItemIds = Object.keys(eligibleSubtotalByItem);
+  const eligibleSubtotal = Object.values(eligibleSubtotalByItem).reduce((total, subtotal) => total + subtotal, 0);
   const discountAmount = Math.round((eligibleSubtotal * discountCode.percentage / 100 + Number.EPSILON) * 100) / 100;
   return {
     ...discountCode,
-    eligibleItemIds: eligibleItems.map((item) => item.id),
+    eligibleItemIds,
+    eligibleSubtotalByItem,
     eligibleSubtotal,
     discountAmount,
   };

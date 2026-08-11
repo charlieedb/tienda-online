@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { CatalogManifest, Category, Product } from "@/catalog/types";
 import {
+  getCartItemPricing,
   getCartItemUnits,
   getRemainingStock,
   useCartStore,
@@ -573,7 +574,7 @@ function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
   const setItemQty = useCartStore((state) => state.setItemQty);
   const removeItem = useCartStore((state) => state.removeItem);
   const clear = useCartStore((state) => state.clear);
-  const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const total = items.reduce((sum, item) => sum + getCartItemPricing(item).total, 0);
 
   return (
     <aside className="desktop-rail desktop-cart-rail" aria-label="Carrito">
@@ -616,7 +617,7 @@ function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
                     <strong>{item.name}</strong>
                     <span>{item.label}</span>
                   </div>
-                  <b>{money.format(item.price * item.qty)}</b>
+                  <b>{money.format(getCartItemPricing(item).total)}</b>
                   <div className="desktop-cart-actions">
                     <button
                       type="button"
@@ -712,7 +713,7 @@ function StoreApp({
     [items],
   );
   const cartTotal = useMemo(
-    () => items.reduce((sum, item) => sum + item.qty * item.price, 0),
+    () => items.reduce((sum, item) => sum + getCartItemPricing(item).total, 0),
     [items],
   );
 

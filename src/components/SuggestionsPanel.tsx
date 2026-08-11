@@ -319,7 +319,7 @@ export function SuggestionsPanel({
               }
             : undefined
         }
-        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack }) => {
+        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice }) => {
           const newId = `${product.id}:${variant}`;
           if (selectedMode === "edit" && selectedExistingId) {
             if (selectedExistingId === newId) {
@@ -336,6 +336,8 @@ export function SuggestionsPanel({
                   price,
                   unitPriceFinal,
                   unitsPerPack,
+                  promoPackQty,
+                  promoPackUnitPrice,
                 },
                 qty,
               );
@@ -351,6 +353,8 @@ export function SuggestionsPanel({
                 price,
                 unitPriceFinal,
                 unitsPerPack,
+                promoPackQty,
+                promoPackUnitPrice,
               },
               qty,
             );

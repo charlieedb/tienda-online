@@ -19,6 +19,8 @@ export type Product = {
   active: boolean;
   offer?: boolean;
   offerDiscount?: number;
+  offerCondition?: "pack";
+  packPromoUnitPrice?: number;
 };
 
 const LS_KEY = `listita.catalog.${APP_VERSION}`;
