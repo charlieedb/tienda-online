@@ -13,7 +13,7 @@ import { MapPickerModal } from "./MapPickerModal";
 import { CartExpiryCountdown } from "./CartExpiryGuard";
 import { trackEvent } from "@/lib/analytics";
 import { getActiveCatalog, type Product } from "@/lib/products";
-import { calculateDiscount, validateDiscountCode, type AppliedDiscountCode } from "@/lib/discountCodes";
+import { calculateDiscount, validateDiscountCode } from "@/lib/discountCodes";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const PROFILE_KEY = "joma.profile.v1";
@@ -59,6 +59,8 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   const decItem = useCartStore((state) => state.decItem);
   const removeItem = useCartStore((state) => state.removeItem);
   const clear = useCartStore((state) => state.clear);
+  const appliedCode = useCartStore((state) => state.appliedDiscountCode);
+  const setAppliedCode = useCartStore((state) => state.setAppliedDiscountCode);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -76,7 +78,6 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   const [discountInput, setDiscountInput] = useState("");
   const [discountError, setDiscountError] = useState("");
   const [applyingDiscount, setApplyingDiscount] = useState(false);
-  const [appliedCode, setAppliedCode] = useState<AppliedDiscountCode | null>(null);
   const productsByIdRef = useRef<Map<string, Product>>(new Map());
   const orderRequestId = useRef(createRequestId());
   const submitCompleteRef = useRef(false);
@@ -87,10 +88,17 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
 
   useEffect(() => {
     if (!appliedCode) return;
-    const recalculated = calculateDiscount(appliedCode, items, productsByIdRef.current);
-    if (!recalculated.eligibleItemIds.length) setAppliedCode(null);
-    else setAppliedCode(recalculated);
-  }, [items]);
+    let active = true;
+    getActiveCatalog().then((catalog) => {
+      if (!active) return;
+      const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
+      productsByIdRef.current = productsById;
+      const recalculated = calculateDiscount(appliedCode, items, productsById);
+      if (!recalculated.eligibleItemIds.length) setAppliedCode(null);
+      else setAppliedCode(recalculated);
+    });
+    return () => { active = false; };
+  }, [items, appliedCode?.code, appliedCode?.percentage, setAppliedCode]);
 
   const applyDiscount = async () => {
     setApplyingDiscount(true);

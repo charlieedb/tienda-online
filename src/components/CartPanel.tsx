@@ -426,6 +426,8 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clear);
   const closeCart = useCartStore((s) => s.closeCart);
+  const appliedCode = useCartStore((s) => s.appliedDiscountCode);
+  const setAppliedCode = useCartStore((s) => s.setAppliedDiscountCode);
   const itemsCount = useMemo(() => items.reduce((a, i) => a + i.qty, 0), [items]);
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -437,16 +439,22 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
   const [checkoutError, setCheckoutError] = useState("");
   const [form, setForm] = useState<CheckoutForm>({ nombre: "", telefono: "", direccion: "", nota: "" });
   const [browserBarInset, setBrowserBarInset] = useState(0);
-  const [appliedCode, setAppliedCode] = useState<AppliedDiscountCode | null>(null);
   const productsByIdRef = useRef<Map<string, Product>>(new Map());
   const successAudioContextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
     if (!appliedCode) return;
-    const recalculated = calculateDiscount(appliedCode, items, productsByIdRef.current);
-    if (!recalculated.eligibleItemIds.length) setAppliedCode(null);
-    else setAppliedCode(recalculated);
-  }, [items]);
+    let active = true;
+    getActiveCatalog().then((catalog) => {
+      if (!active) return;
+      const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
+      productsByIdRef.current = productsById;
+      const recalculated = calculateDiscount(appliedCode, items, productsById);
+      if (!recalculated.eligibleItemIds.length) setAppliedCode(null);
+      else setAppliedCode(recalculated);
+    });
+    return () => { active = false; };
+  }, [items, appliedCode?.code, appliedCode?.percentage, setAppliedCode]);
 
   const applyDiscountCode = async (code: string) => {
     const catalog = await getActiveCatalog();

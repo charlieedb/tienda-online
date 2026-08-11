@@ -21,6 +21,19 @@ export type CartItem = {
   qty: number;
 };
 
+export type CartDiscountCode = {
+  code: string;
+  percentage: number;
+  active: boolean;
+  validFrom: string;
+  validUntil: string;
+  usageLimit: number;
+  usageCount: number;
+  eligibleItemIds: string[];
+  eligibleSubtotal: number;
+  discountAmount: number;
+};
+
 export function getCartItemUnits(item: Pick<CartItem, "variant" | "unitsPerPack" | "qty">) {
   const unitsPerItem = item.variant === "pack" ? Math.max(1, Math.trunc(Number(item.unitsPerPack) || 1)) : 1;
   return Math.max(0, Math.trunc(Number(item.qty) || 0)) * unitsPerItem;
@@ -37,6 +50,7 @@ export function getRemainingStock(items: CartItem[], productId: string, stockLim
 type CartState = {
   open: boolean;
   items: CartItem[];
+  appliedDiscountCode: CartDiscountCode | null;
   expiresAt: number | null;
   openCart: () => void;
   closeCart: () => void;
@@ -45,6 +59,7 @@ type CartState = {
   setItemQty: (id: string, qty: number) => void;
   decItem: (id: string) => void;
   removeItem: (id: string) => void;
+  setAppliedDiscountCode: (discountCode: CartDiscountCode | null) => void;
   clear: () => void;
   extendExpiry: () => void;
   resetSession: () => void;
@@ -61,6 +76,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       open: false,
       items: [],
+      appliedDiscountCode: null,
       expiresAt: null,
       openCart: () => set({ open: true }),
       closeCart: () => set({ open: false }),
@@ -81,6 +97,7 @@ export const useCartStore = create<CartState>()(
             return {
               items,
               expiresAt: nextExpiry(state.items, items, state.expiresAt),
+              appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
             };
           }
           const items = [...state.items, { ...item, qty: allowedQty }];
@@ -97,6 +114,7 @@ export const useCartStore = create<CartState>()(
             return {
               items,
               expiresAt: nextExpiry(state.items, items, state.expiresAt),
+              appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
             };
           }
           const existing = state.items.find((i) => i.id === id);
@@ -124,6 +142,7 @@ export const useCartStore = create<CartState>()(
             return {
               items,
               expiresAt: nextExpiry(state.items, items, state.expiresAt),
+              appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
             };
           }
           const items = state.items.map((i) =>
@@ -140,24 +159,27 @@ export const useCartStore = create<CartState>()(
           return {
             items,
             expiresAt: nextExpiry(state.items, items, state.expiresAt),
+            appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
           };
         }),
-      clear: () => set({ items: [], expiresAt: null }),
+      setAppliedDiscountCode: (appliedDiscountCode) => set({ appliedDiscountCode }),
+      clear: () => set({ items: [], expiresAt: null, appliedDiscountCode: null }),
       extendExpiry: () =>
         set((state) => ({
           expiresAt: state.items.length ? Date.now() + CART_DURATION_MS : null,
         })),
-      resetSession: () => set({ open: false, items: [], expiresAt: null }),
+      resetSession: () => set({ open: false, items: [], expiresAt: null, appliedDiscountCode: null }),
     }),
     {
       name: CART_STORAGE_KEY,
-      version: 1,
+      version: 2,
       migrate: (persistedState) => {
         const state = persistedState as Partial<CartState>;
         const items = Array.isArray(state.items) ? state.items : [];
         return {
           ...state,
           items,
+          appliedDiscountCode: items.length ? state.appliedDiscountCode ?? null : null,
           expiresAt: items.length ? Date.now() + CART_DURATION_MS : null,
         } as CartState;
       },
