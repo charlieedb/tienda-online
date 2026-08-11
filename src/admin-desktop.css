@@ -1039,6 +1039,19 @@ body .admin-shell .admin-login-card {
   }
 }
 .admin-store-config { display: grid; gap: 18px; }
+.admin-discount-create { display: grid; grid-template-columns: minmax(220px, 1fr) 150px auto; gap: 12px; align-items: end; }
+.admin-discount-create label { display: grid; gap: 7px; color: #4b5563; font-size: 12px; font-weight: 750; }
+.admin-discount-create .btn { min-height: 46px; }
+.admin-discount-list { margin-top: 16px; border-top: 1px solid #dfe5ea; }
+.admin-discount-row { min-height: 58px; display: grid; grid-template-columns: minmax(180px, 1fr) auto auto; gap: 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid #dfe5ea; }
+.admin-discount-row > div { display: grid; gap: 3px; }
+.admin-discount-row strong { color: #20283b; font-size: 14px; }
+.admin-discount-row span { color: #607184; font-size: 12px; }
+.admin-discount-toggle { display: inline-flex; align-items: center; gap: 7px; font-weight: 700; }
+.admin-discount-toggle input { width: 17px; height: 17px; accent-color: #167653; }
+.admin-discount-row .ofertas-danger { color: #9f242a; border: 1px solid #efb2b5; background: #fff1f1; }
+.admin-discount-empty { margin: 14px 0 0; color: #607184; font-size: 13px; }
+.admin-discount-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
 .admin-delivery-days { display: flex; flex-wrap: wrap; gap: 9px; }
 .admin-delivery-days label { min-height: 42px; display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px; border: 1px solid rgba(31,41,55,.14); border-radius: 12px; color: #4b5563; background: rgba(255,255,255,.72); font-size: 13px; font-weight: 700; cursor: pointer; }
 .admin-delivery-days label.is-active { color: #0f5c3a; border-color: #87d3af; background: #dff6eb; }
@@ -1050,6 +1063,9 @@ body .admin-shell .admin-login-card {
 .admin-delivery-range label { display: grid; gap: 7px; color: #4b5563; font-size: 12px; font-weight: 750; }
 .admin-delivery-ranges > .btn { min-height: 46px; justify-self: end; }
 @media (max-width: 640px) {
+  .admin-discount-create, .admin-discount-row { grid-template-columns: 1fr; }
+  .admin-discount-create .btn, .admin-discount-row .btn, .admin-discount-actions .btn { width: 100%; }
+  .admin-discount-actions { display: block; }
   .admin-delivery-range { grid-template-columns: 1fr; }
   .admin-delivery-ranges > .btn { width: 100%; }
 }

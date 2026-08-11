@@ -12,6 +12,8 @@ import { Icon } from "./Icons";
 import { MapPickerModal } from "./MapPickerModal";
 import { CartExpiryCountdown } from "./CartExpiryGuard";
 import { trackEvent } from "@/lib/analytics";
+import { getActiveCatalog, type Product } from "@/lib/products";
+import { calculateDiscount, validateDiscountCode, type AppliedDiscountCode } from "@/lib/discountCodes";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const PROFILE_KEY = "joma.profile.v1";
@@ -71,11 +73,40 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   const [deliveryLoading, setDeliveryLoading] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryTimeRange, setDeliveryTimeRange] = useState("");
+  const [discountInput, setDiscountInput] = useState("");
+  const [discountError, setDiscountError] = useState("");
+  const [applyingDiscount, setApplyingDiscount] = useState(false);
+  const [appliedCode, setAppliedCode] = useState<AppliedDiscountCode | null>(null);
+  const productsByIdRef = useRef<Map<string, Product>>(new Map());
   const orderRequestId = useRef(createRequestId());
   const submitCompleteRef = useRef(false);
   const total = useMemo(() => items.reduce((sum, item) => sum + item.price * item.qty, 0), [items]);
+  const finalTotal = Math.max(0, total - (appliedCode?.discountAmount || 0));
   const deliveryDates = useMemo(() => buildDeliveryDates(deliverySchedule), [deliverySchedule]);
   const deliveryTimeRanges = useMemo(() => buildDeliveryTimeRanges(deliverySchedule), [deliverySchedule]);
+
+  useEffect(() => {
+    if (!appliedCode) return;
+    const recalculated = calculateDiscount(appliedCode, items, productsByIdRef.current);
+    if (!recalculated.eligibleItemIds.length) setAppliedCode(null);
+    else setAppliedCode(recalculated);
+  }, [items]);
+
+  const applyDiscount = async () => {
+    setApplyingDiscount(true);
+    setDiscountError("");
+    try {
+      const catalog = await getActiveCatalog();
+      const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
+      productsByIdRef.current = productsById;
+      setAppliedCode(await validateDiscountCode(discountInput, items, productsById));
+      setDiscountInput("");
+    } catch (nextError) {
+      setDiscountError(nextError instanceof Error ? nextError.message : "No pudimos aplicar el código.");
+    } finally {
+      setApplyingDiscount(false);
+    }
+  };
 
   useEffect(() => {
     if (!submitting) return;
@@ -163,11 +194,17 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
           console.error("No se pudo actualizar el perfil después del checkout", profileError);
         });
       }
+      const catalog = await getActiveCatalog();
+      const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
+      productsByIdRef.current = productsById;
+      const verifiedCode = appliedCode ? await validateDiscountCode(appliedCode.code, items, productsById) : null;
+      if (verifiedCode) setAppliedCode(verifiedCode);
       const result = await submitCheckoutOrder({
         user,
         customer: { ...customer, preventistaReferido: savedProfile?.preventistaReferido || "" },
         cartItems: items,
-        productsById: new Map(),
+        productsById,
+        discountCode: verifiedCode,
         requestId: orderRequestId.current,
         delivery: {
           date: selectedDeliveryDate.value,
@@ -185,7 +222,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       try {
         localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, address: customer.direccion, city: "", notes: customer.nota, lat: customer.ubicacion?.lat, lng: customer.ubicacion?.lng }));
       } catch { /* el pedido ya fue enviado */ }
-      clear(); setCheckoutOpen(false); setSentWarning(""); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTimeRange(""); orderRequestId.current = createRequestId();
+      clear(); setAppliedCode(null); setCheckoutOpen(false); setSentWarning(""); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTimeRange(""); orderRequestId.current = createRequestId();
     } catch (nextError) {
       submitCompleteRef.current = false;
       setSubmitProgress(0);
@@ -205,11 +242,18 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
         <div className="cart-item-copy"><strong>{item.name}</strong><span>{item.label}</span><b>{money.format(item.price * item.qty)}</b></div>
         <div className="cart-item-actions"><div className="stepper compact"><button type="button" onClick={() => decItem(item.id)} aria-label={`Disminuir ${item.name}`}><Icon name="minus" /></button><output>{item.qty}</output><button type="button" onClick={() => addItem({ id: item.id, productId: item.productId, name: item.name, variant: item.variant, label: item.label, price: item.price, listPrice: item.listPrice, discountPct: item.discountPct, unitPriceFinal: item.unitPriceFinal, unitsPerPack: item.unitsPerPack, stockLimit: item.stockLimit }, 1)} aria-label={`Aumentar ${item.name}`} disabled={!canAdd}><Icon name="plus" /></button></div><button className="remove-button" type="button" onClick={() => removeItem(item.id)}>Quitar</button></div>
       </motion.article>; })}</AnimatePresence></div>
-      <div className="cart-summary"><div><span>Total estimado</span><strong>{money.format(total)}</strong></div><p>Revisá las cantidades antes de confirmar.</p><button type="button" className="checkout-button" onClick={() => {
+      <div className="cart-checkout-footer">
+      <div className={`cart-discount-module ${appliedCode ? "is-valid state-feedback" : discountError ? "is-invalid state-feedback" : ""}`}>
+        <label htmlFor="cart-discount-input">Código de descuento</label>
+        {appliedCode ? <div className="cart-discount-applied"><div><strong>{appliedCode.code}</strong><span>{appliedCode.percentage}% aplicado</span></div><button type="button" onClick={() => { setAppliedCode(null); setDiscountError(""); }}>Quitar</button></div> : <div className="cart-discount-form"><input id="cart-discount-input" value={discountInput} onChange={(event) => { const value = event.target.value.toLocaleUpperCase("es-AR"); setDiscountInput(value); if (!value.trim()) setDiscountError(""); }} onKeyDown={(event) => { if (event.key === "Enter") void applyDiscount(); }} placeholder="Ingresá tu código" autoCapitalize="characters" maxLength={24}/><button type="button" onClick={() => void applyDiscount()} disabled={applyingDiscount || !discountInput.trim()}>{applyingDiscount ? "Aplicando..." : "Aplicar"}</button></div>}
+        {discountError ? <p className="cart-discount-error" role="alert">{discountError}</p> : null}
+      </div>
+      <div className="cart-summary">{appliedCode ? <div className="cart-discount-summary"><span>Descuento ({appliedCode.percentage}%)</span><b>− {money.format(appliedCode.discountAmount)}</b></div> : null}<div><span>Total estimado</span><strong>{money.format(finalTotal)}</strong></div><p>Revisá las cantidades antes de confirmar.</p><button type="button" className={`checkout-button ${user ? "" : "is-login"}`} onClick={() => {
         if (!user && onRequireAuth) { onRequireAuth(); return; }
-        trackEvent("begin_checkout", { value: total, currency: "ARS", item_count: items.length });
+        trackEvent("begin_checkout", { value: finalTotal, currency: "ARS", item_count: items.length });
         setError(""); setCheckoutOpen(true);
       }}>{user ? "Confirmar compra" : "Iniciar sesión para confirmar"}</button></div>
+      </div>
     </section>}
 
     <AnimatePresence>{checkoutOpen && !mapOpen ? <><motion.button type="button" className="checkout-backdrop" aria-label="Cerrar confirmación" onClick={() => !submitting && setCheckoutOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.section className="checkout-sheet" role="dialog" aria-modal="true" aria-labelledby="checkout-title" initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: .26, ease: [0.22, 1, 0.36, 1] }}><div className="checkout-head"><div><span>Último paso</span><h2 id="checkout-title">Confirmar compra</h2></div><button type="button" onClick={() => setCheckoutOpen(false)} disabled={submitting} aria-label="Cerrar"><Icon name="close"/></button></div><div className="checkout-body">

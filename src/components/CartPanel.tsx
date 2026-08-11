@@ -11,6 +11,7 @@ import { getActiveCatalog, type Product } from "@/lib/products";
 import { notifyTelegramOrder } from "@/lib/telegramOrders";
 import { getCachedUserProfile, refreshUserProfile } from "@/lib/userProfile";
 import { useCartStore } from "@/store/cart";
+import { calculateDiscount, validateDiscountCode, type AppliedDiscountCode } from "@/lib/discountCodes";
 
 function CartIcon() {
   return (
@@ -30,13 +31,40 @@ function CartIcon() {
   );
 }
 
-function CartContent({ onContinue }: { onContinue: () => void }) {
+function CartContent({
+  onContinue,
+  appliedCode,
+  onApplyCode,
+  onRemoveCode,
+}: {
+  onContinue: () => void;
+  appliedCode: AppliedDiscountCode | null;
+  onApplyCode: (code: string) => Promise<void>;
+  onRemoveCode: () => void;
+}) {
   const items = useCartStore((s) => s.items);
   const decItem = useCartStore((s) => s.decItem);
   const addItem = useCartStore((s) => s.addItem);
   const clear = useCartStore((s) => s.clear);
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [applyingCode, setApplyingCode] = useState(false);
 
   const total = items.reduce((acc, i) => acc + i.price * i.qty, 0);
+  const finalTotal = Math.max(0, total - (appliedCode?.discountAmount || 0));
+
+  const applyCode = async () => {
+    setApplyingCode(true);
+    setCodeError("");
+    try {
+      await onApplyCode(code);
+      setCode("");
+    } catch (error) {
+      setCodeError(error instanceof Error ? error.message : "No pudimos aplicar el código.");
+    } finally {
+      setApplyingCode(false);
+    }
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -125,9 +153,25 @@ function CartContent({ onContinue }: { onContinue: () => void }) {
       </div>
 
       <div className="border-t border-black/6 px-4 pb-11 pt-5">
+        <div className={`coupon-state-module mb-4 rounded-2xl border p-3 ${appliedCode ? "is-valid border-emerald-300 bg-emerald-50" : codeError ? "is-invalid border-red-300 bg-red-50" : "border-sky-500 bg-sky-100"}`}>
+          <label className={`block text-xs font-semibold ${appliedCode ? "text-emerald-900" : codeError ? "text-red-900" : "text-sky-950"}`} htmlFor="cart-discount-code">Código de descuento</label>
+          {appliedCode ? (
+            <div className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800">
+              <div><strong className="block text-sm">{appliedCode.code}</strong><span className="text-xs">{appliedCode.percentage}% aplicado</span></div>
+              <button type="button" className="text-xs font-bold underline underline-offset-2" onClick={onRemoveCode}>Quitar</button>
+            </div>
+          ) : (
+            <div className="mt-2 flex gap-2">
+              <input id="cart-discount-code" className={`min-w-0 flex-1 rounded-xl border bg-white px-3 text-base uppercase outline-none focus:ring-2 ${codeError ? "border-red-400 text-red-950 focus:border-red-600 focus:ring-red-200" : "border-sky-500 text-sky-950 focus:border-sky-700 focus:ring-sky-200"}`} value={code} onChange={(event) => { const value = event.target.value; setCode(value); if (!value.trim()) setCodeError(""); }} onKeyDown={(event) => { if (event.key === "Enter") void applyCode(); }} placeholder="Ingresá tu código" autoCapitalize="characters" disabled={applyingCode || !items.length}/>
+              <button type="button" className={`rounded-xl px-4 text-xs font-bold text-white disabled:opacity-50 ${codeError ? "bg-red-700 hover:bg-red-800" : "bg-sky-700 hover:bg-sky-800"}`} onClick={() => void applyCode()} disabled={applyingCode || !code.trim() || !items.length}>{applyingCode ? "..." : "Aplicar"}</button>
+            </div>
+          )}
+          {codeError ? <p className="mt-2 text-xs font-medium text-red-700" role="alert">{codeError}</p> : null}
+        </div>
+        {appliedCode ? <div className="mb-2 flex items-center justify-between text-sm text-emerald-700"><span>Descuento ({appliedCode.percentage}%)</span><strong>− {formatArs(appliedCode.discountAmount)}</strong></div> : null}
         <div className="flex items-center justify-between">
           <div className="text-sm text-foreground/62">Total</div>
-          <div className="text-xl font-semibold tracking-[-0.03em] text-foreground">{formatArs(total)}</div>
+          <div className="text-xl font-semibold tracking-[-0.03em] text-foreground">{formatArs(finalTotal)}</div>
         </div>
         <MotionButton className="mt-4 h-11 w-full rounded-full" disabled={items.length === 0} onClick={onContinue}>
           Continuar
@@ -388,7 +432,23 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
   const [checkoutError, setCheckoutError] = useState("");
   const [form, setForm] = useState<CheckoutForm>({ nombre: "", telefono: "", direccion: "", nota: "" });
   const [browserBarInset, setBrowserBarInset] = useState(0);
+  const [appliedCode, setAppliedCode] = useState<AppliedDiscountCode | null>(null);
+  const productsByIdRef = useRef<Map<string, Product>>(new Map());
   const successAudioContextRef = useRef<AudioContext | null>(null);
+
+  useEffect(() => {
+    if (!appliedCode) return;
+    const recalculated = calculateDiscount(appliedCode, items, productsByIdRef.current);
+    if (!recalculated.eligibleItemIds.length) setAppliedCode(null);
+    else setAppliedCode(recalculated);
+  }, [items]);
+
+  const applyDiscountCode = async (code: string) => {
+    const catalog = await getActiveCatalog();
+    const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
+    productsByIdRef.current = productsById;
+    setAppliedCode(await validateDiscountCode(code, items, productsById));
+  };
 
   const primeSuccessAudio = async () => {
     if (typeof window === "undefined") return;
@@ -548,6 +608,11 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
       setSubmitProgress(15);
       setSubmitProgressLabel("Validando productos");
       const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
+      productsByIdRef.current = productsById;
+      const verifiedCode = appliedCode
+        ? await validateDiscountCode(appliedCode.code, items, productsById)
+        : null;
+      if (verifiedCode) setAppliedCode(verifiedCode);
 
       const orderResult = await submitCheckoutOrder({
         user,
@@ -560,6 +625,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
         },
         cartItems: items,
         productsById,
+        discountCode: verifiedCode,
         onProgress: (progress, label) => {
           setSubmitProgress(progress);
           setSubmitProgressLabel(label);
@@ -578,6 +644,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
       setSubmitProgressLabel("Pedido confirmado");
       await new Promise((resolve) => window.setTimeout(resolve, 300));
       clearCart();
+      setAppliedCode(null);
       closeCart();
       setCheckoutOpen(false);
       setSuccessOpen(true);
@@ -642,7 +709,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
                 style={{ bottom: mobileSheetBottom, height: mobileSheetHeight }}
               >
                 <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-[rgba(29,53,87,0.18)]" />
-                <CartContent onContinue={() => setCheckoutOpen(true)} />
+                <CartContent onContinue={() => setCheckoutOpen(true)} appliedCode={appliedCode} onApplyCode={applyDiscountCode} onRemoveCode={() => setAppliedCode(null)} />
               </motion.aside>
             ) : (
               <motion.aside
@@ -652,7 +719,7 @@ export function CartPanel({ onOrderCompleted }: { onOrderCompleted?: () => void 
                 exit={{ x: 30, opacity: 0 }}
                 transition={{ type: "spring", stiffness: 500, damping: 45 }}
               >
-                <CartContent onContinue={() => setCheckoutOpen(true)} />
+                <CartContent onContinue={() => setCheckoutOpen(true)} appliedCode={appliedCode} onApplyCode={applyDiscountCode} onRemoveCode={() => setAppliedCode(null)} />
               </motion.aside>
             )}
           </>

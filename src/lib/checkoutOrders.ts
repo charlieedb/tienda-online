@@ -2,9 +2,10 @@
 
 import type { User } from "firebase/auth";
 import type { CartItem } from "@/store/cart";
-import type { Product } from "@/catalog/types";
+import type { Product } from "@/lib/products";
 import type { TelegramOrderPayload } from "@/lib/telegramOrders";
 import type { DeliverySelection } from "@/lib/deliverySchedule";
+import type { AppliedDiscountCode } from "@/lib/discountCodes";
 
 type CheckoutCustomer = {
   nombre: string;
@@ -59,6 +60,7 @@ export async function submitCheckoutOrder(params: {
   productsById: Map<string, Product>;
   requestId: string;
   delivery: DeliverySelection;
+  discountCode?: AppliedDiscountCode | null;
   onProgress?: (progress: number, label: string) => void;
 }) {
   if (!params.user) throw new Error("Necesitás iniciar sesión para confirmar la compra.");
@@ -83,14 +85,19 @@ export async function submitCheckoutOrder(params: {
     const precioFinalCaja = Number(item.price || 0);
     const divisor = item.variant === "pack" ? Math.max(1, unidadesPorCaja || 1) : 1;
     const precioLista = roundMoney(precioListaCaja / divisor);
-    const precioFinal = roundMoney(precioFinalCaja / divisor);
+    const couponEligible = Boolean(params.discountCode?.eligibleItemIds.includes(item.id));
+    const couponPercentage = couponEligible ? Number(params.discountCode?.percentage || 0) : 0;
+    const precioFinalSinCupon = roundMoney(precioFinalCaja / divisor);
+    const precioFinal = roundMoney(precioFinalSinCupon * (1 - couponPercentage / 100));
     const subtotal = roundMoney(precioFinal * cantidadUnidades);
 
     return {
       codigo: String(product?.id || item.productId || "").trim(),
       nombre: String(product?.name || item.name || "").trim(),
       precioLista,
-      descuentoPct,
+      descuentoPct: descuentoPct || couponPercentage,
+      descuentoProductoPct: descuentoPct,
+      descuentoCodigoPct: couponPercentage,
       precioFinal,
       cantidadUnidades,
       cantidadCajas,
@@ -150,6 +157,12 @@ export async function submitCheckoutOrder(params: {
       total: metrics.subtotal,
       subtotal: metrics.subtotal,
       discountTotal: metrics.discountTotal,
+      discountCode: params.discountCode ? {
+        code: params.discountCode.code,
+        percentage: params.discountCode.percentage,
+        amount: params.discountCode.discountAmount,
+        eligibleSubtotal: params.discountCode.eligibleSubtotal,
+      } : null,
     },
     status: "new",
     dispatch: {

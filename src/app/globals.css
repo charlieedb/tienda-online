@@ -1,5 +1,39 @@
 @import "tailwindcss";
 
+@keyframes coupon-module-shake {
+  0%, 100% { transform: translateX(0); }
+  22% { transform: translateX(-4px); }
+  46% { transform: translateX(3px); }
+  68% { transform: translateX(-2px); }
+  84% { transform: translateX(1px); }
+}
+
+@keyframes coupon-module-success-shake {
+  0%, 100% { transform: translateX(0); }
+  22% { transform: translateX(-4px); }
+  46% { transform: translateX(3px); }
+  68% { transform: translateX(-2px); }
+  84% { transform: translateX(1px); }
+}
+
+.coupon-state-module {
+  transition: border-color .32s cubic-bezier(.25, 1, .5, 1), background-color .32s cubic-bezier(.25, 1, .5, 1), color .32s cubic-bezier(.25, 1, .5, 1);
+}
+
+.coupon-state-module.is-invalid {
+  animation: coupon-module-shake .3s cubic-bezier(.25, 1, .5, 1);
+}
+
+.coupon-state-module.is-valid {
+  animation: coupon-module-success-shake .3s cubic-bezier(.25, 1, .5, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coupon-state-module { transition: none; }
+  .coupon-state-module.is-valid,
+  .coupon-state-module.is-invalid { animation: none; }
+}
+
 :root {
   --background: #2b2d42;
   --foreground: #2b2d42;

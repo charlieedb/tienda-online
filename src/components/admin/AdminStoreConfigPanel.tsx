@@ -8,6 +8,7 @@ import {
   saveDeliveryScheduleConfig,
   saveFeaturedProductIds,
 } from "@/lib/featuredProducts";
+import { getDiscountCodes, normalizeDiscountCode, saveDiscountCodes, type DiscountCode } from "@/lib/discountCodes";
 
 const DELIVERY_DAYS = [
   { value: 1, label: "Lunes" },
@@ -32,6 +33,11 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
   const [deliverySchedule, setDeliverySchedule] = useState(DEFAULT_DELIVERY_SCHEDULE);
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [deliveryMessage, setDeliveryMessage] = useState("");
+  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
+  const [newCode, setNewCode] = useState("");
+  const [newPercentage, setNewPercentage] = useState<5 | 10>(5);
+  const [savingCodes, setSavingCodes] = useState(false);
+  const [codesMessage, setCodesMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -41,12 +47,13 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
       const groups = await Promise.all(manifest.categories.map((category) => catalog.getCategoryProducts(category.id)));
       return groups.flat();
     };
-    Promise.all([loadRealProducts(), getFeaturedProductsConfig({ refresh: true })])
-      .then(([catalog, config]) => {
+    Promise.all([loadRealProducts(), getFeaturedProductsConfig({ refresh: true }), getDiscountCodes()])
+      .then(([catalog, config, codes]) => {
         if (!active) return;
         setProducts(catalog);
         setSelectedIds(config.ids);
         setDeliverySchedule(config.deliverySchedule);
+        setDiscountCodes(codes);
       })
       .catch((error) => {
         if (active) setMessage(error instanceof Error ? error.message : "No se pudo cargar la configuración.");
@@ -113,7 +120,61 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
     }
   };
 
+  const addDiscountCode = () => {
+    const code = normalizeDiscountCode(newCode);
+    setCodesMessage("");
+    if (!/^[A-Z0-9_-]{3,24}$/.test(code)) {
+      setCodesMessage("Usá entre 3 y 24 letras, números, guion o guion bajo.");
+      return;
+    }
+    if (discountCodes.some((item) => item.code === code)) {
+      setCodesMessage("Ese código ya existe.");
+      return;
+    }
+    setDiscountCodes((current) => [...current, { code, percentage: newPercentage, active: true }]);
+    setNewCode("");
+  };
+
+  const persistDiscountCodes = async () => {
+    setSavingCodes(true);
+    setCodesMessage("");
+    try {
+      const saved = await saveDiscountCodes(discountCodes, user.email || user.uid);
+      setDiscountCodes(saved);
+      setCodesMessage("Códigos de descuento guardados.");
+    } catch (error) {
+      setCodesMessage(error instanceof Error ? error.message : "No se pudieron guardar los códigos.");
+    } finally {
+      setSavingCodes(false);
+    }
+  };
+
   return <div className="admin-content-box admin-store-config">
+    <section className="admin-card admin-discount-config">
+      <div className="admin-card__head">
+        <div className="admin-headline">
+          <h1 className="admin-title">Códigos de descuento</h1>
+          <p>Creá códigos del 5% o 10%. En el carrito solo descuentan productos sin ofertas ni promociones previas.</p>
+        </div>
+      </div>
+      <div className="admin-card__body">
+        <div className="admin-discount-create">
+          <label><span>Código</span><input className="admin-input" value={newCode} onChange={(event) => setNewCode(normalizeDiscountCode(event.target.value))} maxLength={24} placeholder="EJ: CLIENTE10"/></label>
+          <label><span>Descuento</span><select className="admin-input" value={newPercentage} onChange={(event) => setNewPercentage(Number(event.target.value) as 5 | 10)}><option value={5}>5%</option><option value={10}>10%</option></select></label>
+          <button type="button" className="btn primary" onClick={addDiscountCode}>+ Agregar código</button>
+        </div>
+        <div className="admin-discount-list">
+          {discountCodes.map((item) => <div className="admin-discount-row" key={item.code}>
+            <div><strong>{item.code}</strong><span>{item.percentage}% de descuento</span></div>
+            <label className="admin-discount-toggle"><input type="checkbox" checked={item.active} onChange={() => setDiscountCodes((current) => current.map((code) => code.code === item.code ? { ...code, active: !code.active } : code))}/><span>{item.active ? "Activo" : "Inactivo"}</span></label>
+            <button type="button" className="btn ofertas-danger" onClick={() => setDiscountCodes((current) => current.filter((code) => code.code !== item.code))}>Eliminar</button>
+          </div>)}
+          {!discountCodes.length ? <p className="admin-discount-empty">Todavía no creaste códigos.</p> : null}
+        </div>
+        <div className="admin-discount-actions"><button type="button" className="btn success" onClick={() => void persistDiscountCodes()} disabled={savingCodes}>{savingCodes ? "Guardando..." : "Guardar códigos"}</button></div>
+        {codesMessage ? <div className="admin-users-message" role="status">{codesMessage}</div> : null}
+      </div>
+    </section>
     <section className="admin-card admin-delivery-config">
       <div className="admin-card__head">
         <div className="admin-headline">
