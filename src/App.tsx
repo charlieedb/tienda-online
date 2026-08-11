@@ -28,6 +28,8 @@ import {
   subscribeToStoreConfig,
   type StoreCarouselSlide,
 } from "@/lib/featuredProducts";
+import { calculateDiscount, validateDiscountCode } from "@/lib/discountCodes";
+import { getActiveCatalog, type Product as DiscountProduct } from "@/lib/products";
 
 type Tab = "home" | "categories" | "search" | "cart" | "profile" | "info";
 type InfoPage = StoreInfoPageKey;
@@ -574,7 +576,41 @@ function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
   const setItemQty = useCartStore((state) => state.setItemQty);
   const removeItem = useCartStore((state) => state.removeItem);
   const clear = useCartStore((state) => state.clear);
+  const appliedCode = useCartStore((state) => state.appliedDiscountCode);
+  const setAppliedCode = useCartStore((state) => state.setAppliedDiscountCode);
+  const [couponInput, setCouponInput] = useState("");
+  const [couponError, setCouponError] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
   const total = items.reduce((sum, item) => sum + getCartItemPricing(item).total, 0);
+  const finalTotal = Math.max(0, total - Number(appliedCode?.discountAmount || 0));
+
+  useEffect(() => {
+    if (!appliedCode || !items.length) return;
+    let active = true;
+    void getActiveCatalog().then((catalog) => {
+      if (!active) return;
+      const productsById = new Map<string, DiscountProduct>(catalog.map((product) => [product.id, product]));
+      const recalculated = calculateDiscount(appliedCode, items, productsById);
+      setAppliedCode(recalculated.eligibleItemIds.length ? recalculated : null);
+    });
+    return () => { active = false; };
+  }, [items, appliedCode?.code, appliedCode?.percentage, setAppliedCode]);
+
+  const applyCoupon = async () => {
+    if (!couponInput.trim() || applyingCoupon) return;
+    setApplyingCoupon(true);
+    setCouponError("");
+    try {
+      const catalog = await getActiveCatalog();
+      const productsById = new Map<string, DiscountProduct>(catalog.map((product) => [product.id, product]));
+      setAppliedCode(await validateDiscountCode(couponInput, items, productsById));
+      setCouponInput("");
+    } catch (error) {
+      setCouponError(error instanceof Error ? error.message : "No pudimos aplicar el código.");
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
 
   return (
     <aside className="desktop-rail desktop-cart-rail" aria-label="Carrito">
@@ -611,13 +647,21 @@ function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
               const canAdd =
                 remaining === undefined ||
                 remaining >= getCartItemUnits({ ...item, qty: 1 });
+              const pricing = getCartItemPricing(item);
+              const eligibleSubtotal = Number(appliedCode?.eligibleSubtotalByItem?.[item.id] || 0);
+              const itemDiscount = eligibleSubtotal * Number(appliedCode?.percentage || 0) / 100;
+              const itemTotal = Math.max(0, pricing.total - itemDiscount);
               return (
-                <article key={item.id}>
+                <article key={item.id} className={itemDiscount > 0 ? "has-coupon" : ""}>
                   <div>
                     <strong>{item.name}</strong>
                     <span>{item.label}</span>
                   </div>
-                  <b>{money.format(getCartItemPricing(item).total)}</b>
+                  <div className="desktop-cart-line-price">
+                    {itemDiscount > 0 ? <del>{money.format(pricing.total)}</del> : null}
+                    <b>{money.format(itemTotal)}</b>
+                    {itemDiscount > 0 ? <small>Cupón {appliedCode?.percentage}%</small> : null}
+                  </div>
                   <div className="desktop-cart-actions">
                     <button
                       type="button"
@@ -650,10 +694,15 @@ function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
           </div>
         )}
         <footer>
-          <div>
+          {items.length ? <div className={`desktop-cart-coupon ${appliedCode ? "is-valid" : couponError ? "is-invalid" : ""}`}>
+            {appliedCode ? <div className="desktop-cart-coupon-applied"><span><b>{appliedCode.code}</b><small>{appliedCode.percentage}% aplicado</small></span><button type="button" onClick={() => { setAppliedCode(null); setCouponError(""); }}>Quitar</button></div> : <><label htmlFor="desktop-cart-coupon-input">Código de descuento</label><div><input id="desktop-cart-coupon-input" value={couponInput} onChange={(event) => { const value = event.target.value.toLocaleUpperCase("es-AR"); setCouponInput(value); if (!value.trim()) setCouponError(""); }} onKeyDown={(event) => { if (event.key === "Enter") void applyCoupon(); }} placeholder="Ingresá tu código" autoCapitalize="characters" maxLength={24}/><button type="button" onClick={() => void applyCoupon()} disabled={applyingCoupon || !couponInput.trim()}>{applyingCoupon ? "..." : "Aplicar"}</button></div>{couponError ? <small className="desktop-cart-coupon-error" role="alert">{couponError}</small> : null}</>}
+          </div> : null}
+          <div className="desktop-cart-total-row">
             <span>Subtotal</span>
             <strong>{money.format(total)}</strong>
           </div>
+          {appliedCode ? <div className="desktop-cart-discount-row"><span>Descuento ({appliedCode.percentage}%)</span><b>− {money.format(appliedCode.discountAmount)}</b></div> : null}
+          <div className="desktop-cart-total-row is-final"><span>Total</span><strong>{money.format(finalTotal)}</strong></div>
           <button type="button" onClick={onOpenCart} disabled={!items.length}>
             Revisar y confirmar
           </button>
@@ -1265,7 +1314,7 @@ function StoreApp({
         </AnimatePresence>
       </div>
 
-      <div className="desktop-layout">
+      <div className={`desktop-layout ${tab === "cart" ? "is-cart-view" : ""}`}>
         <DesktopCategoryRail
           categories={manifest?.categories ?? []}
           selectedCategory={selectedCategory}
@@ -1504,7 +1553,7 @@ function StoreApp({
             ) : null}
           </AnimatePresence>
         </main>
-        <DesktopCartRail onOpenCart={() => goTo("cart")} />
+        {tab !== "cart" ? <DesktopCartRail onOpenCart={() => goTo("cart")} /> : null}
       </div>
 
       {tab === "home" ? <StoreInfoFooter onSelect={openInfo} /> : null}
