@@ -118,7 +118,7 @@ export async function submitCheckoutOrder(params: {
         item.variant === "pack"
           ? String(product?.pack?.label || `Caja x${unidadesPorCaja || 1}`).trim()
           : String(product?.unit?.label || "Unidad").trim(),
-      unidadesPorCaja: item.variant === "pack" ? unidadesPorCaja || 0 : 0,
+      unidadesPorCaja: unidadesPorCaja || Number(item.promoPackQty || 0) || 0,
       precioUnitarioBase: roundMoney(unitPrice || precioLista || precioFinal),
       variantLabel: item.variant === "pack" ? "Caja" : "Unidad",
       promoCaja: mixedPricing.promoUnits > 0 ? {
@@ -236,9 +236,21 @@ export async function submitCheckoutOrder(params: {
       codigo: item.codigo,
       nombre: item.nombre,
       descuentoPct: item.descuentoPct,
+      descuentoProductoPct: item.descuentoProductoPct,
+      descuentoCodigoPct: item.descuentoCodigoPct,
+      descuentoCodigoMonto: item.descuentoCodigoMonto,
+      precioLista: item.precioLista,
+      precioFinal: item.precioFinal,
+      subtotal: item.subtotal,
       cantidadUnidades: item.cantidadUnidades,
       cantidadCajas: item.cantidadCajas,
       unidadesPorCaja: item.unidadesPorCaja,
+      promoCaja: item.promoCaja ? {
+        unidadesConPromo: item.promoCaja.unidadesConPromo,
+        unidadesPrecioLista: item.promoCaja.unidadesPrecioLista,
+        precioUnitarioPromo: Number(item.promoCaja.precioUnitarioPromo || 0),
+        unidadesPorCaja: Number(item.promoCaja.unidadesPorCaja || 1),
+      } : null,
     })),
     totals: {
       distinct: payload.totals.distinct,
@@ -246,6 +258,9 @@ export async function submitCheckoutOrder(params: {
       total: payload.totals.total,
       subtotal: payload.totals.subtotal,
       discountTotal: payload.totals.discountTotal,
+      discountCode: payload.totals.discountCode
+        ? { code: payload.totals.discountCode.code, percentage: payload.totals.discountCode.percentage }
+        : null,
     },
   };
 

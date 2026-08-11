@@ -115,9 +115,13 @@ export async function generateOrderRemitoPdf(params: {
         : Number(item.precioFinal || 0) || precioUnitarioBase;
     const presentacion = String(item.presentacion || "").trim();
     const descripcion = presentacion ? `${item.nombre} - ${presentacion}` : item.nombre || "";
+    const unidades = item.cantidadUnidades || (item.cantidadCajas && item.unidadesPorCaja ? item.cantidadCajas * item.unidadesPorCaja : 0);
+    const unidadesPorCaja = Number(item.unidadesPorCaja || item.promoCaja?.unidadesPorCaja || 0);
+    const cajasEquivalentes = unidadesPorCaja > 0 ? unidades / unidadesPorCaja : item.cantidadCajas || 0;
+    const cajasTexto = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(cajasEquivalentes);
     return [
-      item.cantidadCajas || 0,
-      item.cantidadUnidades || (item.cantidadCajas && item.unidadesPorCaja ? item.cantidadCajas * item.unidadesPorCaja : 0),
+      cajasTexto,
+      unidades,
       descripcion,
       fmtMoneyAR(precioUnitarioBase),
       `${descuentoPct}%`,

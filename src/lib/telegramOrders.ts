@@ -2,9 +2,21 @@ export type TelegramOrderItem = {
   codigo: string;
   nombre: string;
   descuentoPct?: number;
+  descuentoProductoPct?: number;
+  descuentoCodigoPct?: number;
+  descuentoCodigoMonto?: number;
+  precioLista?: number;
+  precioFinal?: number;
+  subtotal?: number;
   cantidadUnidades: number;
   cantidadCajas: number;
   unidadesPorCaja: number;
+  promoCaja?: {
+    unidadesConPromo: number;
+    unidadesPrecioLista: number;
+    precioUnitarioPromo: number;
+    unidadesPorCaja: number;
+  } | null;
 };
 
 export type TelegramOrderPayload = {
@@ -33,6 +45,7 @@ export type TelegramOrderPayload = {
     total: number;
     subtotal: number;
     discountTotal: number;
+    discountCode?: { code: string; percentage: number } | null;
   };
 };
 

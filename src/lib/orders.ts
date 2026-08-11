@@ -31,6 +31,12 @@ export type OrderItem = {
   subtotal: number;
   presentacion?: string;
   unidadesPorCaja?: number;
+  promoCaja?: {
+    unidadesConPromo: number;
+    unidadesPrecioLista: number;
+    precioUnitarioPromo: number;
+    unidadesPorCaja: number;
+  } | null;
   precioUnitarioBase?: number;
   variantLabel?: string;
 };
@@ -209,6 +215,12 @@ function mapOrder(
           subtotal: asNumber(item?.subtotal),
           presentacion: asString(item?.presentacion),
           unidadesPorCaja: asNumber(item?.unidadesPorCaja),
+          promoCaja: item?.promoCaja && typeof item.promoCaja === "object" ? {
+            unidadesConPromo: asNumber(item.promoCaja.unidadesConPromo),
+            unidadesPrecioLista: asNumber(item.promoCaja.unidadesPrecioLista),
+            precioUnitarioPromo: asNumber(item.promoCaja.precioUnitarioPromo),
+            unidadesPorCaja: asNumber(item.promoCaja.unidadesPorCaja),
+          } : null,
           precioUnitarioBase: asNumber(item?.precioUnitarioBase),
           variantLabel: asString(item?.variantLabel),
         }))
