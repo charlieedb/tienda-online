@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp, where } from "firebase/firestore";
+import { addDoc, collection, getDocs, limit, query, serverTimestamp, where } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 
 export type NotificationAction = "none" | "coupon" | "catalog" | "product" | "cart" | "search";
@@ -63,14 +63,13 @@ export function notificationPlainText(value: string) {
   return (template.content.textContent || "").replace(/\s+/g, " ").trim();
 }
 
-export async function getActiveNotifications(maxResults = 12) {
+export async function getActiveNotifications(maxResults = 100) {
   const db = getDb();
   if (!db) return [];
   const snapshot = await getDocs(query(
     collection(db, "notificationCampaigns"),
     where("status", "==", "sent"),
-    orderBy("createdAtIso", "desc"),
-    limit(Math.max(1, Math.min(25, maxResults))),
+    limit(Math.max(1, Math.min(100, maxResults))),
   ));
   const now = new Date().toISOString();
   return snapshot.docs.flatMap((entry) => {
@@ -90,5 +89,5 @@ export async function getActiveNotifications(maxResults = 12) {
       expiresAt,
       createdAtIso: String(item.createdAtIso ?? ""),
     }];
-  });
+  }).sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso));
 }
