@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { PasswordResetPage } from "@/components/PasswordResetPage";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { CatalogManifest, Category, Product } from "@/catalog/types";
@@ -1642,6 +1643,7 @@ export function App() {
       ? infoParam
       : "envios";
   const loginRequested = params.get("login") === "1";
+  const passwordResetCode = params.get("mode") === "resetPassword" ? params.get("oobCode") ?? "" : "";
   const requestLogin = (mode: "login" | "signup" = "login") => {
     const nextLocation = `/?login=1&mode=${mode}`;
     window.history.pushState(
@@ -1688,8 +1690,9 @@ export function App() {
     window.history.replaceState({ ...window.history.state, jomaView: "business" }, "", nextLocation);
     setLocation(nextLocation);
   }, [user, location]);
-  const content =
-    loginRequested && !loading && !user ? (
+  const content = passwordResetCode ? (
+      <PasswordResetPage code={passwordResetCode} />
+    ) : loginRequested && !loading && !user ? (
       <AuthWelcome initialMode={params.get("mode") === "signup" ? "signup" : "login"} />
     ) : path === "/" ? (
       <StoreApp

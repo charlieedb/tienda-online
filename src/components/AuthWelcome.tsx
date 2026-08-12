@@ -7,7 +7,7 @@ import { updateProfile } from "firebase/auth";
 import { Icon } from "./Icons";
 import { PasswordVisibilityButton } from "./PasswordVisibilityButton";
 
-type Mode = "welcome" | "login" | "signup";
+type Mode = "welcome" | "login" | "signup" | "forgot";
 
 function friendlyError(error: unknown) {
   const value = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
@@ -26,7 +26,7 @@ export function AuthLoading() {
 }
 
 export function AuthWelcome({ initialMode = "welcome" }: { initialMode?: Mode }) {
-  const { signInEmail, signUpEmail, sendVerificationEmail, firebaseReady } = useAuth();
+  const { signInEmail, signUpEmail, sendVerificationEmail, sendCustomerPasswordReset, firebaseReady } = useAuth();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,6 +35,7 @@ export function AuthWelcome({ initialMode = "welcome" }: { initialMode?: Mode })
   const [preventistaReferido, setPreventistaReferido] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [resetSent, setResetSent] = useState(false);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const dniValid = /^\d{7,9}$/.test(dni.trim());
@@ -44,7 +45,7 @@ export function AuthWelcome({ initialMode = "welcome" }: { initialMode?: Mode })
     excludesDni: Boolean(password && dniValid && !password.includes(dni.trim())),
   };
   const passwordValid = Object.values(passwordChecks).every(Boolean);
-  const changeMode = (next: Mode) => { setMode(next); setError(""); setPassword(""); setPasswordVisible(false); setDni(""); setPreventistaReferido(""); };
+  const changeMode = (next: Mode) => { setMode(next); setError(""); setResetSent(false); setPassword(""); setPasswordVisible(false); setDni(""); setPreventistaReferido(""); };
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setError("");
@@ -106,6 +107,21 @@ export function AuthWelcome({ initialMode = "welcome" }: { initialMode?: Mode })
     }
   };
 
+  const requestPasswordReset = async (event: FormEvent) => {
+    event.preventDefault();
+    setError("");
+    if (!emailValid) { setError("Ingresá el correo de tu cuenta."); return; }
+    setBusy(true);
+    try {
+      await sendCustomerPasswordReset(email);
+      setResetSent(true);
+    } catch (nextError) {
+      setError(friendlyError(nextError));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return <main className="auth-welcome">
     <div className="auth-backdrop" aria-hidden="true"><i/><i/><i/></div>
     <motion.section className="auth-shell" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .32 }}>
@@ -116,7 +132,13 @@ export function AuthWelcome({ initialMode = "welcome" }: { initialMode?: Mode })
           <h1>Tu compra empieza acá.</h1>
           <p>Entrá a tu cuenta para explorar productos, guardar tus datos y armar el carrito.</p>
           <div className="welcome-actions"><button type="button" className="auth-primary" onClick={() => changeMode("login")}>Iniciar sesión</button><button type="button" className="auth-secondary" onClick={() => changeMode("signup")}>Crear una cuenta</button></div>
-        </motion.div> : <motion.form className="auth-form" key={mode} onSubmit={submit} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}>
+        </motion.div> : mode === "forgot" ? <motion.form className="auth-form" key="forgot" onSubmit={requestPasswordReset} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}>
+          <button type="button" className="auth-back" onClick={() => changeMode("login")}><Icon name="arrow"/> Volver al ingreso</button>
+          <div className="auth-form-title"><span>Recuperar acceso</span><h1>Restaurar contraseña</h1><p>{resetSent ? "Revisá tu correo para continuar." : "Te enviaremos un enlace seguro para crear una contraseña nueva."}</p></div>
+          {resetSent ? <div className="auth-reset-success" role="status"><strong>Enlace enviado</strong><span>Si existe una cuenta asociada a {email.trim()}, vas a recibir el mensaje en unos minutos. Revisá también correo no deseado.</span></div> : <label><span>Correo electrónico</span><input className={emailValid ? "is-valid" : ""} value={email} onChange={(event) => setEmail(event.target.value)} type="email" inputMode="email" autoComplete="email" placeholder="tu@email.com" autoFocus/></label>}
+          {error ? <div className="auth-error" role="alert">{error}</div> : null}
+          {resetSent ? <button type="button" className="auth-primary" onClick={() => changeMode("login")}>Volver a iniciar sesión</button> : <button type="submit" className="auth-primary" disabled={busy}>{busy ? <><span className="auth-spinner"/> Enviando…</> : "Enviar enlace"}</button>}
+        </motion.form> : <motion.form className="auth-form" key={mode} onSubmit={submit} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}>
           <button type="button" className="auth-back" onClick={() => changeMode("welcome")}><Icon name="arrow"/> Volver</button>
           <div className="auth-form-title"><span>{mode === "login" ? "Qué bueno verte" : "Empecemos"}</span><h1>{mode === "login" ? "Iniciar sesión" : "Crear cuenta"}</h1><p>{mode === "login" ? "Ingresá tus datos para continuar." : "Creá tu acceso en menos de un minuto."}</p></div>
           <label><span>Correo electrónico</span><input className={emailValid ? "is-valid" : ""} value={email} onChange={(event) => setEmail(event.target.value)} type="email" inputMode="email" autoComplete="email" placeholder="tu@email.com" autoFocus/></label>
@@ -124,6 +146,7 @@ export function AuthWelcome({ initialMode = "welcome" }: { initialMode?: Mode })
             <label><span>DNI</span><input className={dniValid ? "is-valid" : ""} value={dni} onChange={(event) => setDni(event.target.value.replace(/\D/g, ""))} inputMode="numeric" autoComplete="off" placeholder="12345678"/></label>
           </> : null}
           <label><span>Contraseña</span><div className="auth-password-field"><input className={passwordValid || (mode === "login" && password.length > 0) ? "is-valid" : ""} value={password} onChange={(event) => setPassword(event.target.value)} type={passwordVisible ? "text" : "password"} autoComplete={mode === "login" ? "current-password" : "new-password"}/><PasswordVisibilityButton visible={passwordVisible} onToggle={() => setPasswordVisible((current) => !current)} /></div></label>
+          {mode === "login" ? <button type="button" className="auth-forgot" onClick={() => changeMode("forgot")}>Olvidé mi contraseña</button> : null}
           {mode === "signup" ? <>
             <ul className="auth-password-tips" aria-label="Requisitos de contraseña">
               <li className={passwordChecks.length ? "is-complete" : ""}><span aria-hidden="true">✓</span>Mínimo 6 caracteres</li>

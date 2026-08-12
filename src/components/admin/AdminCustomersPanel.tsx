@@ -1,7 +1,9 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { deleteRegisteredCustomer, fetchRegisteredCustomers, type AdminCustomer } from "@/lib/adminCustomers";
+import { useAuth } from "@/auth/AuthProvider";
 
 export function AdminCustomersPanel() {
+  const { user } = useAuth();
   const [customers, setCustomers] = useState<AdminCustomer[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -60,7 +62,7 @@ export function AdminCustomersPanel() {
         </div>
         <div className="ofertas-list-wrap">
           <table className="productos-table ofertas-table admin-customers__table"><thead><tr><th>Cliente</th><th>Tipo de cuenta</th><th>Contacto</th><th>Comercio</th><th>Localidad</th><th>Acciones</th></tr></thead><tbody>
-            {filtered.map((customer) => <tr key={customer.uid}><td><strong>{customer.name}</strong><small>@{customer.username || "sin usuario"}</small></td><td><span className={`admin-customer-type is-${customer.accountType}`}>{customer.accountType === "business" ? "Comercio" : "Consumidor"}</span></td><td><span>{customer.email || "Sin email"}</span><small>{customer.phone || "Sin teléfono"}</small></td><td>{customer.accountType === "business" ? <><strong>{customer.businessName}</strong><small>{customer.businessType}</small></> : <span className="admin-customers__muted">No corresponde</span>}</td><td>{customer.city || "Sin localidad"}</td><td><button type="button" className="btn ofertas-danger admin-customer-delete" disabled={Boolean(deletingUid)} onClick={() => void removeCustomer(customer)}>{deletingUid === customer.uid ? "Eliminando..." : "Eliminar"}</button></td></tr>)}
+            {filtered.map((customer) => { const isCurrentAdmin = customer.uid === user?.uid; return <tr key={customer.uid}><td><strong>{customer.name}</strong><small>@{customer.username || "sin usuario"}</small>{isCurrentAdmin ? <span className="admin-protected-badge">Administrador</span> : null}</td><td><span className={`admin-customer-type is-${customer.accountType}`}>{customer.accountType === "business" ? "Comercio" : "Consumidor"}</span></td><td><span>{customer.email || "Sin email"}</span><small>{customer.phone || "Sin teléfono"}</small></td><td>{customer.accountType === "business" ? <><strong>{customer.businessName}</strong><small>{customer.businessType}</small></> : <span className="admin-customers__muted">No corresponde</span>}</td><td>{customer.city || "Sin localidad"}</td><td>{isCurrentAdmin ? <span className="admin-protected-copy">Cuenta protegida</span> : <button type="button" className="btn ofertas-danger admin-customer-delete" disabled={Boolean(deletingUid)} onClick={() => void removeCustomer(customer)}>{deletingUid === customer.uid ? "Eliminando..." : "Eliminar"}</button>}</td></tr>; })}
             {!filtered.length ? <tr><td colSpan={6} className="admin-customers__empty">No hay clientes que coincidan con los filtros.</td></tr> : null}
           </tbody></table>
         </div>

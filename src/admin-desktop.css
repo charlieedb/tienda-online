@@ -2058,6 +2058,8 @@ body .admin-shell .admin-login-card {
 .admin-customers__initial { display: grid; justify-items: start; gap: 8px; }
 .admin-customers__initial p { max-width: 58ch; margin: 0 0 6px; color: #746c64; font-size: .82rem; }
 .admin-customer-delete { min-height: 34px !important; padding: 6px 10px; font-size: .7rem; }
+.admin-protected-badge { width: fit-content; margin-top: 6px !important; padding: 3px 7px; color: #7c231f !important; border-radius: 999px; background: #fde7e4; font-size: .65rem; font-weight: 700; }
+.admin-protected-copy { color: #655d55; font-size: .72rem; white-space: nowrap; }
 
 @media (max-width: 700px) {
   .admin-customers__head { align-items: stretch; }

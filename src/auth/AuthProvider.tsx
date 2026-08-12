@@ -4,6 +4,7 @@ import {
   GoogleAuthProvider,
   browserLocalPersistence,
   browserSessionPersistence,
+  confirmPasswordReset,
   createUserWithEmailAndPassword,
   EmailAuthProvider,
   onAuthStateChanged,
@@ -15,6 +16,7 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
   updatePassword,
+  verifyPasswordResetCode,
   type User,
   type UserCredential,
 } from "firebase/auth";
@@ -30,6 +32,8 @@ type AuthContextValue = {
   signInEmailSession: (email: string, password: string) => Promise<UserCredential>;
   signInUsernameSession: (username: string, password: string) => Promise<UserCredential>;
   resetAdminPassword: (username: string) => Promise<void>;
+  sendCustomerPasswordReset: (email: string) => Promise<void>;
+  confirmCustomerPasswordReset: (code: string, password: string) => Promise<void>;
   signUpEmail: (email: string, password: string) => Promise<UserCredential>;
   sendVerificationEmail: (user: User) => Promise<void>;
   signInGoogle: () => Promise<void>;
@@ -119,6 +123,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const result = await response.json().catch(() => null) as { email?: string; error?: string } | null;
         if (!response.ok || !result?.email) throw new Error(result?.error || "No encontramos ese usuario.");
         await sendPasswordResetEmail(auth, result.email);
+      },
+      sendCustomerPasswordReset: async (email) => {
+        if (!auth) throw new Error("Firebase no está configurado.");
+        await sendPasswordResetEmail(auth, email.trim(), {
+          url: `${window.location.origin}/?login=1&mode=login`,
+          handleCodeInApp: false,
+        });
+      },
+      confirmCustomerPasswordReset: async (code, password) => {
+        if (!auth) throw new Error("Firebase no está configurado.");
+        await verifyPasswordResetCode(auth, code);
+        await confirmPasswordReset(auth, code, password);
       },
       signUpEmail: async (email, password) => {
         if (!auth) throw new Error("Firebase no está configurado.");
