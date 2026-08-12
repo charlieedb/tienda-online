@@ -56,9 +56,17 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
     return () => navigator.serviceWorker?.removeEventListener("message", onServiceWorkerMessage);
   }, []);
 
+  useEffect(() => {
+    if (!("caches" in window)) return;
+    void caches.match("/__joma_notification_unread__").then((response) => {
+      if (response) setUnreadCount((current) => Math.max(1, current));
+    });
+  }, []);
+
   const markAllAsRead = () => {
     if (!notifications.length) return;
     window.localStorage.setItem("joma.readNotifications", JSON.stringify(notifications.map((item) => item.id)));
+    if ("caches" in window) void caches.open("joma-notifications").then((cache) => cache.delete("/__joma_notification_unread__"));
     setUnreadCount(0);
   };
 

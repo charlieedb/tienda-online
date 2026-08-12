@@ -13,6 +13,10 @@ self.addEventListener("push", (event) => {
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       clients.forEach((client) => client.postMessage({ type: "JOMA_NOTIFICATION_RECEIVED" }));
     }),
+    caches.open("joma-notifications").then((cache) => cache.put(
+      "/__joma_notification_unread__",
+      new Response("1", { headers: { "Content-Type": "text/plain" } }),
+    )),
   ]));
 });
 
