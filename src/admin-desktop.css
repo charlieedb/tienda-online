@@ -2033,3 +2033,36 @@ body .admin-shell .admin-login-card {
     min-height: 44px;
   }
 }
+
+.admin-customers { display: grid; gap: 14px; }
+.admin-customers__head { align-items: center; }
+.admin-customers__metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+.admin-customers__metrics > div { display: grid; gap: 3px; padding: 13px 15px; border-radius: 10px; background: #f3eee8; }
+.admin-customers__metrics span { color: #655d55; font-size: .72rem; }
+.admin-customers__metrics strong { color: #292522; font-size: 1.35rem; }
+.admin-customers__filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(170px, 230px); gap: 10px; margin-bottom: 12px; }
+.admin-customers .ofertas-list-wrap { background: #fff; }
+.admin-customers__table { color: #292522; background: #fff; }
+.admin-customers__table thead th { color: #5e5750; background: #f3eee8; border-bottom-color: #d9d0c7; }
+.admin-customers__table tbody tr { color: #292522; background: #fff; }
+.admin-customers__table tbody tr:nth-child(even) { background: #faf7f3; }
+.admin-customers__table tbody tr:hover { background: #fff0ee; }
+.admin-customers__table td { color: #292522; vertical-align: middle; border-bottom-color: #e4ddd6; }
+.admin-customers__table td > strong, .admin-customers__table td > span, .admin-customers__table td > small { display: block; }
+.admin-customers__table td > small { margin-top: 3px; color: #746c64; font-size: .7rem; }
+.admin-customer-type { width: fit-content; padding: 4px 8px; border-radius: 999px; font-size: .7rem; }
+.admin-customer-type.is-business { color: #11663a; background: #dff6e8; }
+.admin-customer-type.is-consumer { color: #174f87; background: #e4f0ff; }
+.admin-customers__muted { color: #837a72; }
+.admin-customers__empty { padding: 28px 12px !important; color: #746c64 !important; text-align: center; }
+.admin-customers__initial { display: grid; justify-items: start; gap: 8px; }
+.admin-customers__initial p { max-width: 58ch; margin: 0 0 6px; color: #746c64; font-size: .82rem; }
+.admin-customer-delete { min-height: 34px !important; padding: 6px 10px; font-size: .7rem; }
+
+@media (max-width: 700px) {
+  .admin-customers__head { align-items: stretch; }
+  .admin-customers__head .btn { width: 100%; }
+  .admin-customers__metrics { grid-template-columns: 1fr; gap: 7px; }
+  .admin-customers__metrics > div { grid-template-columns: 1fr auto; align-items: center; }
+  .admin-customers__filters { grid-template-columns: 1fr; }
+}
