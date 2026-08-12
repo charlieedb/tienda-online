@@ -172,6 +172,8 @@ img { display: block; max-width: 100%; }
 .notifications__list > button { width: 100%; display: grid; grid-template-columns: 38px minmax(0,1fr); align-items: start; gap: 11px; border: 0; border-bottom: 1px solid #e6dfd8; padding: 11px 8px; color: var(--ink); background: transparent; text-align: left; cursor: pointer; }
 .notifications__list > button:last-child { border-bottom: 0; }
 .notifications__list > button:hover, .notifications__list > button:focus-visible { background: #f7f2ec; }
+.notifications__list > button.is-read { opacity: .72; }
+.notifications__list > button.is-unread .notifications__empty-icon { color: #fff; background: var(--brand); }
 .notifications__list > button > div:last-child { min-width: 0; display: grid; gap: 3px; }
 .notifications__list small { color: var(--brand); font-size: 10px; font-weight: 700; }
 .notifications__push { display: grid; gap: 6px; border-top: 1px solid #e6dfd8; padding: 8px; }
