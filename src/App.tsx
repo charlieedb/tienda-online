@@ -1576,7 +1576,7 @@ function StoreApp({
             ) : null}
             {tab === "business" ? (
               <motion.div className="view" key="business" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}>
-                <BusinessPage onLogin={onRequestBusinessLogin} />
+                <BusinessPage onLogin={onRequestBusinessLogin} onBackToStore={() => goTo("home")} />
               </motion.div>
             ) : null}
             {tab === "info" ? (

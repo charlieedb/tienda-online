@@ -49,7 +49,7 @@ function getBusinessErrors(business: BusinessProfile): Partial<Record<BusinessFi
   return errors;
 }
 
-export function BusinessPage({ onLogin }: { onLogin: (mode?: "login" | "signup") => void }) {
+export function BusinessPage({ onLogin, onBackToStore }: { onLogin: (mode?: "login" | "signup") => void; onBackToStore: () => void }) {
   const { user } = useAuth();
   const [business, setBusiness] = useState(EMPTY_BUSINESS);
   const [saving, setSaving] = useState(false);
@@ -178,7 +178,10 @@ export function BusinessPage({ onLogin }: { onLogin: (mode?: "login" | "signup")
       <motion.div className="business-registered-icon" initial={saved ? { scale: .65, rotate: -10 } : false} animate={{ scale: 1, rotate: 0 }} transition={{ duration: .42, ease: [0.22, 1, 0.36, 1] }}><Icon name="check" /></motion.div>
       <div><span>{saved ? "Registro completado" : "Comercio adherido"}</span><h2>{saved ? "¡Gracias por registrarte!" : business.fantasyName}</h2><p>{saved ? "Vas a recibir novedades dentro de muy poco tiempo." : "Tu comercio ya está asociado a esta cuenta. Podés actualizar sus datos cuando lo necesites."}</p></div>
       {!saved ? <dl><div><dt>Responsable</dt><dd>{business.ownerName}</dd></div><div><dt>Tipo de negocio</dt><dd>{business.businessType}</dd></div><div><dt>Dirección</dt><dd>{[business.address, business.city].filter(Boolean).join(", ")}</dd></div></dl> : null}
-      <button type="button" onClick={() => { setEditing(true); setSaved(false); setSubmitted(false); setTouched({}); }}>Editar datos del comercio</button>
+      <div className="business-registered-actions">
+        <button type="button" className="business-back-store" onClick={onBackToStore}>Volver a la tienda</button>
+        <button type="button" className="business-edit-link" onClick={() => { setEditing(true); setSaved(false); setSubmitted(false); setTouched({}); }}>Editar mi comercio</button>
+      </div>
     </motion.section> : <form className="business-form" onSubmit={save} noValidate>
       <div className="business-form-heading"><div><strong>{business.fantasyName ? "Datos de tu comercio" : "Registrá tu comercio"}</strong><p>Los campos con * son obligatorios.</p></div>{saved ? <span><Icon name="check" /> Comercio registrado</span> : null}</div>
       {user && !user.emailVerified ? <div className="business-verification-note"><Icon name="spark" /><div><strong>Confirmá tu correo</strong><span>Tu comercio ya está asociado a esta cuenta. Revisá tu email para verificarla y recibir futuros beneficios.</span></div></div> : null}

@@ -784,7 +784,12 @@ main.has-mini-cart { padding-bottom: 72px; }
 .business-registered dl > div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
 .business-registered dt { color: var(--muted); font-size: 10px; }
 .business-registered dd { margin: 0; font-size: 11px; font-weight: 750; }
-.business-registered > button { min-width: 210px; min-height: 48px; padding: 0 18px; color: white; border: 0; border-radius: 12px; background: var(--ink); font-size: 12px; font-weight: 800; cursor: pointer; }
+.business-registered-actions { width: min(100%, 320px); display: grid; justify-items: stretch; gap: 4px; }
+.business-registered-actions button { border: 0; cursor: pointer; }
+.business-back-store { min-height: 48px; padding: 0 18px; color: white; border-radius: 12px; background: var(--brand); font-size: 13px; font-weight: 400; }
+.business-edit-link { min-height: 38px; padding: 0 12px; color: #655c53; background: transparent; font-size: 10px; font-weight: 400; }
+.business-edit-link:hover, .business-edit-link:focus-visible { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+.business-back-store:focus-visible, .business-edit-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .business-registered.is-new { padding-block: 36px; }
 @media (min-width: 700px) {
   .business-hero { grid-template-columns: 52px minmax(0, 1fr); align-items: start; padding: 22px; }
