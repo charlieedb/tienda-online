@@ -12,6 +12,19 @@ type Props = {
   onOpenProduct?: (productId: string) => void;
 };
 
+const LOCAL_PREVIEW_NOTIFICATION: NotificationCampaign = {
+  id: "local-preview-unread-v2",
+  title: "¡Nueva promo disponible!",
+  body: "Esta es una notificación simulada para revisar la campanita.",
+  audience: "all",
+  action: "none",
+  target: "",
+  status: "sent",
+  scheduledAt: "",
+  expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  createdAtIso: new Date().toISOString(),
+};
+
 function getReadNotificationIds() {
   try {
     const value = JSON.parse(window.localStorage.getItem("joma.readNotifications") || "[]");
@@ -76,8 +89,17 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
   useEffect(() => {
     void getStoredPushNotifications().then((items) => {
       const readIds = getReadNotificationIds();
-      if (items.length) setNotifications(items);
-      setUnreadCount(items.filter((item) => !readIds.has(item.id)).length);
+      const isLocalPreview = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      if (isLocalPreview && !window.sessionStorage.getItem("joma.localPreviewSeededV2")) {
+        readIds.delete(LOCAL_PREVIEW_NOTIFICATION.id);
+        window.localStorage.setItem("joma.readNotifications", JSON.stringify([...readIds]));
+        window.sessionStorage.setItem("joma.localPreviewSeededV2", "1");
+      }
+      const visibleItems = isLocalPreview && !items.some((item) => item.id === LOCAL_PREVIEW_NOTIFICATION.id)
+        ? [LOCAL_PREVIEW_NOTIFICATION, ...items]
+        : items;
+      if (visibleItems.length) setNotifications(visibleItems);
+      setUnreadCount(visibleItems.filter((item) => !readIds.has(item.id)).length);
     });
   }, []);
 
@@ -95,7 +117,9 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
     setLoading(true);
     try {
       const [remoteItems, storedItems] = await Promise.all([getActiveNotifications().catch(() => []), getStoredPushNotifications()]);
-      const items = [...storedItems, ...remoteItems.filter((item) => !storedItems.some((stored) => stored.id === item.id))]
+      const isLocalPreview = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      const localItems = isLocalPreview ? [LOCAL_PREVIEW_NOTIFICATION] : [];
+      const items = [...localItems, ...storedItems, ...remoteItems.filter((item) => !storedItems.some((stored) => stored.id === item.id))]
         .filter((item) => !item.expiresAt || item.expiresAt >= new Date().toISOString())
         .sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso));
       const readIds = getReadNotificationIds();

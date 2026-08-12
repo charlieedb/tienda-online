@@ -49,7 +49,7 @@ function getBusinessErrors(business: BusinessProfile): Partial<Record<BusinessFi
   return errors;
 }
 
-export function BusinessPage({ onLogin, onShop }: { onLogin: (mode?: "login" | "signup") => void; onShop: () => void }) {
+export function BusinessPage({ onLogin }: { onLogin: (mode?: "login" | "signup") => void }) {
   const { user } = useAuth();
   const [business, setBusiness] = useState(EMPTY_BUSINESS);
   const [saving, setSaving] = useState(false);
@@ -165,14 +165,13 @@ export function BusinessPage({ onLogin, onShop }: { onLogin: (mode?: "login" | "
     </div>
     <div className="business-hero">
       <div className="business-hero-icon"><Icon name="store" /></div>
-      <div><span>JOMA para comercios</span><h1>¡Registrá tu comercio y aprovechá los precios exclusivos que tenemos para vos!</h1><p>Armá tu pedido por unidad, sin depender de cajas o packs cerrados. Elegí exactamente lo que necesitás para tu kiosco, almacén, autoservicio o minimercado.</p></div>
-      <button type="button" onClick={onShop}>Explorar productos <Icon name="arrow" /></button>
-    </div>
-
-    <div className="business-benefits" aria-label="Beneficios para comercios">
-      <div><Icon name="grid" /><strong>Compra surtida</strong><span>Combiná productos y cantidades según tu negocio.</span></div>
-      <div><Icon name="spark" /><strong>Beneficios exclusivos</strong><span>Accedé a promociones y descuentos para comercios registrados.</span></div>
-      <div><Icon name="check" /><strong>Perfil comercial</strong><span>Nos permite diferenciar tu cuenta de un consumidor final.</span></div>
+      <div><h1>¡Registrá tu comercio y aprovechá precios exclusivos!</h1><p>Armá tu pedido por unidad y elegí exactamente lo que necesitás para tu negocio.</p>
+        <div className="business-hero-benefits" aria-label="Beneficios para comercios">
+          <div><Icon name="grid" /><span>Compra surtida: combiná productos y cantidades.</span></div>
+          <div><Icon name="spark" /><span>Beneficios exclusivos: promociones para comercios.</span></div>
+          <div><Icon name="check" /><span>Perfil comercial: tu cuenta se identifica como comercio.</span></div>
+        </div>
+      </div>
     </div>
 
     {hasRegisteredBusiness && !editing ? <motion.section className={`business-registered ${saved ? "is-new" : ""}`} initial={{ opacity: 0, y: 12, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: .35, ease: [0.22, 1, 0.36, 1] }} aria-live="polite">
