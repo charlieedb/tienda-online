@@ -154,8 +154,8 @@ img { display: block; max-width: 100%; }
 .search-clear-button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .search-clear-button svg { width: 14px; }
 .notifications { position: relative; z-index: 4; }
-.notifications__trigger { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; color: white; border: 1px solid rgba(255,255,255,.42); border-radius: 13px; background: rgba(255,255,255,.14); cursor: pointer; transition: background-color .18s ease, transform .18s ease; }
-.notifications__trigger:hover, .notifications__trigger.is-active { background: rgba(255,255,255,.26); }
+.notifications__trigger { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; color: white; border: 0; border-radius: 13px; background: transparent; cursor: pointer; transition: color .18s ease, background-color .18s ease, transform .18s ease; }
+.notifications__trigger.has-unread { color: var(--brand); background: #fff; }
 .notifications__trigger:active { transform: scale(.96); }
 .notifications__trigger:focus-visible { outline: 3px solid rgba(255,255,255,.92); outline-offset: 2px; }
 .notifications__trigger svg { width: 21px; height: 21px; }

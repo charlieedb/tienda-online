@@ -3,12 +3,17 @@ self.addEventListener("push", (event) => {
   try { payload = event.data?.json() || {}; } catch { payload = { notification: { body: event.data?.text() || "" } }; }
   const notification = payload.notification || {};
   const data = payload.data || {};
-  event.waitUntil(self.registration.showNotification(notification.title || "JOMA Express", {
-    body: notification.body || data.body || "Tenés una novedad en la tienda.",
-    icon: "/joma-express-icon.png",
-    badge: "/joma-express-icon.png",
-    data: { url: data.url || "/" },
-  }));
+  event.waitUntil(Promise.all([
+    self.registration.showNotification(notification.title || "JOMA Express", {
+      body: notification.body || data.body || "Tenés una novedad en la tienda.",
+      icon: "/joma-express-icon.png",
+      badge: "/joma-express-icon.png",
+      data: { url: data.url || "/" },
+    }),
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => client.postMessage({ type: "JOMA_NOTIFICATION_RECEIVED" }));
+    }),
+  ]));
 });
 
 self.addEventListener("notificationclick", (event) => {

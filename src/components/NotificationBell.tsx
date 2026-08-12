@@ -12,11 +12,21 @@ type Props = {
   onOpenProduct?: (productId: string) => void;
 };
 
+function getReadNotificationIds() {
+  try {
+    const value = JSON.parse(window.localStorage.getItem("joma.readNotifications") || "[]");
+    return new Set<string>(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
 export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenProduct }: Props) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<NotificationCampaign[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [pushMessage, setPushMessage] = useState("");
   const [enablingPush, setEnablingPush] = useState(false);
@@ -36,16 +46,39 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
     return () => { document.removeEventListener("pointerdown", closeOnOutsidePress); document.removeEventListener("keydown", closeOnEscape); };
   }, [open]);
 
+  useEffect(() => {
+    const onServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type !== "JOMA_NOTIFICATION_RECEIVED") return;
+      setUnreadCount((current) => Math.max(1, current + 1));
+      setLoaded(false);
+    };
+    navigator.serviceWorker?.addEventListener("message", onServiceWorkerMessage);
+    return () => navigator.serviceWorker?.removeEventListener("message", onServiceWorkerMessage);
+  }, []);
+
+  const markAllAsRead = () => {
+    if (!notifications.length) return;
+    window.localStorage.setItem("joma.readNotifications", JSON.stringify(notifications.map((item) => item.id)));
+    setUnreadCount(0);
+  };
+
   const toggle = async () => {
     const nextOpen = !open;
     setOpen(nextOpen);
+    if (!nextOpen) markAllAsRead();
     if (!nextOpen || loaded) return;
     setLoading(true);
-    try { setNotifications(await getActiveNotifications()); }
+    try {
+      const items = await getActiveNotifications();
+      const readIds = getReadNotificationIds();
+      setNotifications(items);
+      setUnreadCount(items.filter((item) => !readIds.has(item.id)).length);
+    }
     finally { setLoading(false); setLoaded(true); }
   };
 
   const activate = (notification: NotificationCampaign) => {
+    markAllAsRead();
     setOpen(false);
     if (notification.action === "coupon") {
       window.localStorage.setItem("joma.pendingCoupon", notification.target);
@@ -57,7 +90,7 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
   };
 
   return <div className="notifications" ref={containerRef}>
-    <button type="button" className={`notifications__trigger ${open ? "is-active" : ""}`} aria-label="Abrir notificaciones" aria-expanded={open} aria-controls={panelId} onClick={() => void toggle()}><Icon name="bell" />{notifications.length ? <b>{notifications.length > 9 ? "9+" : notifications.length}</b> : null}</button>
+    <button type="button" className={`notifications__trigger ${unreadCount ? "has-unread" : ""}`} aria-label={unreadCount ? `Abrir notificaciones, ${unreadCount} sin leer` : "Abrir notificaciones"} aria-expanded={open} aria-controls={panelId} onClick={() => void toggle()}><Icon name="bell" />{unreadCount ? <b>{unreadCount > 9 ? "9+" : unreadCount}</b> : null}</button>
     <AnimatePresence>{open ? <motion.div id={panelId} className="notifications__panel" role="region" aria-label="Notificaciones" initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6, scale: .98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? .01 : .18, ease: "easeOut" }}>
       {loading ? <div className="notifications__empty"><span>Cargando notificaciones...</span></div> : notifications.length ? <div className="notifications__list">{notifications.map((notification) => <button type="button" key={notification.id} onClick={() => activate(notification)}><div className="notifications__empty-icon"><Icon name="bell" /></div><div><strong>{notification.title}</strong><span dangerouslySetInnerHTML={{ __html: sanitizeNotificationHtml(notification.body) }} />{notification.action !== "none" ? <small>Tocá para continuar</small> : null}</div></button>)}</div> : <div className="notifications__empty"><div className="notifications__empty-icon"><Icon name="bell" /></div><div><strong>Sin notificaciones</strong><span>Cuando tengas novedades, aparecerán acá.</span></div></div>}
       {user && !pushEnabled ? <div className="notifications__push"><button type="button" disabled={enablingPush} onClick={async () => { setEnablingPush(true); setPushMessage(""); try { await enablePushNotifications(user); window.localStorage.setItem("joma.pushEnabled", "1"); setPushEnabled(true); } catch (error) { setPushMessage(error instanceof Error ? error.message : "No se pudieron activar los avisos."); } finally { setEnablingPush(false); } }}>{enablingPush ? "Activando..." : "Activar avisos en este dispositivo"}</button>{pushMessage ? <small role="status">{pushMessage}</small> : null}</div> : null}
