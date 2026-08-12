@@ -83,6 +83,14 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   const submitCompleteRef = useRef(false);
   const total = useMemo(() => items.reduce((sum, item) => sum + getCartItemPricing(item).total, 0), [items]);
   const finalTotal = Math.max(0, total - (appliedCode?.discountAmount || 0));
+
+  useEffect(() => {
+    const paramsCoupon = new URLSearchParams(window.location.search).get("coupon");
+    const pendingCoupon = paramsCoupon || window.localStorage.getItem("joma.pendingCoupon");
+    if (!pendingCoupon) return;
+    setDiscountInput(pendingCoupon);
+    window.localStorage.removeItem("joma.pendingCoupon");
+  }, []);
   const deliveryDates = useMemo(() => buildDeliveryDates(deliverySchedule), [deliverySchedule]);
   const deliveryTimeRanges = useMemo(() => buildDeliveryTimeRanges(deliverySchedule), [deliverySchedule]);
 

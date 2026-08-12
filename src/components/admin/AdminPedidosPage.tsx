@@ -519,10 +519,11 @@ export function AdminPedidosPage() {
           </button>
           {topMenuOpen ? (
             <nav id="admin-main-menu" className="admin-main-menu" aria-label="Menú del administrador">
-              <button type="button" onClick={() => { setAdminView("users"); setTopMenuOpen(false); }}>Usuarios</button>
-              <button type="button" onClick={() => { setAdminView("configuration"); setTopMenuOpen(false); }}>Configuración</button>
-              <button type="button" onClick={() => { setAdminView("carousel"); setTopMenuOpen(false); }}>Editar carrusel</button>
-              <button type="button" onClick={() => setTopMenuOpen(false)}>Reportes</button>
+              <button type="button" className={adminView === "orders" ? "is-active" : ""} onClick={() => { setAdminView("orders"); setTopMenuOpen(false); }}>Pedidos</button>
+              <button type="button" className={adminView === "users" ? "is-active" : ""} onClick={() => { setAdminView("users"); setTopMenuOpen(false); }}>Usuarios</button>
+              <button type="button" className={adminView === "configuration" ? "is-active" : ""} onClick={() => { setAdminView("configuration"); setTopMenuOpen(false); }}>Configuración</button>
+              <button type="button" className={adminView === "carousel" ? "is-active" : ""} onClick={() => { setAdminView("carousel"); setTopMenuOpen(false); }}>Editar carrusel</button>
+              <button type="button" disabled>Reportes <small>Próximamente</small></button>
               <div className="admin-main-menu__separator" />
               <button
                 type="button"
@@ -536,12 +537,31 @@ export function AdminPedidosPage() {
           ) : null}
         </div>
         <button type="button" className="admin-topbar__center" onClick={() => setAdminView("orders")}>
-          <div className="admin-kicker admin-kicker--light">Admin pedidos</div>
-          <div className="admin-topbar__title">Centro de control</div>
+          <img src="/joma-express-white.png" alt="JOMA Express" width="776" height="329" />
+          <span>Admin</span>
         </button>
         <div className="admin-topbar__spacer" aria-hidden="true" />
       </div>
 
+      <aside className="admin-sidebar" aria-label="Navegación del administrador">
+        <button type="button" className="admin-sidebar__brand" onClick={() => setAdminView("orders")}>
+          <span>JOMA</span>
+          <small>Panel de tienda</small>
+        </button>
+        <nav className="admin-sidebar__nav">
+          <button type="button" className={adminView === "orders" ? "is-active" : ""} onClick={() => setAdminView("orders")}><span aria-hidden="true">▦</span><div><strong>Pedidos</strong><small>Gestión y estados</small></div></button>
+          <button type="button" className={adminView === "users" ? "is-active" : ""} onClick={() => setAdminView("users")}><span aria-hidden="true">◎</span><div><strong>Usuarios</strong><small>Accesos internos</small></div></button>
+          <button type="button" className={adminView === "configuration" ? "is-active" : ""} onClick={() => setAdminView("configuration")}><span aria-hidden="true">⚙</span><div><strong>Configuración</strong><small>Tienda y cupones</small></div></button>
+          <button type="button" className={adminView === "carousel" ? "is-active" : ""} onClick={() => setAdminView("carousel")}><span aria-hidden="true">▤</span><div><strong>Carrusel</strong><small>Imágenes destacadas</small></div></button>
+          <button type="button" disabled><span aria-hidden="true">↗</span><div><strong>Reportes</strong><small>Próximamente</small></div></button>
+        </nav>
+        <div className="admin-sidebar__footer">
+          <div><strong>{adminProfile.name}</strong><span>{user.email || "Administrador"}</span></div>
+          <button type="button" onClick={() => void handleAdminSignOut()} aria-label="Cerrar sesión"><LogoutIcon /></button>
+        </div>
+      </aside>
+
+      <div className="admin-content">
       {adminView === "users" ? <AdminUsersPanel /> : adminView === "configuration" && user ? <AdminStoreConfigPanel user={user} /> : adminView === "carousel" && user ? <AdminCarouselPanel user={user} /> : <>
       <section className="admin-card admin-overview overflow-hidden">
         <div className="admin-card__head">
@@ -627,14 +647,14 @@ export function AdminPedidosPage() {
                       className={selectedOrder?.id === order.id ? "is-active" : ""}
                       onClick={() => setSelectedId(order.id)}
                     >
-                      <td className="admin-order-row__date">{formatDateTime(orderMoment(order))}</td>
-                      <td className="admin-order-row__client">{order.cliente.nombre || "Sin nombre"}</td>
-                      <td className="admin-order-row__status">
+                      <td className="admin-order-row__date" data-label="Fecha">{formatDateTime(orderMoment(order))}</td>
+                      <td className="admin-order-row__client" data-label="Cliente">{order.cliente.nombre || "Sin nombre"}</td>
+                      <td className="admin-order-row__status" data-label="Estado">
                         <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusPill(order.status)}`}>
                           {statusLabel(order.status)}
                         </span>
                       </td>
-                      <td className="admin-order-row__total">{formatMoney(order.totals.total)}</td>
+                      <td className="admin-order-row__total" data-label="Total">{formatMoney(order.totals.total)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1021,6 +1041,7 @@ export function AdminPedidosPage() {
         </div>
       </section>
       </>}
+      </div>
     </main>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CatalogProvider, Category, Product } from "@/catalog/types";
 import { ProductCard } from "@/components/ProductCard";
 import { Icon, WhatsAppIcon } from "@/components/Icons";
+import { NotificationBell } from "@/components/NotificationBell";
 import { BUSINESS, navigateInStore, productIdFromPath, productPath, setDocumentMetadata, SITE_URL } from "@/lib/seo";
 import { useCartStore } from "@/store/cart";
 import { AnimatePresence, motion } from "framer-motion";
@@ -90,7 +91,7 @@ function PublicHeader({ showBack = false }: { showBack?: boolean }) {
         <a className="header-cart" href="/?view=cart" aria-label={`Abrir carrito. ${itemCount} productos`}><Icon name="cart"/>{itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}</a>
       </div>
     </header>
-    <div className={`search-dock ${showBack ? "has-back" : ""}`}>{showBack ? <button type="button" className="search-back-button" onClick={goBack} aria-label="Volver a la tienda"><Icon name="arrow"/></button> : null}<label className="top-search"><Icon name="search"/><input readOnly value="" onFocus={() => window.location.assign("/?view=search")} placeholder="¿Qué necesitás?" aria-label="Buscar productos"/><span/></label></div>
+    <div className={`search-dock ${showBack ? "has-back" : ""}`}>{showBack ? <button type="button" className="search-back-button" onClick={goBack} aria-label="Volver a la tienda"><Icon name="arrow"/></button> : null}<label className="top-search"><Icon name="search"/><input readOnly value="" onFocus={() => window.location.assign("/?view=search")} placeholder="¿Qué necesitás?" aria-label="Buscar productos"/><span/></label><NotificationBell onSearch={(value) => window.location.assign(`/?view=search&q=${encodeURIComponent(value)}`)} onOpenCatalog={() => window.location.assign("/?view=categories")} onOpenCart={() => window.location.assign("/?view=cart")} onOpenProduct={(id) => window.location.assign(`/producto/${encodeURIComponent(id)}`)} /></div>
         <AnimatePresence>{menuOpen ? <><motion.button type="button" className="drawer-scrim" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.nav className="header-menu" aria-label="Menú principal" initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ duration: .24, ease: [0.22, 1, 0.36, 1] }}><div className="drawer-head"><button type="button" className="drawer-close" onClick={() => setMenuOpen(false)} aria-label="Cerrar menú"><Icon name="close"/></button><img src="/joma-express-white.png" alt="Joma Group" width="776" height="329"/></div><div className="drawer-content"><a className="drawer-public-link" href="/?view=profile"><Icon name="user"/><span><strong>Perfil</strong><small>Mis datos y dirección</small></span></a><hr/><a className="drawer-public-link" href="/?view=categories"><Icon name="grid"/><span><strong>Categorías</strong><small>Explorar productos</small></span></a></div></motion.nav></> : null}</AnimatePresence>
   </div>;
 }

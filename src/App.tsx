@@ -16,6 +16,7 @@ import { ProfileView } from "@/components/ProfileView";
 import { BusinessPage } from "@/components/BusinessPage";
 import { AuthWelcome } from "@/components/AuthWelcome";
 import { PublicRoutePage } from "@/components/PublicRoutePage";
+import { NotificationBell } from "@/components/NotificationBell";
 import {
   StoreCreditBar,
   StoreInfoFooter,
@@ -756,6 +757,14 @@ function StoreApp({
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const requestedSearch = new URLSearchParams(window.location.search).get("q")?.trim();
+    if (requestedSearch) {
+      setQuery(requestedSearch);
+      setTab("search");
+    }
+  }, []);
   const pendingStoreRefresh = useRef(false);
   const activeScreen = useRef(
     `${initialTab}:${initialCategoryId}:${initialInfo}`,
@@ -1228,6 +1237,12 @@ function StoreApp({
             />
             {query ? <button type="button" className="search-clear-button" onMouseDown={(event) => event.preventDefault()} onClick={() => { setQuery(""); setSearchResults([]); setSearchError(""); requestAnimationFrame(() => searchRef.current?.focus()); }} aria-label="Borrar búsqueda"><Icon name="close" /></button> : <span className={searchLoading ? "tiny-spinner" : ""} />}
           </div>
+          <NotificationBell
+            onSearch={(value) => { setQuery(value); goTo("search"); }}
+            onOpenCatalog={() => goTo("categories")}
+            onOpenCart={() => goTo("cart")}
+            onOpenProduct={(productId) => window.location.assign(`/producto/${encodeURIComponent(productId)}`)}
+          />
         </div>
         <AnimatePresence>
           {menuOpen ? (

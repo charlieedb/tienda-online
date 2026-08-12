@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, serverTimestamp } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, serverTimestamp, where } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import { refreshUserProfile } from "@/lib/userProfile";
 import type { Product } from "@/lib/products";
@@ -15,6 +15,9 @@ export type DiscountCode = {
   usageLimit: number;
   usageCount: number;
   audience?: "all" | "business";
+  perUserLimit?: number;
+  source?: "manual" | "notification";
+  campaignId?: string;
 };
 
 export type DiscountCodeUsage = {
@@ -64,6 +67,9 @@ function normalizeCodes(value: unknown): DiscountCode[] {
       usageLimit: Math.max(0, Math.trunc(Number(item.usageLimit) || 0)),
       usageCount: Math.max(0, Math.trunc(Number(item.usageCount) || 0)),
       audience: item.audience === "business" ? "business" : "all",
+      perUserLimit: Math.max(0, Math.trunc(Number(item.perUserLimit) || 0)),
+      source: item.source === "notification" ? "notification" : "manual",
+      campaignId: String(item.campaignId ?? "").trim(),
     }];
   });
 }
@@ -180,6 +186,18 @@ export async function validateDiscountCode(
   if (match.validFrom && today < match.validFrom) throw new Error("Este código todavía no está vigente.");
   if (match.validUntil && today > match.validUntil) throw new Error("Este código está vencido.");
   if (match.usageLimit > 0 && match.usageCount >= match.usageLimit) throw new Error("Este código alcanzó su límite de usos.");
+  if (match.perUserLimit && match.perUserLimit > 0) {
+    if (!customerUid) throw new Error("Iniciá sesión para usar este código.");
+    const db = getDb();
+    if (!db) throw new Error("Firebase no está configurado.");
+    const usages = await getDocs(query(
+      collection(db, "discountCodeUsages"),
+      where("code", "==", match.code),
+      where("customerUid", "==", customerUid),
+      limit(match.perUserLimit),
+    ));
+    if (usages.size >= match.perUserLimit) throw new Error("Ya alcanzaste el límite de usos de este cupón.");
+  }
   const result = calculateDiscount(match, items, productsById);
   if (!result.eligibleItemIds.length) {
     throw new Error("Este carrito no tiene productos sin promoción para aplicar el descuento.");
