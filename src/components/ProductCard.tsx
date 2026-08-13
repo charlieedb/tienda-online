@@ -157,6 +157,12 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
           ? <small className={`unit-price-final ${packHasPromo ? "is-promo" : ""}`}>Pr. Unit. Final: <b>{money.format(packUnitPriceFinal)}</b></small>
           : option.discountPct ? <small>Ahorrás {Math.round(option.discountPct)}%</small> : null}
       </div></> : null}
+      {!detailCompact && product.offer && Number(product.offerMaxUnits || 0) > 0 ? (
+        <div className="product-offer-limit" role="note">
+          <span aria-hidden="true">ⓘ</span>
+          <strong>Máximo con oferta: {Math.trunc(Number(product.offerMaxUnits))} unidades por cliente por día</strong>
+        </div>
+      ) : null}
       {product.pack ? <div className="variant-switch" role="group" aria-label={`Presentación de ${product.name}`}>
         <button type="button" className={variant === "unit" ? "is-active" : ""} onClick={() => setVariant("unit")} aria-pressed={variant === "unit"}>Unidad</button>
         <button type="button" className={variant === "pack" ? "is-active" : ""} onClick={() => setVariant("pack")} aria-pressed={variant === "pack"}>Caja</button>

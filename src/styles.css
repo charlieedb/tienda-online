@@ -455,6 +455,20 @@ main.has-mini-cart { padding-bottom: 72px; }
 .product-price small.unit-price-final { color: #302923; font-weight: 400; }
 .product-price small.unit-price-final b { font-size: 11px; font-weight: 850; }
 .product-price small.unit-price-final.is-promo { color: #16834b; }
+.product-offer-limit {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 9px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: #fff4d8;
+  color: #6b4708;
+  font-size: 10px;
+  line-height: 1.3;
+}
+.product-offer-limit span { flex: none; font-size: 12px; line-height: 1.1; }
+.product-offer-limit strong { font-size: inherit; font-weight: 800; }
 .variant-switch { position: relative; display: grid; grid-template-columns: 1fr 1fr; min-height: 34px; padding: 3px; background: var(--soft); border-radius: 11px; }
 .variant-switch button { min-width: 0; border: 0; border-radius: 8px; background: transparent; color: #777169; font-size: 10px; font-weight: 800; cursor: pointer; transition: color .18s ease, background-color .18s ease, box-shadow .18s ease; }
 .variant-switch button.is-active { color: #052e16; background: #4ade80; box-shadow: 0 0 0 2px rgba(22, 163, 74, .2); }
