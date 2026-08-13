@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   getCachedUserProfile,
@@ -63,6 +64,17 @@ export function BusinessPage({ onLogin, onBackToStore }: { onLogin: (mode?: "log
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fieldErrors = getBusinessErrors(business);
+
+  useEffect(() => {
+    if (!confirmingDelete) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !deleting) setConfirmingDelete(false);
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", closeOnEscape); };
+  }, [confirmingDelete, deleting]);
 
   useEffect(() => {
     if (!user) {
@@ -206,7 +218,6 @@ export function BusinessPage({ onLogin, onBackToStore }: { onLogin: (mode?: "log
         <button type="button" className="business-edit-link" onClick={() => { setEditing(true); setSaved(false); setSubmitted(false); setTouched({}); }}>Editar mi comercio</button>
         <button type="button" className="business-delete-link" onClick={() => setConfirmingDelete(true)}>Eliminar comercio</button>
       </div>
-      {confirmingDelete ? <div className="business-delete-confirm" role="alert"><div><strong>¿Eliminar este comercio?</strong><p>Tu cuenta y tus pedidos se conservan. Podrás registrar otro comercio más adelante.</p></div><div><button type="button" className="business-delete-cancel" disabled={deleting} onClick={() => setConfirmingDelete(false)}>Conservar comercio</button><button type="button" className="business-delete-confirm-button" disabled={deleting} onClick={() => void removeBusiness()}>{deleting ? <><span className="drawer-action-spinner" aria-hidden="true"/> Eliminando…</> : "Eliminar comercio"}</button></div></div> : null}
       {error ? <div className="checkout-error" role="alert">{error}</div> : null}
     </motion.section> : <form className="business-form" onSubmit={save} noValidate>
       <div className="business-form-heading"><div><strong>{business.fantasyName ? "Datos de tu comercio" : "Registrá tu comercio"}</strong><p>Los campos con * son obligatorios.</p></div>{saved ? <span><Icon name="check" /> Comercio registrado</span> : null}</div>
@@ -225,5 +236,6 @@ export function BusinessPage({ onLogin, onBackToStore }: { onLogin: (mode?: "log
       <button className={`business-save ${saved ? "is-saved" : ""}`} type="submit" disabled={saving}>{saving ? "Guardando…" : saved ? "Datos guardados" : hasRegisteredBusiness ? "Guardar cambios" : user ? "Registrar mi comercio" : "Continuar y crear mi cuenta"}</button>
       {hasRegisteredBusiness ? <button className="business-edit-cancel" type="button" onClick={() => { setEditing(false); setError(""); }}>Cancelar edición</button> : null}
     </form>}
+    {typeof document !== "undefined" ? createPortal(<AnimatePresence>{confirmingDelete ? <motion.div className="business-delete-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) setConfirmingDelete(false); }}><motion.div className="business-delete-dialog" role="alertdialog" aria-modal="true" aria-labelledby="business-delete-title" aria-describedby="business-delete-description" initial={{ opacity: 0, y: 18, scale: .96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: .98 }} transition={{ duration: .2, ease: [0.22, 1, 0.36, 1] }}><div className="business-delete-icon"><Icon name="trash" /></div><div className="business-delete-copy"><span>Acción permanente</span><h2 id="business-delete-title">¿Eliminar este comercio?</h2><p id="business-delete-description">Se quitarán los datos comerciales de tu perfil. Tu cuenta y tus pedidos se conservan, y podrás registrar otro comercio más adelante.</p></div><div className="business-delete-dialog-actions"><button type="button" className="business-delete-cancel" disabled={deleting} autoFocus onClick={() => setConfirmingDelete(false)}>Conservar comercio</button><button type="button" className="business-delete-confirm-button" disabled={deleting} onClick={() => void removeBusiness()}>{deleting ? <><span className="business-delete-spinner" aria-hidden="true"/> Eliminando…</> : <><Icon name="trash" /> Eliminar comercio</>}</button></div></motion.div></motion.div> : null}</AnimatePresence>, document.body) : null}
   </section>;
 }
