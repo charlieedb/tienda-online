@@ -1,12 +1,13 @@
 import type { ImgHTMLAttributes, SVGProps } from "react";
 
-type IconName = "home" | "grid" | "menu" | "store" | "close" | "logout" | "search" | "bell" | "cart" | "arrow" | "minus" | "plus" | "trash" | "refresh" | "spark" | "user" | "check";
+type IconName = "home" | "grid" | "menu" | "store" | "ticket" | "close" | "logout" | "search" | "bell" | "cart" | "arrow" | "minus" | "plus" | "trash" | "refresh" | "spark" | "user" | "check";
 
 const paths: Record<IconName, React.ReactNode> = {
   home: <><path d="m3 10.8 9-7.2 9 7.2"/><path d="M5 9.8V21h14V9.8M9 21v-7h6v7"/></>,
   grid: <><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
   menu: <><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></>,
   store: <><path d="M4 10v10h16V10"/><path d="M3 10 5 4h14l2 6"/><path d="M3 10a3 3 0 0 0 5 0 3 3 0 0 0 5 0 3 3 0 0 0 5 0 3 3 0 0 0 3-3"/><path d="M9 20v-5h6v5"/></>,
+  ticket: <><path d="M3 8.5A2.5 2.5 0 0 0 5.5 6H21v4a2 2 0 0 0 0 4v4H5.5A2.5 2.5 0 0 0 3 15.5v-7Z"/><path d="M14 9.5h.01M10 14.5h.01M9.5 15l5-6"/></>,
   close: <><path d="m6 6 12 12"/><path d="M18 6 6 18"/></>,
   logout: <><path d="M10 5H5v14h5"/><path d="M14 8l4 4-4 4"/><path d="M9 12h9"/></>,
   search: <><circle cx="11" cy="11" r="7"/><path d="m16.2 16.2 4.3 4.3"/></>,

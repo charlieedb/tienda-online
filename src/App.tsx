@@ -15,6 +15,7 @@ import { Icon, WhatsAppIcon } from "@/components/Icons";
 import { ProductCard } from "@/components/ProductCard";
 import { ProfileView } from "@/components/ProfileView";
 import { BusinessPage } from "@/components/BusinessPage";
+import { MyCouponsPage } from "@/components/MyCouponsPage";
 import { AuthWelcome } from "@/components/AuthWelcome";
 import { PublicRoutePage } from "@/components/PublicRoutePage";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -35,7 +36,7 @@ import {
 import { calculateDiscount, validateDiscountCode } from "@/lib/discountCodes";
 import { getActiveCatalog, type Product as DiscountProduct } from "@/lib/products";
 
-type Tab = "home" | "categories" | "search" | "cart" | "profile" | "business" | "info";
+type Tab = "home" | "categories" | "search" | "cart" | "profile" | "business" | "coupons" | "info";
 type InfoPage = StoreInfoPageKey;
 const money = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -1349,6 +1350,11 @@ function StoreApp({
                     </span>
                     <Icon name="arrow" />
                   </button>
+                  <button type="button" onClick={() => goTo("coupons")}>
+                    <Icon name="ticket" />
+                    <span><strong>Mis cupones</strong><small>Ver beneficios vigentes</small></span>
+                    <Icon name="arrow" />
+                  </button>
                   <a className="drawer-public-link drawer-whatsapp-link" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
                     <WhatsAppIcon className="drawer-whatsapp-icon" />
                     <span>
@@ -1624,6 +1630,7 @@ function StoreApp({
                 <BusinessPage onLogin={onRequestBusinessLogin} onBackToStore={() => goTo("home")} />
               </motion.div>
             ) : null}
+            {tab === "coupons" ? <motion.div className="view" key="coupons" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><MyCouponsPage onLogin={() => onRequestLogin("login")} onUse={(code) => { window.localStorage.setItem("joma.pendingCoupon", code); goTo("cart"); }} /></motion.div> : null}
             {tab === "info" ? (
               <motion.div
                 className="view"
@@ -1637,7 +1644,7 @@ function StoreApp({
             ) : null}
           </AnimatePresence>
         </main>
-        {tab !== "cart" && tab !== "business" ? <DesktopCartRail onOpenCart={() => goTo("cart")} /> : null}
+        {tab !== "cart" && tab !== "business" && tab !== "coupons" ? <DesktopCartRail onOpenCart={() => goTo("cart")} /> : null}
       </div>
 
       {tab === "home" ? <StoreInfoFooter onSelect={openInfo} /> : null}
@@ -1753,6 +1760,8 @@ export function App() {
                   ? "profile"
                   : params.get("view") === "business"
                     ? "business"
+                  : params.get("view") === "coupons"
+                    ? "coupons"
                   : params.get("view") === "categories"
                     ? "categories"
                     : "home"

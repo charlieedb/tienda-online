@@ -16,8 +16,11 @@ export type DiscountCode = {
   usageCount: number;
   audience?: "all" | "business";
   perUserLimit?: number;
-  source?: "manual" | "notification";
+  source?: "manual" | "notification" | "business_welcome";
   campaignId?: string;
+  ownerUid?: string;
+  ownerUsername?: string;
+  ownerEmail?: string;
 };
 
 export type DiscountCodeUsage = {
@@ -68,8 +71,11 @@ function normalizeCodes(value: unknown): DiscountCode[] {
       usageCount: Math.max(0, Math.trunc(Number(item.usageCount) || 0)),
       audience: item.audience === "business" ? "business" : "all",
       perUserLimit: Math.max(0, Math.trunc(Number(item.perUserLimit) || 0)),
-      source: item.source === "notification" ? "notification" : "manual",
+      source: item.source === "notification" ? "notification" : item.source === "business_welcome" ? "business_welcome" : "manual",
       campaignId: String(item.campaignId ?? "").trim(),
+      ownerUid: String(item.ownerUid ?? "").trim(),
+      ownerUsername: String(item.ownerUsername ?? "").trim(),
+      ownerEmail: String(item.ownerEmail ?? "").trim(),
     }];
   });
 }
@@ -181,6 +187,7 @@ export async function validateDiscountCode(
   if (!code) throw new Error("Ingresá un código de descuento.");
   const match = (await getDiscountCodes()).find((item) => item.active && item.code === code);
   if (!match) throw new Error("El código no existe o ya no está activo.");
+  if (match.ownerUid && match.ownerUid !== customerUid) throw new Error("Este cupón pertenece a otra cuenta.");
   if (match.audience === "business") {
     if (!customerUid) throw new Error("Iniciá sesión con tu cuenta comercial para usar este código.");
     const profile = await refreshUserProfile(customerUid);

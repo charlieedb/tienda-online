@@ -91,3 +91,13 @@ export async function getActiveNotifications(maxResults = 100) {
     }];
   }).sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso));
 }
+
+export async function getUserNotifications(uid: string, maxResults = 30) {
+  const db = getDb();
+  if (!db || !uid) return [];
+  const snapshot = await getDocs(query(collection(db, "userNotifications", uid, "items"), limit(Math.max(1, Math.min(50, maxResults)))));
+  return snapshot.docs.map((entry) => {
+    const item = entry.data() as Record<string, unknown>;
+    return { id: `personal-${entry.id}`, title: String(item.title ?? ""), body: String(item.body ?? ""), bodyText: String(item.bodyText ?? ""), audience: "business" as const, action: (item.action === "coupon" ? "coupon" : "none") as NotificationAction, target: String(item.target ?? ""), status: "sent" as const, scheduledAt: "", expiresAt: "", createdAtIso: String(item.createdAtIso ?? "") };
+  }).sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso));
+}

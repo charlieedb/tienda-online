@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/Icons";
-import { getActiveNotifications, sanitizeNotificationHtml, type NotificationCampaign } from "@/lib/notifications";
+import { getActiveNotifications, getUserNotifications, sanitizeNotificationHtml, type NotificationCampaign } from "@/lib/notifications";
 import { enablePushNotifications } from "@/lib/pushNotifications";
 import { useAuth } from "@/auth/AuthProvider";
 
@@ -87,7 +87,7 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
   }, []);
 
   useEffect(() => {
-    void getStoredPushNotifications().then((items) => {
+    void Promise.all([getStoredPushNotifications(), user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([])]).then(([storedItems, personalItems]) => {
       const readIds = getReadNotificationIds();
       const isLocalPreview = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
       if (isLocalPreview && !window.sessionStorage.getItem("joma.localPreviewSeededV2")) {
@@ -95,13 +95,12 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
         window.localStorage.setItem("joma.readNotifications", JSON.stringify([...readIds]));
         window.sessionStorage.setItem("joma.localPreviewSeededV2", "1");
       }
-      const visibleItems = isLocalPreview && !items.some((item) => item.id === LOCAL_PREVIEW_NOTIFICATION.id)
-        ? [LOCAL_PREVIEW_NOTIFICATION, ...items]
-        : items;
+      const items = [...personalItems, ...storedItems];
+      const visibleItems = isLocalPreview && !items.some((item) => item.id === LOCAL_PREVIEW_NOTIFICATION.id) ? [LOCAL_PREVIEW_NOTIFICATION, ...items] : items;
       if (visibleItems.length) setNotifications(visibleItems);
       setUnreadCount(visibleItems.filter((item) => !readIds.has(item.id)).length);
     });
-  }, []);
+  }, [user]);
 
   const markAsRead = (notificationId: string) => {
     const readIds = getReadNotificationIds();
@@ -116,10 +115,10 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
     if (!nextOpen || loaded) return;
     setLoading(true);
     try {
-      const [remoteItems, storedItems] = await Promise.all([getActiveNotifications().catch(() => []), getStoredPushNotifications()]);
+      const [remoteItems, personalItems, storedItems] = await Promise.all([getActiveNotifications().catch(() => []), user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([]), getStoredPushNotifications()]);
       const isLocalPreview = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
       const localItems = isLocalPreview ? [LOCAL_PREVIEW_NOTIFICATION] : [];
-      const items = [...localItems, ...storedItems, ...remoteItems.filter((item) => !storedItems.some((stored) => stored.id === item.id))]
+      const items = [...localItems, ...personalItems, ...storedItems, ...remoteItems.filter((item) => !storedItems.some((stored) => stored.id === item.id))]
         .filter((item) => !item.expiresAt || item.expiresAt >= new Date().toISOString())
         .sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso));
       const readIds = getReadNotificationIds();
