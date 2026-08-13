@@ -1352,7 +1352,7 @@ function StoreApp({
                   <a className="drawer-public-link drawer-whatsapp-link" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
                     <WhatsAppIcon className="drawer-whatsapp-icon" />
                     <span>
-                      <strong>Consultas por WhatsApp</strong>
+                      <strong>Consultas</strong>
                       <small>Escribinos y te ayudamos</small>
                     </span>
                     <Icon name="arrow" />
