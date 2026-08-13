@@ -11,6 +11,7 @@ export type TelegramOrderItem = {
   cantidadUnidades: number;
   cantidadCajas: number;
   unidadesPorCaja: number;
+  pricingGroup?: "offer" | "regular" | "";
   promoCaja?: {
     unidadesConPromo: number;
     unidadesPrecioLista: number;
@@ -124,9 +125,23 @@ function buildLegacyLine(item: TelegramOrderItem) {
     linea += ` (${codigoOriginal})`;
   }
 
+  if (item.pricingGroup === "offer") {
+    linea += " · <b>CON OFERTA</b>";
+  } else if (item.pricingGroup === "regular") {
+    linea += Number(item.descuentoCodigoPct || 0) > 0
+      ? " · <b>PRECIO NORMAL + CUPÓN</b>"
+      : " · <b>PRECIO NORMAL</b>";
+  }
+
   const discountText = formatDiscount(descuento);
   if (discountText) {
     linea += ` <i>- (${escapeHtml(discountText)}%)</i>`;
+  }
+
+  if (Number(item.precioFinal || 0) > 0) {
+    const unit = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(Number(item.precioFinal));
+    const subtotal = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(Number(item.subtotal || 0));
+    linea += ` · ${escapeHtml(unit)} c/u · <b>${escapeHtml(subtotal)}</b>`;
   }
 
   return linea;
@@ -190,6 +205,7 @@ export function buildTelegramOrderMessage(payload: TelegramOrderPayload) {
   if (mapsUrl) {
     mensaje += `\n📍 <a href="${mapsUrl}">Abrir ubicación en Google Maps</a>`;
   }
+  mensaje += `\n\n💰 <b>Total: ${escapeHtml(new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(Number(payload.totals?.total || 0)))}</b>`;
 
   return mensaje.trim();
 }

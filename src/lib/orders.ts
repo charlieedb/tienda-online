@@ -27,6 +27,7 @@ export type OrderItem = {
   descuentoPct: number;
   descuentoProductoPct?: number;
   descuentoCodigoPct?: number;
+  descuentoCodigoMonto?: number;
   precioFinal: number;
   cantidadUnidades: number;
   cantidadCajas: number;
@@ -41,6 +42,7 @@ export type OrderItem = {
   } | null;
   precioUnitarioBase?: number;
   variantLabel?: string;
+  pricingGroup?: "offer" | "regular" | "";
 };
 
 export type OrderRecord = {
@@ -213,6 +215,7 @@ function mapOrder(
           descuentoPct: asNumber(item?.descuentoPct),
           descuentoProductoPct: asNumber(item?.descuentoProductoPct),
           descuentoCodigoPct: asNumber(item?.descuentoCodigoPct),
+          descuentoCodigoMonto: asNumber(item?.descuentoCodigoMonto),
           precioFinal: asNumber(item?.precioFinal),
           cantidadUnidades: asNumber(item?.cantidadUnidades),
           cantidadCajas: asNumber(item?.cantidadCajas),
@@ -227,6 +230,7 @@ function mapOrder(
           } : null,
           precioUnitarioBase: asNumber(item?.precioUnitarioBase),
           variantLabel: asString(item?.variantLabel),
+          pricingGroup: (["offer", "regular"].includes(asString(item?.pricingGroup)) ? asString(item?.pricingGroup) : "") as "offer" | "regular" | "",
         }))
       : [],
     totals: {

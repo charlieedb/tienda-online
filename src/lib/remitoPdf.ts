@@ -122,6 +122,23 @@ export async function generateOrderRemitoPdf(params: {
     const unidadesSueltas = Math.min(unidades - unidadesPromo, Math.max(0, Number(item.promoCaja?.unidadesPrecioLista || 0)));
     const precioPromoCaja = Number(item.promoCaja?.precioUnitarioPromo || 0);
 
+    if (item.pricingGroup === "offer" || item.pricingGroup === "regular") {
+      const esOferta = item.pricingGroup === "offer";
+      const descuento = Number(item.descuentoPct || 0);
+      const detalle = esOferta
+        ? `${item.nombre} - Con oferta`
+        : `${item.nombre} - Precio normal${Number(item.descuentoCodigoPct || 0) > 0 ? " (Cupón)" : ""}`;
+      return [[
+        cajasFormato.format(unidadesPorCaja > 0 ? unidades / unidadesPorCaja : item.cantidadCajas || 0),
+        unidades,
+        detalle,
+        fmtMoneyAR(precioUnitarioBase),
+        `${Math.round(descuento * 100) / 100}%`,
+        fmtMoneyAR(item.precioFinal),
+        fmtMoneyAR(item.subtotal),
+      ]];
+    }
+
     if (unidadesPromo > 0) {
       const descuentoPromo = precioUnitarioBase > 0 && precioPromoCaja > 0
         ? Math.max(0, (1 - precioPromoCaja / precioUnitarioBase) * 100)

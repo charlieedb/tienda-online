@@ -529,6 +529,116 @@ main.has-mini-cart { padding-bottom: 72px; }
 .cart-item-price-row del { color: #7a746e; font-size: 10px; font-weight: 650; }
 .cart-item-price-row.is-coupon { background: #e5f6ec; }
 .cart-item-price-row.is-coupon > span:first-child, .cart-item-price-row.is-coupon b { color: #0f6b45; }
+
+.cart-price-breakdown {
+  display: grid;
+  flex: 1 1 240px;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 8px;
+}
+
+.cart-price-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.cart-price-line > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cart-price-line strong,
+.cart-price-line b,
+.cart-price-line span {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.cart-price-line strong {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.cart-price-line span {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.cart-price-line b {
+  flex: none;
+  font-size: 14px;
+  text-align: right;
+}
+
+.cart-price-line--offer {
+  background: #fff0c9;
+  color: #6b4708;
+}
+
+.cart-price-line--offer span {
+  color: #765d2f;
+}
+
+.cart-price-line--regular {
+  background: #eaf5fb;
+  color: #194f68;
+}
+
+.cart-price-line--regular span {
+  color: #416b7f;
+}
+
+.cart-price-line--coupon {
+  background: #e5f6ec;
+  color: #0f6b45;
+}
+
+.cart-price-line--coupon span {
+  color: #39785d;
+}
+
+.cart-price-quota-note {
+  margin: 1px 0 0;
+  color: #795612;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.cart-price-subtotal {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(29, 53, 87, 0.12);
+}
+
+.cart-price-subtotal span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.cart-price-subtotal strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 560px) {
+  .cart-price-breakdown {
+    flex-basis: 100%;
+    width: 100%;
+  }
+}
 .cart-item.has-coupon-discount { border-color: #a5d9bd; background: #f4fbf7; }
 .cart-item-actions { display: grid; justify-items: end; gap: 3px; }
 .stepper.compact { min-height: 38px; grid-template-columns: 38px 34px 38px; margin: 0; }

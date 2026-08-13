@@ -147,12 +147,12 @@ export function calculateDiscount(
   const eligibleSubtotalByItem: Record<string, number> = Object.fromEntries(items.flatMap((item) => {
     const product = productsById.get(item.productId);
     const pricing = pricingByItem.get(item.id)!;
-    if (product?.offerAllowCoupons === true || item.offerAllowCoupons === true) {
-      return pricing.total > 0 ? [[item.id, pricing.total]] : [];
-    }
     if (pricing.promoUnits > 0) {
-      const looseSubtotal = pricing.regularUnits * Math.max(0, Number(item.price) || 0);
-      return looseSubtotal > 0 ? [[item.id, looseSubtotal]] : [];
+      const allowsCoupons = product?.offerAllowCoupons === true || item.offerAllowCoupons === true;
+      return allowsCoupons && pricing.regularSubtotal > 0 ? [[item.id, pricing.regularSubtotal]] : [];
+    }
+    if (product?.offerAllowCoupons === true || item.offerAllowCoupons === true) {
+      return pricing.regularSubtotal > 0 ? [[item.id, pricing.regularSubtotal]] : [];
     }
     const hasExistingDiscount = Number(item.discountPct || 0) > 0 ||
       (Number(item.listPrice || 0) > Number(item.price || 0));

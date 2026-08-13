@@ -82,62 +82,70 @@ export async function submitCheckoutOrder(params: {
     : null;
   const pricingByItem = getCartPricingMap(effectiveCartItems);
 
-  const items = effectiveCartItems.map((item) => {
+  const items = effectiveCartItems.flatMap((item) => {
     const product = params.productsById.get(item.productId);
     const unitPrice = Number(product?.unit?.price || item.unitPriceFinal || (item.variant === "unit" ? item.price : 0) || 0);
     const packPrice = Number(product?.pack?.price || (item.variant === "pack" ? item.price : 0) || 0);
     const unidadesPorCaja = Number(product?.pack?.qty || item.unitsPerPack || 0);
     const descuentoPct = Number(item.discountPct || (product?.offer ? product.offerDiscount : 0) || 0);
-    const qty = Number(item.qty || 0);
-    const cantidadCajas = item.variant === "pack" ? qty : 0;
-    const cantidadUnidades =
-      item.variant === "pack"
-        ? qty * Math.max(1, unidadesPorCaja || 1)
-        : qty;
     const precioListaCaja = Number(item.listPrice || (item.variant === "pack" ? packPrice : unitPrice) || item.price);
-    const precioFinalCaja = Number(item.price || 0);
     const divisor = item.variant === "pack" ? Math.max(1, unidadesPorCaja || 1) : 1;
     const precioLista = roundMoney(precioListaCaja / divisor);
     const mixedPricing = pricingByItem.get(item.id)!;
-    const subtotalSinCupon = mixedPricing.total;
-    const couponEligibleSubtotal = Math.min(
-      subtotalSinCupon,
-      Math.max(0, Number(effectiveDiscountCode?.eligibleSubtotalByItem?.[item.id]) || 0),
-    );
+    const couponEligibleSubtotal = Math.min(mixedPricing.regularSubtotal, Math.max(0, Number(effectiveDiscountCode?.eligibleSubtotalByItem?.[item.id]) || 0));
     const couponPercentage = couponEligibleSubtotal > 0 ? Number(effectiveDiscountCode?.percentage || 0) : 0;
     const couponDiscountAmount = roundMoney(couponEligibleSubtotal * couponPercentage / 100);
-    const subtotal = roundMoney(subtotalSinCupon - couponDiscountAmount);
-    const precioFinal = roundMoney(subtotal / Math.max(1, cantidadUnidades));
-    const effectiveProductDiscount = precioLista > 0
-      ? Math.max(0, roundMoney((1 - (subtotalSinCupon / Math.max(1, cantidadUnidades)) / precioLista) * 100))
-      : descuentoPct;
-
-    return {
+    const base = {
       codigo: String(product?.id || item.productId || "").trim(),
       nombre: String(product?.name || item.name || "").trim(),
       precioLista,
-      descuentoPct: effectiveProductDiscount || couponPercentage,
-      descuentoProductoPct: effectiveProductDiscount,
-      descuentoCodigoPct: couponPercentage,
-      descuentoCodigoMonto: couponDiscountAmount,
-      precioFinal,
-      cantidadUnidades,
-      cantidadCajas,
-      subtotal,
-      presentacion:
-        item.variant === "pack"
-          ? String(product?.pack?.label || `Caja x${unidadesPorCaja || 1}`).trim()
-          : String(product?.unit?.label || "Unidad").trim(),
       unidadesPorCaja: unidadesPorCaja || Number(item.promoPackQty || 0) || 0,
-      precioUnitarioBase: roundMoney(unitPrice || precioLista || precioFinal),
+      precioUnitarioBase: precioLista,
       variantLabel: item.variant === "pack" ? "Caja" : "Unidad",
-      promoCaja: mixedPricing.promoUnits > 0 ? {
-        unidadesConPromo: mixedPricing.promoUnits,
-        unidadesPrecioLista: mixedPricing.regularUnits,
-        precioUnitarioPromo: item.promoPackUnitPrice,
-        unidadesPorCaja: item.promoPackQty,
-      } : null,
     };
+    const lines = [];
+    if (mixedPricing.promoUnits > 0) {
+      const promoUnitPrice = roundMoney(mixedPricing.promoSubtotal / mixedPricing.promoUnits);
+      const productDiscount = precioLista > 0 ? Math.max(0, roundMoney((1 - promoUnitPrice / precioLista) * 100)) : descuentoPct;
+      lines.push({
+        ...base,
+        descuentoPct: productDiscount,
+        descuentoProductoPct: productDiscount,
+        descuentoCodigoPct: 0,
+        descuentoCodigoMonto: 0,
+        precioFinal: promoUnitPrice,
+        cantidadUnidades: mixedPricing.promoUnits,
+        cantidadCajas: item.variant === "pack" ? mixedPricing.promoUnits / Math.max(1, unidadesPorCaja) : 0,
+        subtotal: roundMoney(mixedPricing.promoSubtotal),
+        presentacion: `${item.variant === "pack" ? product?.pack?.label || item.label : product?.unit?.label || item.label} · Con oferta`,
+        pricingGroup: "offer" as const,
+        promoCaja: {
+          unidadesConPromo: mixedPricing.promoUnits,
+          unidadesPrecioLista: 0,
+          precioUnitarioPromo: promoUnitPrice,
+          unidadesPorCaja: unidadesPorCaja || Number(item.promoPackQty || 1),
+        },
+      });
+    }
+    if (mixedPricing.regularUnits > 0) {
+      const regularSubtotal = roundMoney(mixedPricing.regularSubtotal - couponDiscountAmount);
+      const regularUnitPrice = roundMoney(regularSubtotal / mixedPricing.regularUnits);
+      lines.push({
+        ...base,
+        descuentoPct: couponPercentage,
+        descuentoProductoPct: 0,
+        descuentoCodigoPct: couponPercentage,
+        descuentoCodigoMonto: couponDiscountAmount,
+        precioFinal: regularUnitPrice,
+        cantidadUnidades: mixedPricing.regularUnits,
+        cantidadCajas: item.variant === "pack" ? mixedPricing.regularUnits / Math.max(1, unidadesPorCaja) : 0,
+        subtotal: regularSubtotal,
+        presentacion: `${item.variant === "pack" ? product?.pack?.label || item.label : product?.unit?.label || item.label} · Precio normal${couponPercentage ? " + cupón" : ""}`,
+        pricingGroup: "regular" as const,
+        promoCaja: null,
+      });
+    }
+    return lines;
   });
 
   const metrics = items.reduce(
@@ -262,6 +270,7 @@ export async function submitCheckoutOrder(params: {
       cantidadUnidades: item.cantidadUnidades,
       cantidadCajas: item.cantidadCajas,
       unidadesPorCaja: item.unidadesPorCaja,
+      pricingGroup: item.pricingGroup,
       promoCaja: item.promoCaja ? {
         unidadesConPromo: item.promoCaja.unidadesConPromo,
         unidadesPrecioLista: item.promoCaja.unidadesPrecioLista,
