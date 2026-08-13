@@ -131,6 +131,10 @@ img { display: block; max-width: 100%; }
 .header-cart b { position: absolute; right: -4px; top: -4px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; color: var(--brand-dark); border: 2px solid #c81b16; border-radius: 999px; background: white; font-size: 8px; }
 .app-header__actions { justify-self: end; display: flex; align-items: center; gap: 6px; }
 .header-action-label { display: none; }
+.business-header-button,
+.business-header-button.is-active { background: transparent; box-shadow: none; }
+.business-header-button:hover { color: white; background: transparent; transform: translateY(-1px) scale(1.04); }
+.business-header-button:active { transform: scale(.96); }
 .header-whatsapp { color: white; background: transparent; text-decoration: none; box-shadow: none; }
 .header-whatsapp img { width: 36px; height: 36px; object-fit: contain; }
 .header-whatsapp:hover { color: white; background: transparent; transform: translateY(-1px) scale(1.04); }
@@ -150,7 +154,7 @@ img { display: block; max-width: 100%; }
   .header-cart b { right: 6px; top: -4px; }
   .brand-lockup { width: 150px; }
   .brand-lockup img { width: 122px; }
-  .search-dock { max-width: 1080px; }
+  .top-shell .search-dock { max-width: 1080px; }
 }
 .search-dock { width: 100%; height: 60px; display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 8px; max-width: 760px; margin: auto; padding: 7px var(--gutter) 9px; box-sizing: border-box; background: #c81b16; }
 .search-dock.has-back { grid-template-columns: 44px minmax(0, 1fr) 44px; }
