@@ -125,6 +125,13 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   const option = offerExhausted && catalogOption.listPrice && catalogOption.listPrice > catalogOption.price
     ? { ...catalogOption, price: catalogOption.listPrice, listPrice: undefined, discountPct: undefined }
     : catalogOption;
+  const disabledOfferPrice = offerExhausted
+    ? product.offerCondition === "quantity" && product.offerUnitPrice
+      ? product.offerUnitPrice * (variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1)
+      : catalogOption.listPrice && catalogOption.listPrice > catalogOption.price
+        ? catalogOption.price
+        : undefined
+    : undefined;
   const packUnitPriceFinal = variant === "pack" && product.pack
     ? option.price / Math.max(1, product.pack.qty)
     : null;
@@ -159,6 +166,7 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
       <div className={`product-price ${option.listPrice && option.listPrice > option.price ? "has-offer" : ""}`}>
         {option.listPrice && option.listPrice > option.price ? <span>{money.format(option.listPrice)}</span> : null}
         <strong>{money.format(option.price)}</strong>
+        {disabledOfferPrice ? <small className="disabled-offer-price">Oferta <s>{money.format(disabledOfferPrice)}</s></small> : null}
         {packUnitPriceFinal !== null
           ? <small className={`unit-price-final ${packHasPromo ? "is-promo" : ""}`}>Pr. Unit. Final: <b>{money.format(packUnitPriceFinal)}</b></small>
           : option.discountPct ? <small>Ahorrás {Math.round(option.discountPct)}%</small> : null}
