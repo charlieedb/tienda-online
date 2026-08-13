@@ -1341,6 +1341,22 @@ function StoreApp({
                     </span>
                     <Icon name="arrow" />
                   </button>
+                  <button type="button" onClick={() => goTo("business")}>
+                    <Icon name="store" />
+                    <span>
+                      <strong>Registrar tu comercio</strong>
+                      <small>Accedé a beneficios para comercios</small>
+                    </span>
+                    <Icon name="arrow" />
+                  </button>
+                  <a className="drawer-public-link drawer-whatsapp-link" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+                    <WhatsAppIcon className="drawer-whatsapp-icon" />
+                    <span>
+                      <strong>Consultas por WhatsApp</strong>
+                      <small>Escribinos y te ayudamos</small>
+                    </span>
+                    <Icon name="arrow" />
+                  </a>
                   <button
                     type="button"
                     className={`drawer-logout ${user && !loggingOut ? "is-active" : "is-disabled"} ${loggingOut ? "is-closing" : ""}`}
