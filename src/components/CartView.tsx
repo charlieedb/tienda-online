@@ -91,8 +91,18 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
     const pendingCoupon = paramsCoupon || window.localStorage.getItem("joma.pendingCoupon");
     if (!pendingCoupon) return;
     setDiscountInput(pendingCoupon);
-    window.localStorage.removeItem("joma.pendingCoupon");
   }, []);
+
+  useEffect(() => {
+    const clearBusinessCoupon = () => {
+      window.localStorage.removeItem("joma.pendingCoupon");
+      setDiscountInput("");
+      setAppliedCode(null);
+      setDiscountError("");
+    };
+    window.addEventListener("joma:business-removed", clearBusinessCoupon);
+    return () => window.removeEventListener("joma:business-removed", clearBusinessCoupon);
+  }, [setAppliedCode]);
   const deliveryDates = useMemo(() => buildDeliveryDates(deliverySchedule), [deliverySchedule]);
   const deliveryTimeRanges = useMemo(() => buildDeliveryTimeRanges(deliverySchedule), [deliverySchedule]);
 
@@ -110,21 +120,29 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
     return () => { active = false; };
   }, [items, appliedCode?.code, appliedCode?.percentage, setAppliedCode]);
 
-  const applyDiscount = async () => {
+  const applyDiscount = async (codeOverride?: string) => {
     setApplyingDiscount(true);
     setDiscountError("");
     try {
       const catalog = await getActiveCatalog();
       const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
       productsByIdRef.current = productsById;
-      setAppliedCode(await validateDiscountCode(discountInput, items, productsById, user?.uid));
+      setAppliedCode(await validateDiscountCode(codeOverride || discountInput, items, productsById, user?.uid));
       setDiscountInput("");
+      window.localStorage.removeItem("joma.pendingCoupon");
     } catch (nextError) {
       setDiscountError(nextError instanceof Error ? nextError.message : "No pudimos aplicar el código.");
     } finally {
       setApplyingDiscount(false);
     }
   };
+
+  useEffect(() => {
+    const pendingCoupon = window.localStorage.getItem("joma.pendingCoupon");
+    if (!items.length || appliedCode || applyingDiscount || !pendingCoupon) return;
+    setDiscountInput(pendingCoupon);
+    void applyDiscount(pendingCoupon);
+  }, [items.length, appliedCode?.code]);
 
   useEffect(() => {
     if (!submitting) return;
@@ -250,6 +268,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
 
   if (!items.length && !sent) return <section className="empty-state">
     <div className="empty-icon"><Icon name="cart" /></div><h2>Tu carrito está esperando</h2><p>Agregá tus productos favoritos y los vas a encontrar acá.</p>
+    {discountInput ? <div className="empty-cart-coupon"><Icon name="ticket"/><div><strong>Cupón {discountInput} listo</strong><span>Se aplicará automáticamente cuando agregues productos.</span></div></div> : null}
     <button type="button" className="primary-action" onClick={onContinue}>Explorar productos</button>
   </section>;
 

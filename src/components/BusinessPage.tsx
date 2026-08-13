@@ -178,6 +178,8 @@ export function BusinessPage({ onLogin, onBackToStore }: { onLogin: (mode?: "log
     setError("");
     try {
       await removeBusinessFromUserProfile(user.uid);
+      window.localStorage.removeItem("joma.pendingCoupon");
+      window.dispatchEvent(new CustomEvent("joma:business-removed"));
       setBusiness(EMPTY_BUSINESS);
       setHasRegisteredBusiness(false);
       setEditing(true);
