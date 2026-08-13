@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import type { ImgHTMLAttributes, SVGProps } from "react";
 
 type IconName = "home" | "grid" | "menu" | "store" | "close" | "logout" | "search" | "bell" | "cart" | "arrow" | "minus" | "plus" | "trash" | "refresh" | "spark" | "user" | "check";
 
@@ -26,10 +26,6 @@ export function Icon({ name, ...props }: SVGProps<SVGSVGElement> & { name: IconN
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{paths[name]}</svg>;
 }
 
-export function WhatsAppIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 32 32" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M16.04 3A12.93 12.93 0 0 0 5.11 22.84L3 30l7.35-2.02A12.96 12.96 0 1 0 16.04 3Zm0 23.73c-1.9 0-3.76-.5-5.39-1.45l-.39-.23-4.36 1.2 1.23-4.25-.25-.4A10.73 10.73 0 1 1 16.04 26.73Zm5.89-8.04c-.32-.16-1.91-.94-2.21-1.05-.29-.11-.51-.16-.72.16-.22.32-.83 1.05-1.02 1.27-.19.21-.37.24-.7.08-.32-.16-1.36-.5-2.59-1.6a9.72 9.72 0 0 1-1.79-2.23c-.19-.32-.02-.5.14-.66.15-.14.32-.37.49-.56.16-.19.21-.32.32-.54.11-.21.05-.4-.03-.56-.08-.16-.72-1.74-.99-2.38-.26-.63-.53-.55-.72-.56h-.62c-.22 0-.57.08-.86.4-.3.33-1.13 1.11-1.13 2.7 0 1.59 1.16 3.13 1.32 3.35.16.22 2.28 3.48 5.52 4.88.77.33 1.37.53 1.84.68.78.25 1.48.21 2.04.13.62-.09 1.91-.78 2.18-1.54.27-.75.27-1.4.19-1.54-.08-.13-.3-.21-.62-.37Z" />
-    </svg>
-  );
+export function WhatsAppIcon(props: ImgHTMLAttributes<HTMLImageElement>) {
+  return <img src="/whatsapp-logo.png" alt="" aria-hidden="true" width="36" height="36" {...props} />;
 }
