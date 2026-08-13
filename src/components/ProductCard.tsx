@@ -10,7 +10,7 @@ import { getProductImageUrl, getProductThumbnailUrl } from "@/lib/productImages"
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const stockNumber = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 
-function ProductImage({ product, eager, linkToDetail }: { product: Product; eager: boolean; linkToDetail: boolean }) {
+function ProductImage({ product, eager, linkToDetail, offerExhausted = false }: { product: Product; eager: boolean; linkToDetail: boolean; offerExhausted?: boolean }) {
   const isReusableCombo = product.categoryId === "combos" && /^P/i.test(product.id.trim());
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(eager);
@@ -88,7 +88,7 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
     }} /> : null}
     {isReusableCombo ? <div className="combo-product-mark" aria-label="Combo con descuento"><span aria-hidden="true">%</span><small>Combo</small></div> : null}
     {!isReusableCombo && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
-    {product.offer ? <span className="offer-badge">{product.offerCondition === "pack" ? "Oferta por caja" : product.offerCondition === "quantity" ? `Desde ${product.offerMinQty || 2} unid.` : product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
+    {product.offer && !offerExhausted ? <span className="offer-badge">{product.offerCondition === "pack" ? "Oferta por caja" : product.offerCondition === "quantity" ? `Desde ${product.offerMinQty || 2} unid.` : product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
   </div>;
 
   if (linkToDetail) return <a className="product-image-link" href={productPath(product)} aria-label={`Ver ficha de ${product.name}`} onClick={(event) => {
@@ -114,11 +114,17 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   const reduceMotion = useReducedMotion();
   const [variant, setVariant] = useState<"unit" | "pack">("unit");
   const items = useCartStore((state) => state.items);
+  const usedOfferUnits = useCartStore((state) => Math.max(0, Math.trunc(Number(state.dailyOfferUsage[product.id]) || 0)));
   const addItem = useCartStore((state) => state.addItem);
   const setItemQty = useCartStore((state) => state.setItemQty);
   const itemId = `${product.id}:${variant}`;
   const item = items.find((entry) => entry.id === itemId);
-  const option = variant === "pack" && product.pack ? product.pack : product.unit;
+  const configuredOfferUnits = Math.max(0, Math.trunc(Number(product.offerMaxUnits) || 0));
+  const offerExhausted = Boolean(product.offer && configuredOfferUnits > 0 && usedOfferUnits >= configuredOfferUnits);
+  const catalogOption = variant === "pack" && product.pack ? product.pack : product.unit;
+  const option = offerExhausted && catalogOption.listPrice && catalogOption.listPrice > catalogOption.price
+    ? { ...catalogOption, price: catalogOption.listPrice, listPrice: undefined, discountPct: undefined }
+    : catalogOption;
   const packUnitPriceFinal = variant === "pack" && product.pack
     ? option.price / Math.max(1, product.pack.qty)
     : null;
@@ -141,7 +147,7 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
 
   return <motion.article className={`product-card ${detailCompact ? "is-detail-compact" : ""} ${!product.active ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
     <div className="product-media">
-      <ProductImage product={product} eager={eager} linkToDetail={linkImageToDetail} />
+      <ProductImage product={product} eager={eager} linkToDetail={linkImageToDetail} offerExhausted={offerExhausted} />
       {!detailCompact ? remainingStock !== undefined ? <div className={`product-stock ${remainingStock <= 0 ? "is-empty" : ""}`}><span>Stock disponible:</span> <strong>{stockNumber.format(remainingStock)} unidades</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div> : null}
     </div>
     <div className="product-content">
@@ -157,10 +163,10 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
           ? <small className={`unit-price-final ${packHasPromo ? "is-promo" : ""}`}>Pr. Unit. Final: <b>{money.format(packUnitPriceFinal)}</b></small>
           : option.discountPct ? <small>Ahorrás {Math.round(option.discountPct)}%</small> : null}
       </div></> : null}
-      {!detailCompact && product.offer && Number(product.offerMaxUnits || 0) > 0 ? (
-        <div className="product-offer-limit" role="note">
+      {!detailCompact && product.offer && configuredOfferUnits > 0 ? (
+        <div className={`product-offer-limit ${offerExhausted ? "is-exhausted" : ""}`} role="note">
           <span aria-hidden="true">ⓘ</span>
-          <strong>Máximo con oferta: {Math.trunc(Number(product.offerMaxUnits))} unidades por cliente por día</strong>
+          <p>{offerExhausted ? "Ya ocupaste el límite diario" : `Hasta ${configuredOfferUnits} por usuario`}</p>
         </div>
       ) : null}
       {product.pack ? <div className="variant-switch" role="group" aria-label={`Presentación de ${product.name}`}>
