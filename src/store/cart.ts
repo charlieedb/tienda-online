@@ -155,7 +155,7 @@ export const useCartStore = create<CartState>()(
         set((state) => {
           item = {
             ...item,
-            offerUsedUnits: Math.max(0, Math.trunc(Number(state.dailyOfferUsage[item.productId]) || 0)),
+            offerUsedUnits: Math.max(0, Math.trunc(Number(state.dailyOfferUsage[item.productId] ?? state.dailyOfferUsage[item.productId.toUpperCase()]) || 0)),
           };
           const existing = state.items.find((i) => i.id === item.id);
           const requestedQty = Math.max(0, Math.trunc(Number(qty) || 0));
@@ -247,7 +247,7 @@ export const useCartStore = create<CartState>()(
         dailyOfferUsage: usage,
         items: state.items.map((item) => ({
           ...item,
-          offerUsedUnits: Math.max(0, Math.trunc(Number(usage[item.productId]) || 0)),
+          offerUsedUnits: Math.max(0, Math.trunc(Number(usage[item.productId] ?? usage[item.productId.toUpperCase()]) || 0)),
         })),
       })),
     }),

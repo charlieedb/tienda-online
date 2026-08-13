@@ -75,7 +75,7 @@ export async function submitCheckoutOrder(params: {
   const dailyUsage = await getDailyOfferUsage(params.user.uid, true);
   const effectiveCartItems = params.cartItems.map((item) => ({
     ...item,
-    offerUsedUnits: Math.max(0, Math.trunc(Number(dailyUsage[item.productId]) || 0)),
+    offerUsedUnits: Math.max(0, Math.trunc(Number(dailyUsage[item.productId] ?? dailyUsage[item.productId.toUpperCase()]) || 0)),
   }));
   const effectiveDiscountCode = params.discountCode
     ? calculateDiscount(params.discountCode, effectiveCartItems, params.productsById)

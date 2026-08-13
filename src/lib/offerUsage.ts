@@ -1,9 +1,10 @@
-import { collection, getDocs, limit, orderBy, query, Timestamp, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 
 export type DailyOfferUsage = Record<string, number>;
 
-let memoryCache: { key: string; value: DailyOfferUsage } | null = null;
+const CACHE_TTL_MS = 60_000;
+let memoryCache: { key: string; value: DailyOfferUsage; fetchedAt: number } | null = null;
 let inFlight: Promise<DailyOfferUsage> | null = null;
 
 function buenosAiresDayKey() {
@@ -15,16 +16,12 @@ function buenosAiresDayKey() {
   }).format(new Date());
 }
 
-function startOfBuenosAiresDay(dayKey: string) {
-  return new Date(`${dayKey}T00:00:00-03:00`);
-}
-
 export async function getDailyOfferUsage(uid: string, force = false): Promise<DailyOfferUsage> {
   const cleanUid = String(uid || "").trim();
   if (!cleanUid) return {};
   const dayKey = buenosAiresDayKey();
   const cacheKey = `${cleanUid}:${dayKey}`;
-  if (!force && memoryCache?.key === cacheKey) return memoryCache.value;
+  if (!force && memoryCache?.key === cacheKey && Date.now() - memoryCache.fetchedAt < CACHE_TTL_MS) return memoryCache.value;
   if (!force && inFlight) return inFlight;
 
   const db = getDb();
@@ -33,11 +30,8 @@ export async function getDailyOfferUsage(uid: string, force = false): Promise<Da
     let snapshot;
     try {
       snapshot = await getDocs(query(
-        collection(db, "orders"),
-        where("cliente.uid", "==", cleanUid),
-        where("audit.createdAt", ">=", Timestamp.fromDate(startOfBuenosAiresDay(dayKey))),
-        orderBy("audit.createdAt", "desc"),
-        limit(50),
+        collection(db, "dailyOfferUsage", dayKey, "users"),
+        where("uid", "==", cleanUid),
       ));
     } catch (error) {
       console.warn("No se pudo precargar el cupo diario de ofertas; se validará al confirmar.", error);
@@ -46,18 +40,11 @@ export async function getDailyOfferUsage(uid: string, force = false): Promise<Da
     const usage: DailyOfferUsage = {};
     snapshot.docs.forEach((entry) => {
       const data = entry.data();
-      if (["rejected", "stock_rejected"].includes(String(data?.status || ""))) return;
-      const items = Array.isArray(data?.items) ? data.items : [];
-      items.forEach((item: Record<string, unknown>) => {
-        const code = String(item.codigo ?? "").trim();
-        const promo = item.promoCaja && typeof item.promoCaja === "object"
-          ? item.promoCaja as Record<string, unknown>
-          : null;
-        const units = Math.max(0, Math.trunc(Number(promo?.unidadesConPromo) || 0));
-        if (code && units) usage[code] = (usage[code] || 0) + units;
-      });
+      const code = String(data?.code ?? "").trim().toUpperCase();
+      const units = Math.max(0, Math.trunc(Number(data?.usedUnits) || 0));
+      if (code && units) usage[code] = units;
     });
-    memoryCache = { key: cacheKey, value: usage };
+    memoryCache = { key: cacheKey, value: usage, fetchedAt: Date.now() };
     return usage;
   })().finally(() => { inFlight = null; });
   return inFlight;

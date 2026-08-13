@@ -25,6 +25,7 @@ import {
 } from "@/components/StoreFooter";
 import { setDocumentMetadata } from "@/lib/seo";
 import { WHATSAPP_URL } from "@/lib/whatsapp";
+import { getDailyOfferUsage } from "@/lib/offerUsage";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   getStoreCarouselSlides,
@@ -758,6 +759,32 @@ function StoreApp({
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!user) {
+      useCartStore.getState().setDailyOfferUsage({});
+      return;
+    }
+    let active = true;
+    let lastForegroundSyncAt = 0;
+    const syncOfferUsage = (force = false) => {
+      if (force) lastForegroundSyncAt = Date.now();
+      void getDailyOfferUsage(user.uid, force).then((usage) => {
+        if (active) useCartStore.getState().setDailyOfferUsage(usage);
+      }).catch((error) => console.warn("No se pudo actualizar el cupo diario de ofertas", error));
+    };
+    syncOfferUsage(true);
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && Date.now() - lastForegroundSyncAt > 5_000) syncOfferUsage(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      active = false;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [user]);
 
   useEffect(() => {
     const requestedSearch = new URLSearchParams(window.location.search).get("q")?.trim();

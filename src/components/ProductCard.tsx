@@ -114,7 +114,7 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   const reduceMotion = useReducedMotion();
   const [variant, setVariant] = useState<"unit" | "pack">("unit");
   const items = useCartStore((state) => state.items);
-  const usedOfferUnits = useCartStore((state) => Math.max(0, Math.trunc(Number(state.dailyOfferUsage[product.id]) || 0)));
+  const usedOfferUnits = useCartStore((state) => Math.max(0, Math.trunc(Number(state.dailyOfferUsage[product.id] ?? state.dailyOfferUsage[product.id.toUpperCase()]) || 0)));
   const addItem = useCartStore((state) => state.addItem);
   const setItemQty = useCartStore((state) => state.setItemQty);
   const itemId = `${product.id}:${variant}`;

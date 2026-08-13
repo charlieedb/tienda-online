@@ -102,10 +102,24 @@ export function StoreApp({ forcedDesktop = false, initialStage = "landing" }: Pr
       return;
     }
     let active = true;
-    void getDailyOfferUsage(user.uid).then((usage) => {
+    let lastForegroundSyncAt = 0;
+    const syncOfferUsage = (force = false) => {
+      if (force) lastForegroundSyncAt = Date.now();
+      return void getDailyOfferUsage(user.uid, force).then((usage) => {
       if (active) useCartStore.getState().setDailyOfferUsage(usage);
     }).catch((error) => console.warn("No se pudo consultar el cupo diario de ofertas", error));
-    return () => { active = false; };
+    };
+    syncOfferUsage(true);
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && Date.now() - lastForegroundSyncAt > 5_000) syncOfferUsage(true);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      active = false;
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, [authLoading, user]);
   const [googleProfileIncomplete, setGoogleProfileIncomplete] = useState(false);
   const lastUserUidRef = useRef<string | null>(null);
