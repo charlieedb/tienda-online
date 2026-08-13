@@ -218,7 +218,7 @@ img { display: block; max-width: 100%; }
 .drawer-content button:disabled { cursor: wait; opacity: .78; }
 .drawer-content :is(button, .drawer-public-link) > svg:first-child { width: 23px; color: var(--brand); }
 .drawer-content :is(button, .drawer-public-link) > svg:last-child { width: 18px; color: var(--muted); }
-.drawer-content .drawer-whatsapp-icon { width: 29px; height: 29px; justify-self: center; object-fit: contain; }
+.drawer-content .drawer-whatsapp-icon { width: 23px; height: 23px; justify-self: start; object-fit: contain; }
 .drawer-content .drawer-whatsapp-link:hover { background: #e9f9ef; }
 .drawer-content :is(button, .drawer-public-link) span { display: grid; gap: 3px; }
 .drawer-content :is(button, .drawer-public-link) strong { font-size: 16px; }
