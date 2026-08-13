@@ -182,6 +182,7 @@ export async function validateDiscountCode(
   items: CartItem[],
   productsById: Map<string, Product>,
   customerUid?: string,
+  allowEmptyCart = false,
 ) {
   const code = normalizeDiscountCode(rawCode);
   if (!code) throw new Error("Ingresá un código de descuento.");
@@ -210,7 +211,7 @@ export async function validateDiscountCode(
     if (usages.size >= match.perUserLimit) throw new Error("Ya alcanzaste el límite de usos de este cupón.");
   }
   const result = calculateDiscount(match, items, productsById);
-  if (!result.eligibleItemIds.length) {
+  if (!result.eligibleItemIds.length && !(allowEmptyCart && !items.length)) {
     throw new Error("Este carrito no tiene productos sin promoción para aplicar el descuento.");
   }
   return result;

@@ -1630,7 +1630,7 @@ function StoreApp({
                 <BusinessPage onLogin={onRequestBusinessLogin} onBackToStore={() => goTo("home")} />
               </motion.div>
             ) : null}
-            {tab === "coupons" ? <motion.div className="view" key="coupons" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><MyCouponsPage onLogin={() => onRequestLogin("login")} onUse={(code) => { window.localStorage.setItem("joma.pendingCoupon", code); goTo("cart"); }} /></motion.div> : null}
+            {tab === "coupons" ? <motion.div className="view" key="coupons" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}><MyCouponsPage onLogin={() => onRequestLogin("login")} onUse={(code) => { window.localStorage.setItem("joma.pendingCoupon", code); window.dispatchEvent(new CustomEvent("joma:coupon-selected", { detail: code })); goTo("cart"); }} /></motion.div> : null}
             {tab === "info" ? (
               <motion.div
                 className="view"

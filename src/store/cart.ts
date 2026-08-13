@@ -171,7 +171,7 @@ export const useCartStore = create<CartState>()(
             return {
               items,
               expiresAt: nextExpiry(state.items, items, state.expiresAt),
-              appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
+              appliedDiscountCode: state.appliedDiscountCode,
             };
           }
           const items = [...state.items, { ...item, qty: allowedQty }];
@@ -188,7 +188,7 @@ export const useCartStore = create<CartState>()(
             return {
               items,
               expiresAt: nextExpiry(state.items, items, state.expiresAt),
-              appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
+              appliedDiscountCode: state.appliedDiscountCode,
             };
           }
           const existing = state.items.find((i) => i.id === id);
@@ -216,7 +216,7 @@ export const useCartStore = create<CartState>()(
             return {
               items,
               expiresAt: nextExpiry(state.items, items, state.expiresAt),
-              appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
+              appliedDiscountCode: state.appliedDiscountCode,
             };
           }
           const items = state.items.map((i) =>
@@ -233,7 +233,7 @@ export const useCartStore = create<CartState>()(
           return {
             items,
             expiresAt: nextExpiry(state.items, items, state.expiresAt),
-            appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
+            appliedDiscountCode: state.appliedDiscountCode,
           };
         }),
       setAppliedDiscountCode: (appliedDiscountCode) => set({ appliedDiscountCode }),
@@ -260,7 +260,7 @@ export const useCartStore = create<CartState>()(
         return {
           ...state,
           items,
-          appliedDiscountCode: items.length && state.appliedDiscountCode
+          appliedDiscountCode: state.appliedDiscountCode
             ? {
                 ...state.appliedDiscountCode,
                 eligibleSubtotalByItem: state.appliedDiscountCode.eligibleSubtotalByItem ?? {},

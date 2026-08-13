@@ -133,6 +133,7 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
     setOpen(false);
     if (notification.action === "coupon") {
       window.localStorage.setItem("joma.pendingCoupon", notification.target);
+      window.dispatchEvent(new CustomEvent("joma:coupon-selected", { detail: notification.target }));
       onOpenCart?.();
     } else if (notification.action === "search") onSearch?.(notification.target);
     else if (notification.action === "catalog") onOpenCatalog?.();
