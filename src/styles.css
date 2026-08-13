@@ -130,9 +130,9 @@ img { display: block; max-width: 100%; }
 .menu-button.is-active, .business-header-button.is-active, .header-cart.is-active { background: rgba(255,255,255,.27); }
 .header-cart b { position: absolute; right: -4px; top: -4px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; color: var(--brand-dark); border: 2px solid #c81b16; border-radius: 999px; background: white; font-size: 8px; }
 .app-header__actions { justify-self: end; display: flex; align-items: center; gap: 6px; }
-.header-whatsapp { color: white; background: rgba(255,255,255,.13); text-decoration: none; }
+.header-whatsapp { color: white; background: #25d366; text-decoration: none; box-shadow: 0 4px 10px rgba(7, 94, 84, .28), inset 0 1px 0 rgba(255, 255, 255, .22); }
 .header-whatsapp svg { width: 26px; height: 26px; }
-.header-whatsapp:hover { color: white; background: rgba(255,255,255,.27); transform: translateY(-1px); }
+.header-whatsapp:hover { color: white; background: #1fbd5a; transform: translateY(-1px); }
 .header-whatsapp:active { transform: scale(.96); }
 .menu-button:focus-visible, .business-header-button:focus-visible, .header-cart:focus-visible, .header-whatsapp:focus-visible { outline: 3px solid rgba(255,255,255,.92); outline-offset: 2px; }
 @media (max-width: 350px) {
