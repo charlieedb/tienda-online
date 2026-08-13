@@ -30,13 +30,19 @@ export async function getDailyOfferUsage(uid: string, force = false): Promise<Da
   const db = getDb();
   if (!db) return {};
   inFlight = (async () => {
-    const snapshot = await getDocs(query(
-      collection(db, "orders"),
-      where("cliente.uid", "==", cleanUid),
-      where("audit.createdAt", ">=", Timestamp.fromDate(startOfBuenosAiresDay(dayKey))),
-      orderBy("audit.createdAt", "desc"),
-      limit(50),
-    ));
+    let snapshot;
+    try {
+      snapshot = await getDocs(query(
+        collection(db, "orders"),
+        where("cliente.uid", "==", cleanUid),
+        where("audit.createdAt", ">=", Timestamp.fromDate(startOfBuenosAiresDay(dayKey))),
+        orderBy("audit.createdAt", "desc"),
+        limit(50),
+      ));
+    } catch (error) {
+      console.warn("No se pudo precargar el cupo diario de ofertas; se validará al confirmar.", error);
+      return {};
+    }
     const usage: DailyOfferUsage = {};
     snapshot.docs.forEach((entry) => {
       const data = entry.data();
