@@ -353,6 +353,25 @@ export async function upsertUserProfile(profile: UserProfile) {
   );
 }
 
+export async function removeBusinessFromUserProfile(uid: string) {
+  const db = getDb();
+  const current = getCachedUserProfile(uid);
+  if (!current) throw new Error("No pudimos encontrar tu perfil.");
+  const next: UserProfile = { ...current, accountType: "consumer", business: undefined };
+  writeCachedUserProfile(next);
+  if (!db) return;
+  try {
+    await setDoc(doc(db, "users", uid), {
+      accountType: "consumer",
+      business: null,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+  } catch (error) {
+    writeCachedUserProfile(current);
+    throw error;
+  }
+}
+
 export async function resolveEmailFromUsername(usernameRaw: string) {
   const db = getDb();
   if (!db) throw new Error("Firebase no está configurado.");

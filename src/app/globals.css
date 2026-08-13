@@ -264,6 +264,12 @@
 .coupon-card__copy > span { color: #53728a; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }.coupon-card__copy h2 { margin: 4px 0; color: #173a53; font-size: 22px; overflow-wrap: anywhere; }.coupon-card__copy p { margin: 0; color: #688094; }
 .coupon-card > button { min-height: 44px; display: inline-flex; align-items: center; gap: 7px; padding: 0 16px; border: 0; border-radius: 12px; color: #fff; background: #176fa9; font-weight: 700; cursor: pointer; }.coupon-card > button svg { width: 18px; }
 .coupons-loading { min-height: 180px; display: grid; place-content: center; justify-items: center; color: #5d7487; }.coupons-loading span { width: 30px; height: 30px; border: 3px solid #c9dce9; border-top-color: #176fa9; border-radius: 50%; animation: spin .75s linear infinite; }
+.business-delete-link { min-height: 44px; padding: 0 16px; border: 1px solid #d9a7a7; border-radius: 12px; color: #a12b2b; background: transparent; font-weight: 700; cursor: pointer; }
+.business-delete-link:hover { background: #fff2f2; border-color: #c97979; }
+.business-delete-confirm { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px; border: 1px solid #e1b7b7; border-radius: 14px; background: #fff7f7; color: #682323; }
+.business-delete-confirm p { margin: 4px 0 0; color: #754747; line-height: 1.45; }.business-delete-confirm > div:last-child { display: flex; gap: 9px; flex: 0 0 auto; }
+.business-delete-cancel,.business-delete-confirm-button { min-height: 42px; padding: 0 14px; border-radius: 10px; font-weight: 700; cursor: pointer; }.business-delete-cancel { border: 1px solid #c8d2d9; color: #385269; background: #fff; }.business-delete-confirm-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #a72d2d; color: #fff; background: #a72d2d; }.business-delete-confirm-button:disabled,.business-delete-cancel:disabled { opacity: .65; cursor: wait; }
+@media (max-width: 620px) { .business-delete-confirm { align-items: stretch; flex-direction: column; }.business-delete-confirm > div:last-child { flex-direction: column; }.business-delete-confirm button { width: 100%; } }
 @media (max-width: 620px) { .coupon-card { grid-template-columns: auto 1fr; gap: 14px; padding: 16px; }.coupon-card__value { width: 72px; height: 72px; }.coupon-card > button { grid-column: 1 / -1; justify-content: center; width: 100%; } }
 
 @media (min-width: 981px) {

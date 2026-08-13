@@ -5,6 +5,7 @@ import {
   getCachedUserProfile,
   getBusinessRegistrationDraft,
   refreshUserProfile,
+  removeBusinessFromUserProfile,
   saveBusinessRegistrationDraft,
   upsertUserProfile,
   type BusinessProfile,
@@ -59,6 +60,8 @@ export function BusinessPage({ onLogin, onBackToStore }: { onLogin: (mode?: "log
   const [touched, setTouched] = useState<Partial<Record<BusinessField, boolean>>>({});
   const [hasRegisteredBusiness, setHasRegisteredBusiness] = useState(false);
   const [editing, setEditing] = useState(true);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fieldErrors = getBusinessErrors(business);
 
   useEffect(() => {
@@ -157,6 +160,26 @@ export function BusinessPage({ onLogin, onBackToStore }: { onLogin: (mode?: "log
     }
   };
 
+  const removeBusiness = async () => {
+    if (!user || deleting) return;
+    setDeleting(true);
+    setError("");
+    try {
+      await removeBusinessFromUserProfile(user.uid);
+      setBusiness(EMPTY_BUSINESS);
+      setHasRegisteredBusiness(false);
+      setEditing(true);
+      setSaved(false);
+      setSubmitted(false);
+      setTouched({});
+      setConfirmingDelete(false);
+    } catch (nextError) {
+      setError(nextError instanceof Error ? nextError.message : "No pudimos eliminar el comercio.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return <section className="business-page">
     <div className="business-backdrop" aria-hidden="true">
       <svg viewBox="0 0 120 120"><path d="M18 52h84v52H18zM12 52l10-28h76l10 28M12 52c0 9 14 9 14 0 0 9 14 9 14 0 0 9 14 9 14 0 0 9 14 9 14 0 0 9 14 9 14 0 0 9 14 9 14 0M43 104V76h34v28" /></svg>
@@ -181,7 +204,10 @@ export function BusinessPage({ onLogin, onBackToStore }: { onLogin: (mode?: "log
       <div className="business-registered-actions">
         <button type="button" className="business-back-store" onClick={onBackToStore}>Volver a la tienda</button>
         <button type="button" className="business-edit-link" onClick={() => { setEditing(true); setSaved(false); setSubmitted(false); setTouched({}); }}>Editar mi comercio</button>
+        <button type="button" className="business-delete-link" onClick={() => setConfirmingDelete(true)}>Eliminar comercio</button>
       </div>
+      {confirmingDelete ? <div className="business-delete-confirm" role="alert"><div><strong>¿Eliminar este comercio?</strong><p>Tu cuenta y tus pedidos se conservan. Podrás registrar otro comercio más adelante.</p></div><div><button type="button" className="business-delete-cancel" disabled={deleting} onClick={() => setConfirmingDelete(false)}>Conservar comercio</button><button type="button" className="business-delete-confirm-button" disabled={deleting} onClick={() => void removeBusiness()}>{deleting ? <><span className="drawer-action-spinner" aria-hidden="true"/> Eliminando…</> : "Eliminar comercio"}</button></div></div> : null}
+      {error ? <div className="checkout-error" role="alert">{error}</div> : null}
     </motion.section> : <form className="business-form" onSubmit={save} noValidate>
       <div className="business-form-heading"><div><strong>{business.fantasyName ? "Datos de tu comercio" : "Registrá tu comercio"}</strong><p>Los campos con * son obligatorios.</p></div>{saved ? <span><Icon name="check" /> Comercio registrado</span> : null}</div>
       {user && !user.emailVerified ? <div className="business-verification-note"><Icon name="spark" /><div><strong>Confirmá tu correo</strong><span>Tu comercio ya está asociado a esta cuenta. Revisá tu email para verificarla y recibir futuros beneficios.</span></div></div> : null}
