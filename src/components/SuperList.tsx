@@ -9,7 +9,7 @@ import {
   getSearchPromptSuggestions,
   getTrendingSearchPrompts,
 } from "@/lib/products";
-import { getCartItemPricing, useCartStore } from "@/store/cart";
+import { getCartPricingMap, useCartStore } from "@/store/cart";
 import { formatArs } from "@/lib/format";
 import { StrikeThrough } from "@/components/StrikeThrough";
 
@@ -125,9 +125,10 @@ export function SuperList({
   const deferredValue = useDeferredValue(value);
   const trendingExamples = getTrendingSearchPrompts();
   const trimmedValue = value.trim();
-  const total = useCartStore((s) =>
-    s.items.reduce((acc, i) => acc + getCartItemPricing(i).total, 0),
-  );
+  const total = useCartStore((s) => {
+    const pricing = getCartPricingMap(s.items);
+    return s.items.reduce((acc, item) => acc + pricing.get(item.id)!.total, 0);
+  });
 
   const updateFades = () => {
     const el = listScrollRef.current;

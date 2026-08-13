@@ -1,11 +1,12 @@
 "use client";
 
 import type { User } from "firebase/auth";
-import { getCartItemPricing, type CartItem } from "@/store/cart";
+import { getCartPricingMap, type CartItem, useCartStore } from "@/store/cart";
 import type { Product } from "@/lib/products";
 import type { TelegramOrderPayload } from "@/lib/telegramOrders";
 import type { DeliverySelection } from "@/lib/deliverySchedule";
-import type { AppliedDiscountCode } from "@/lib/discountCodes";
+import { calculateDiscount, type AppliedDiscountCode } from "@/lib/discountCodes";
+import { clearDailyOfferUsageCache, getDailyOfferUsage } from "@/lib/offerUsage";
 
 type CheckoutCustomer = {
   nombre: string;
@@ -71,8 +72,17 @@ export async function submitCheckoutOrder(params: {
   const nowIso = new Date().toISOString();
   const orderId = params.requestId;
   const actor = asActor(params.user, params.customer);
+  const dailyUsage = await getDailyOfferUsage(params.user.uid, true);
+  const effectiveCartItems = params.cartItems.map((item) => ({
+    ...item,
+    offerUsedUnits: Math.max(0, Math.trunc(Number(dailyUsage[item.productId]) || 0)),
+  }));
+  const effectiveDiscountCode = params.discountCode
+    ? calculateDiscount(params.discountCode, effectiveCartItems, params.productsById)
+    : null;
+  const pricingByItem = getCartPricingMap(effectiveCartItems);
 
-  const items = params.cartItems.map((item) => {
+  const items = effectiveCartItems.map((item) => {
     const product = params.productsById.get(item.productId);
     const unitPrice = Number(product?.unit?.price || item.unitPriceFinal || (item.variant === "unit" ? item.price : 0) || 0);
     const packPrice = Number(product?.pack?.price || (item.variant === "pack" ? item.price : 0) || 0);
@@ -88,13 +98,13 @@ export async function submitCheckoutOrder(params: {
     const precioFinalCaja = Number(item.price || 0);
     const divisor = item.variant === "pack" ? Math.max(1, unidadesPorCaja || 1) : 1;
     const precioLista = roundMoney(precioListaCaja / divisor);
-    const mixedPricing = getCartItemPricing(item);
-    const subtotalSinCupon = item.variant === "unit" ? mixedPricing.total : precioFinalCaja * qty;
+    const mixedPricing = pricingByItem.get(item.id)!;
+    const subtotalSinCupon = mixedPricing.total;
     const couponEligibleSubtotal = Math.min(
       subtotalSinCupon,
-      Math.max(0, Number(params.discountCode?.eligibleSubtotalByItem?.[item.id]) || 0),
+      Math.max(0, Number(effectiveDiscountCode?.eligibleSubtotalByItem?.[item.id]) || 0),
     );
-    const couponPercentage = couponEligibleSubtotal > 0 ? Number(params.discountCode?.percentage || 0) : 0;
+    const couponPercentage = couponEligibleSubtotal > 0 ? Number(effectiveDiscountCode?.percentage || 0) : 0;
     const couponDiscountAmount = roundMoney(couponEligibleSubtotal * couponPercentage / 100);
     const subtotal = roundMoney(subtotalSinCupon - couponDiscountAmount);
     const precioFinal = roundMoney(subtotal / Math.max(1, cantidadUnidades));
@@ -175,11 +185,11 @@ export async function submitCheckoutOrder(params: {
       total: metrics.subtotal,
       subtotal: metrics.subtotal,
       discountTotal: metrics.discountTotal,
-      discountCode: params.discountCode ? {
-        code: params.discountCode.code,
-        percentage: params.discountCode.percentage,
-        amount: params.discountCode.discountAmount,
-        eligibleSubtotal: params.discountCode.eligibleSubtotal,
+      discountCode: effectiveDiscountCode ? {
+        code: effectiveDiscountCode.code,
+        percentage: effectiveDiscountCode.percentage,
+        amount: effectiveDiscountCode.discountAmount,
+        eligibleSubtotal: effectiveDiscountCode.eligibleSubtotal,
       } : null,
     },
     status: "new",
@@ -212,6 +222,13 @@ export async function submitCheckoutOrder(params: {
   params.onProgress?.(35, "Registrando pedido y reservando stock");
   await createOrderAndReserveInventory(params.user, orderId, payload);
   params.onProgress?.(78, "Stock reservado");
+
+  const nextDailyUsage = { ...dailyUsage };
+  effectiveCartItems.forEach((item) => {
+    const promoUnits = pricingByItem.get(item.id)?.promoUnits || 0;
+    if (promoUnits > 0) nextDailyUsage[item.productId] = (nextDailyUsage[item.productId] || 0) + promoUnits;
+  });
+  useCartStore.getState().setDailyOfferUsage(nextDailyUsage);
 
   const telegramPayload: TelegramOrderPayload = {
     pedido: {
@@ -264,5 +281,6 @@ export async function submitCheckoutOrder(params: {
     },
   };
 
+  clearDailyOfferUsageCache();
   return { id: orderId, telegramPayload };
 }

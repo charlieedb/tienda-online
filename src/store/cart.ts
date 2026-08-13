@@ -23,26 +23,68 @@ export type CartItem = {
   offerMinQty?: number;
   offerUnitPrice?: number;
   offerAllowCoupons?: boolean;
+  offerMaxUnits?: number;
+  offerUsedUnits?: number;
   qty: number;
 };
 
 export function getCartItemPricing(item: CartItem) {
   const qty = Math.max(0, Math.trunc(Number(item.qty) || 0));
-  const listTotal = Math.max(0, Number(item.price) || 0) * qty;
+  const unitsPerItem = item.variant === "pack" ? Math.max(1, Math.trunc(Number(item.unitsPerPack) || 1)) : 1;
+  const totalUnits = qty * unitsPerItem;
+  const itemPrice = Math.max(0, Number(item.price) || 0);
+  const listItemPrice = Math.max(itemPrice, Number(item.listPrice) || 0);
+  const regularUnitPrice = listItemPrice / unitsPerItem;
+  const listTotal = listItemPrice * qty;
+  const configuredOfferUnits = Math.max(0, Math.trunc(Number(item.offerMaxUnits) || 0));
+  const usedOfferUnits = Math.max(0, Math.trunc(Number(item.offerUsedUnits) || 0));
+  const maxOfferUnits = configuredOfferUnits > 0 ? Math.max(0, configuredOfferUnits - usedOfferUnits) : 0;
+  const capOfferUnits = (units: number) => configuredOfferUnits > 0 ? Math.min(units, maxOfferUnits) : units;
   const offerMinQty = Math.max(2, Math.trunc(Number(item.offerMinQty) || 0));
   const offerUnitPrice = Number(item.offerUnitPrice);
-  if (Number.isFinite(offerUnitPrice) && offerUnitPrice > 0 && qty >= offerMinQty) {
-    return { listTotal, total: offerUnitPrice * qty, promoUnits: qty, regularUnits: 0 };
+  if (Number.isFinite(offerUnitPrice) && offerUnitPrice > 0 && totalUnits >= offerMinQty) {
+    const promoUnits = capOfferUnits(totalUnits);
+    const regularUnits = totalUnits - promoUnits;
+    const promoSubtotal = offerUnitPrice * promoUnits;
+    const regularSubtotal = regularUnitPrice * regularUnits;
+    return { listTotal, total: promoSubtotal + regularSubtotal, promoUnits, regularUnits, promoSubtotal, regularSubtotal };
   }
   const packQty = Math.max(1, Math.trunc(Number(item.promoPackQty) || 0));
   const promoUnitPrice = Number(item.promoPackUnitPrice);
-  if (item.variant !== "unit" || !Number.isFinite(promoUnitPrice) || promoUnitPrice <= 0 || packQty <= 1) {
-    return { listTotal, total: listTotal, promoUnits: 0, regularUnits: qty };
+  if (Number.isFinite(promoUnitPrice) && promoUnitPrice > 0 && packQty > 1) {
+    const eligibleUnits = Math.floor(capOfferUnits(totalUnits) / packQty) * packQty;
+    const promoUnits = Math.min(totalUnits, eligibleUnits);
+    const regularUnits = totalUnits - promoUnits;
+    const promoSubtotal = promoUnits * promoUnitPrice;
+    const regularSubtotal = regularUnits * regularUnitPrice;
+    return { listTotal, total: promoSubtotal + regularSubtotal, promoUnits, regularUnits, promoSubtotal, regularSubtotal };
   }
-  const promoUnits = Math.floor(qty / packQty) * packQty;
-  const regularUnits = qty - promoUnits;
-  const total = promoUnits * promoUnitPrice + regularUnits * Math.max(0, Number(item.price) || 0);
-  return { listTotal, total, promoUnits, regularUnits };
+  const hasDirectOffer = listItemPrice > itemPrice;
+  if (hasDirectOffer) {
+    const eligibleItems = configuredOfferUnits > 0 ? Math.floor(maxOfferUnits / unitsPerItem) : qty;
+    const promoItems = Math.min(qty, eligibleItems);
+    const promoUnits = promoItems * unitsPerItem;
+    const regularUnits = totalUnits - promoUnits;
+    const promoSubtotal = promoItems * itemPrice;
+    const regularSubtotal = (qty - promoItems) * listItemPrice;
+    return { listTotal, total: promoSubtotal + regularSubtotal, promoUnits, regularUnits, promoSubtotal, regularSubtotal };
+  }
+  return { listTotal, total: listTotal, promoUnits: 0, regularUnits: totalUnits, promoSubtotal: 0, regularSubtotal: listTotal };
+}
+
+export function getCartPricingMap(items: CartItem[]) {
+  const allocatedByProduct = new Map<string, number>();
+  return new Map(items.map((item) => {
+    const allocated = allocatedByProduct.get(item.productId) || 0;
+    const pricing = getCartItemPricing({
+      ...item,
+      offerUsedUnits: Math.max(0, Number(item.offerUsedUnits) || 0) + allocated,
+    });
+    if (Number(item.offerMaxUnits || 0) > 0) {
+      allocatedByProduct.set(item.productId, allocated + pricing.promoUnits);
+    }
+    return [item.id, pricing] as const;
+  }));
 }
 
 export type CartDiscountCode = {
@@ -77,6 +119,7 @@ type CartState = {
   items: CartItem[];
   appliedDiscountCode: CartDiscountCode | null;
   expiresAt: number | null;
+  dailyOfferUsage: Record<string, number>;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
@@ -88,6 +131,7 @@ type CartState = {
   clear: () => void;
   extendExpiry: () => void;
   resetSession: () => void;
+  setDailyOfferUsage: (usage: Record<string, number>) => void;
 };
 
 function nextExpiry(previousItems: CartItem[], nextItems: CartItem[], currentExpiry: number | null) {
@@ -103,11 +147,16 @@ export const useCartStore = create<CartState>()(
       items: [],
       appliedDiscountCode: null,
       expiresAt: null,
+      dailyOfferUsage: {},
       openCart: () => set({ open: true }),
       closeCart: () => set({ open: false }),
       toggleCart: () => set({ open: !get().open }),
       addItem: (item, qty = 1) =>
         set((state) => {
+          item = {
+            ...item,
+            offerUsedUnits: Math.max(0, Math.trunc(Number(state.dailyOfferUsage[item.productId]) || 0)),
+          };
           const existing = state.items.find((i) => i.id === item.id);
           const requestedQty = Math.max(0, Math.trunc(Number(qty) || 0));
           if (!requestedQty) return {};
@@ -194,6 +243,13 @@ export const useCartStore = create<CartState>()(
           expiresAt: state.items.length ? Date.now() + CART_DURATION_MS : null,
         })),
       resetSession: () => set({ open: false, items: [], expiresAt: null, appliedDiscountCode: null }),
+      setDailyOfferUsage: (usage) => set((state) => ({
+        dailyOfferUsage: usage,
+        items: state.items.map((item) => ({
+          ...item,
+          offerUsedUnits: Math.max(0, Math.trunc(Number(usage[item.productId]) || 0)),
+        })),
+      })),
     }),
     {
       name: CART_STORAGE_KEY,

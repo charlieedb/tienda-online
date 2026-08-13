@@ -20,6 +20,7 @@ import { normalizeToken } from "@/lib/normalize";
 import { getActiveCatalog, getProductById, startCatalogAutoRefresh } from "@/lib/products";
 import { APP_VERSION } from "@/lib/appVersion";
 import { refreshUserProfile } from "@/lib/userProfile";
+import { getDailyOfferUsage } from "@/lib/offerUsage";
 import { clearPersistedCart, useCartStore } from "@/store/cart";
 
 type Stage = "landing" | "builder" | "catalog" | "settings" | "orders";
@@ -93,6 +94,19 @@ export function StoreApp({ forcedDesktop = false, initialStage = "landing" }: Pr
   const [catalogOffersOnly, setCatalogOffersOnly] = useState(false);
   const [categories, setCategories] = useState<StoreCategory[]>([]);
   const [demoAccess, setDemoAccess] = useState(false);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      useCartStore.getState().setDailyOfferUsage({});
+      return;
+    }
+    let active = true;
+    void getDailyOfferUsage(user.uid).then((usage) => {
+      if (active) useCartStore.getState().setDailyOfferUsage(usage);
+    }).catch((error) => console.warn("No se pudo consultar el cupo diario de ofertas", error));
+    return () => { active = false; };
+  }, [authLoading, user]);
   const [googleProfileIncomplete, setGoogleProfileIncomplete] = useState(false);
   const lastUserUidRef = useRef<string | null>(null);
   const cartItems = useCartStore((state) => state.items);
@@ -679,7 +693,7 @@ export function StoreApp({ forcedDesktop = false, initialStage = "landing" }: Pr
           setEditOpen(false);
           setEditSelectionId(null);
         }}
-        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice, offerMinQty, offerUnitPrice, offerAllowCoupons }) => {
+        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice, offerMinQty, offerUnitPrice, offerAllowCoupons, offerMaxUnits }) => {
           if (!editItemId) return;
           const previous = items.find((item) => item.id === editItemId)?.selections?.find((entry) => entry.id === editSelectionId);
           if (!previous) return;
@@ -707,9 +721,8 @@ export function StoreApp({ forcedDesktop = false, initialStage = "landing" }: Pr
                 offerMinQty,
                 offerUnitPrice,
                 offerAllowCoupons,
-                stockLimit: product.offerMaxUnits
-                  ? Math.min(product.stockReal ?? product.offerMaxUnits, product.offerMaxUnits)
-                  : product.stockReal,
+                offerMaxUnits,
+                stockLimit: product.stockReal,
               },
               qty,
             );

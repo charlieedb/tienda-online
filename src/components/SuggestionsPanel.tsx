@@ -319,7 +319,7 @@ export function SuggestionsPanel({
               }
             : undefined
         }
-        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice, offerMinQty, offerUnitPrice, offerAllowCoupons }) => {
+        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice, offerMinQty, offerUnitPrice, offerAllowCoupons, offerMaxUnits }) => {
           const newId = `${product.id}:${variant}`;
           if (selectedMode === "edit" && selectedExistingId) {
             if (selectedExistingId === newId) {
@@ -341,9 +341,8 @@ export function SuggestionsPanel({
                   offerMinQty,
                   offerUnitPrice,
                   offerAllowCoupons,
-                  stockLimit: product.offerMaxUnits
-                    ? Math.min(product.stockReal ?? product.offerMaxUnits, product.offerMaxUnits)
-                    : product.stockReal,
+                  offerMaxUnits,
+                  stockLimit: product.stockReal,
                 },
                 qty,
               );
@@ -364,9 +363,8 @@ export function SuggestionsPanel({
                 offerMinQty,
                 offerUnitPrice,
                 offerAllowCoupons,
-                stockLimit: product.offerMaxUnits
-                  ? Math.min(product.stockReal ?? product.offerMaxUnits, product.offerMaxUnits)
-                  : product.stockReal,
+                offerMaxUnits,
+                stockLimit: product.stockReal,
               },
               qty,
             );

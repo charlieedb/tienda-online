@@ -62,7 +62,7 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
         product={selected}
         mode="add"
         onClose={() => setQtyOpen(false)}
-        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice, offerMinQty, offerUnitPrice, offerAllowCoupons }) => {
+        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice, offerMinQty, offerUnitPrice, offerAllowCoupons, offerMaxUnits }) => {
           addItem(
             {
               id: `${product.id}:${variant}`,
@@ -78,9 +78,8 @@ export function OffersPanel({ open, onAdded, onOfferAdded }: Props) {
               offerMinQty,
               offerUnitPrice,
               offerAllowCoupons,
-              stockLimit: product.offerMaxUnits
-                ? Math.min(product.stockReal ?? product.offerMaxUnits, product.offerMaxUnits)
-                : product.stockReal,
+              offerMaxUnits,
+              stockLimit: product.stockReal,
             },
             qty,
           );

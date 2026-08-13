@@ -125,10 +125,7 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   const packHasPromo = variant === "pack" && Boolean(
     option.discountPct || (option.listPrice && option.listPrice > option.price),
   );
-  const purchaseLimit = product.offerMaxUnits
-    ? Math.min(product.stockReal ?? product.offerMaxUnits, product.offerMaxUnits)
-    : product.stockReal;
-  const remainingStock = getRemainingStock(items, product.id, purchaseLimit);
+  const remainingStock = getRemainingStock(items, product.id, product.stockReal);
   const unitsNeeded = variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1;
   const available = product.active && (remainingStock === undefined || remainingStock >= unitsNeeded);
   const exhausted = product.active && remainingStock !== undefined && remainingStock <= 0;
@@ -138,7 +135,7 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   }, [onPriceChange, option.price]);
 
   const add = () => {
-    addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.offerMaxUnits ? Math.min(product.stockReal ?? product.offerMaxUnits, product.offerMaxUnits) : product.stockReal, promoPackQty: product.pack?.qty, promoPackUnitPrice: product.packPromoUnitPrice, offerMinQty: product.offerMinQty, offerUnitPrice: product.offerUnitPrice, offerAllowCoupons: product.offerAllowCoupons }, 1);
+    addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.stockReal, promoPackQty: product.pack?.qty, promoPackUnitPrice: product.packPromoUnitPrice, offerMinQty: product.offerMinQty, offerUnitPrice: product.offerUnitPrice, offerAllowCoupons: product.offerAllowCoupons, offerMaxUnits: product.offerMaxUnits }, 1);
     trackEvent("add_to_cart", { item_id: product.id, item_name: product.name, item_category: product.category, price: option.price, currency: "ARS", variant });
   };
 

@@ -2,7 +2,7 @@ import { collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction
 import { getDb } from "@/lib/firebase";
 import { refreshUserProfile } from "@/lib/userProfile";
 import type { Product } from "@/lib/products";
-import { getCartItemPricing, type CartItem } from "@/store/cart";
+import { getCartPricingMap, type CartItem } from "@/store/cart";
 
 const STORE_CONFIG_PATH = "config/tiendaOnlineStore";
 
@@ -143,9 +143,10 @@ export function calculateDiscount(
   items: CartItem[],
   productsById: Map<string, Product>,
 ): AppliedDiscountCode {
+  const pricingByItem = getCartPricingMap(items);
   const eligibleSubtotalByItem: Record<string, number> = Object.fromEntries(items.flatMap((item) => {
     const product = productsById.get(item.productId);
-    const pricing = getCartItemPricing(item);
+    const pricing = pricingByItem.get(item.id)!;
     if (product?.offerAllowCoupons === true || item.offerAllowCoupons === true) {
       return pricing.total > 0 ? [[item.id, pricing.total]] : [];
     }

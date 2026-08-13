@@ -30,6 +30,7 @@ type Props = {
     offerMinQty?: number;
     offerUnitPrice?: number;
     offerAllowCoupons?: boolean;
+    offerMaxUnits?: number;
   }) => void;
 };
 
@@ -49,7 +50,7 @@ export function QuantityModal({
   const isOut = product?.active === false;
   const [variant, setVariant] = useState<Variant>("unit");
   const [qty, setQty] = useState(1);
-  const maxQty = Math.max(1, Math.min(99, Math.trunc(Number(product?.offerMaxUnits) || 99)));
+  const maxQty = 99;
 
   const discountPct = product?.offer ? product.offerDiscount ?? 0 : 0;
   const hasDiscount = discountPct > 0;
@@ -298,6 +299,7 @@ export function QuantityModal({
                         offerMinQty: product.offerMinQty,
                         offerUnitPrice: product.offerUnitPrice,
                         offerAllowCoupons: product.offerAllowCoupons,
+                        offerMaxUnits: product.offerMaxUnits,
                       });
                     }}
                     disabled={isOut}
