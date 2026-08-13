@@ -17,6 +17,14 @@ type SourceRow = {
   _nCodigo?: string | null;
   _nNombre?: string | null;
   _nLinea?: string | null;
+  ofertaOnline?: {
+    active?: boolean;
+    type?: "unit" | "quantity" | "pack";
+    finalPrice?: number;
+    minQuantity?: number;
+    maxUnits?: number;
+    allowCoupons?: boolean;
+  };
 };
 
 type Product = {
@@ -25,13 +33,19 @@ type Product = {
   brand?: string;
   category?: string;
   imageUrl?: string;
-  unit: { label: string; price: number };
-  pack?: { qty: number; label: string; price: number };
+  unit: { label: string; price: number; listPrice?: number; discountPct?: number };
+  pack?: { qty: number; label: string; price: number; listPrice?: number; discountPct?: number };
+  packPromoUnitPrice?: number;
   sortPrice: number;
   keywords: string[];
   active: boolean;
   offer?: boolean;
   offerDiscount?: number;
+  offerCondition?: "pack" | "quantity";
+  offerMinQty?: number;
+  offerUnitPrice?: number;
+  offerMaxUnits?: number;
+  offerAllowCoupons?: boolean;
 };
 
 function normalizeForSearch(value: string) {
@@ -76,7 +90,10 @@ function mapRowToProduct(row: SourceRow): Product | null {
 
   const packQty = toInt(row.Presentacion);
   const unitPrice = toNumber(row.Precio) ?? 0;
-  const packPromoUnitPrice = toNumber(row.precioUnitarioPromoCaja);
+  const online = row.ofertaOnline?.active !== false ? row.ofertaOnline : undefined;
+  const onlineType = online && ["unit", "quantity", "pack"].includes(String(online.type)) ? online.type : undefined;
+  const onlineFinalPrice = toNumber(online?.finalPrice);
+  const packPromoUnitPrice = onlineType === "pack" ? onlineFinalPrice : null;
   const packPrice =
     packQty && unitPrice ? Math.round((packPromoUnitPrice || unitPrice) * packQty * 100) / 100 : null;
 
@@ -120,8 +137,10 @@ function mapRowToProduct(row: SourceRow): Product | null {
     : undefined;
   const imageUrl = String(row.imagenURL ?? "").trim() || fallbackImageUrl;
 
-  const offer = row.oferta === true || row.Promo === true || Boolean(packPromoUnitPrice);
-  const offerDiscount = toNumber(row.descOferta);
+  const offer = Boolean(onlineType && onlineFinalPrice && onlineFinalPrice > 0);
+  const offerDiscount = offer && onlineType === "unit" && unitPrice > 0
+    ? Math.max(0, (1 - Number(onlineFinalPrice) / unitPrice) * 100)
+    : undefined;
 
   return {
     id: codigo,
@@ -129,15 +148,24 @@ function mapRowToProduct(row: SourceRow): Product | null {
     brand,
     category,
     imageUrl,
-    unit: { label: "unidad", price: unitPrice },
+    unit: {
+      label: "unidad",
+      price: onlineType === "unit" && onlineFinalPrice ? onlineFinalPrice : unitPrice,
+      listPrice: onlineType === "unit" && onlineFinalPrice ? unitPrice : undefined,
+      discountPct: offerDiscount,
+    },
     pack,
     sortPrice: Math.max(unitPrice, 0),
     keywords,
     active,
     offer,
     offerDiscount: offerDiscount ?? undefined,
-    offerCondition: packPromoUnitPrice ? "pack" : undefined,
+    offerCondition: onlineType === "pack" ? "pack" : onlineType === "quantity" ? "quantity" : undefined,
     packPromoUnitPrice: packPromoUnitPrice ?? undefined,
+    offerMinQty: onlineType === "quantity" ? Math.max(2, toInt(online?.minQuantity) || 2) : undefined,
+    offerUnitPrice: onlineType === "quantity" ? onlineFinalPrice ?? undefined : undefined,
+    offerMaxUnits: Math.max(0, toInt(online?.maxUnits) || 0) || undefined,
+    offerAllowCoupons: online?.allowCoupons === true,
   };
 }
 

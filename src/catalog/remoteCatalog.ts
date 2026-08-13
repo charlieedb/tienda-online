@@ -45,16 +45,22 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const packQty = Math.max(1, Math.trunc(number(raw.Presentacion ?? raw.presentacion) || 1));
   const overlay = prices[code.toUpperCase()] ?? {};
   const unitPrice = number(overlay.precioUnidad ?? raw.Precio ?? raw.precio ?? raw.PrecioMostrador);
-  const promoPackUnit = number(overlay.precioUnitarioPromoCaja ?? raw.precioUnitarioPromoCaja);
+  const online = raw.ofertaOnline && typeof raw.ofertaOnline === "object" ? raw.ofertaOnline as RawProduct : null;
+  const onlineActive = online && online.active !== false;
+  const onlineType = onlineActive && ["unit", "quantity", "pack"].includes(text(online.type)) ? text(online.type) : "";
+  const onlineFinal = number(online?.finalPrice);
+  const promoPackUnit = onlineType === "pack" ? onlineFinal : 0;
   const explicitPackPrice = number(overlay.precioCaja ?? raw.PrecioCaja ?? raw.precioCaja ?? raw.Precio_Caja);
   const packListPrice = explicitPackPrice || unitPrice * packQty;
-  const offerDiscount = number(raw.descOferta ?? raw.descuentoPct ?? raw.descuento);
+  const offerDiscount = onlineType === "unit" && unitPrice > 0 && onlineFinal > 0
+    ? discountBetween(unitPrice, onlineFinal)
+    : 0;
   const unitFinalPrice = offerDiscount > 0 ? roundPrice(unitPrice * (1 - offerDiscount / 100)) : unitPrice;
   const packPrice = promoPackUnit > 0
     ? roundPrice(promoPackUnit * packQty)
     : offerDiscount > 0 ? roundPrice(packListPrice * (1 - offerDiscount / 100)) : packListPrice;
   const packDiscount = discountBetween(packListPrice, packPrice);
-  const offer = bool(raw.oferta ?? raw.Oferta ?? raw.Promo ?? raw.promo) || promoPackUnit > 0;
+  const offer = Boolean(onlineType && onlineFinal > 0);
   const isCombo = bool(raw.esCombo) || normalize(category).includes("promo");
   const stockValue = raw.stockReal;
   const parsedStock = stockValue === null || stockValue === undefined || stockValue === "" ? undefined : Number(stockValue);
@@ -83,8 +89,12 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     stockReal,
     offer,
     offerDiscount: offerDiscount || packDiscount || undefined,
-    offerCondition: promoPackUnit > 0 ? "pack" : undefined,
+    offerCondition: onlineType === "pack" ? "pack" : onlineType === "quantity" ? "quantity" : undefined,
     packPromoUnitPrice: promoPackUnit > 0 ? promoPackUnit : undefined,
+    offerMinQty: onlineType === "quantity" ? Math.max(2, Math.trunc(number(online?.minQuantity) || 2)) : undefined,
+    offerUnitPrice: onlineType === "quantity" ? onlineFinal : undefined,
+    offerMaxUnits: Math.max(0, Math.trunc(number(online?.maxUnits))) || undefined,
+    offerAllowCoupons: online?.allowCoupons === true,
   };
 }
 

@@ -679,7 +679,7 @@ export function StoreApp({ forcedDesktop = false, initialStage = "landing" }: Pr
           setEditOpen(false);
           setEditSelectionId(null);
         }}
-        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack }) => {
+        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice, offerMinQty, offerUnitPrice, offerAllowCoupons }) => {
           if (!editItemId) return;
           const previous = items.find((item) => item.id === editItemId)?.selections?.find((entry) => entry.id === editSelectionId);
           if (!previous) return;
@@ -702,6 +702,14 @@ export function StoreApp({ forcedDesktop = false, initialStage = "landing" }: Pr
                 price,
                 unitPriceFinal,
                 unitsPerPack,
+                promoPackQty,
+                promoPackUnitPrice,
+                offerMinQty,
+                offerUnitPrice,
+                offerAllowCoupons,
+                stockLimit: product.offerMaxUnits
+                  ? Math.min(product.stockReal ?? product.offerMaxUnits, product.offerMaxUnits)
+                  : product.stockReal,
               },
               qty,
             );

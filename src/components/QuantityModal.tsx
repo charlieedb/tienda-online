@@ -27,6 +27,9 @@ type Props = {
     unitsPerPack: number;
     promoPackQty?: number;
     promoPackUnitPrice?: number;
+    offerMinQty?: number;
+    offerUnitPrice?: number;
+    offerAllowCoupons?: boolean;
   }) => void;
 };
 
@@ -46,11 +49,13 @@ export function QuantityModal({
   const isOut = product?.active === false;
   const [variant, setVariant] = useState<Variant>("unit");
   const [qty, setQty] = useState(1);
+  const maxQty = Math.max(1, Math.min(99, Math.trunc(Number(product?.offerMaxUnits) || 99)));
 
   const discountPct = product?.offer ? product.offerDiscount ?? 0 : 0;
   const hasDiscount = discountPct > 0;
-  const applyDiscount = (price: number) =>
-    hasDiscount ? Math.max(0, Math.round(price * (1 - discountPct / 100))) : price;
+  // El catálogo ya entrega el precio final de la oferta. El porcentaje se usa
+  // para comunicar el ahorro, no para volver a descontar el valor.
+  const applyDiscount = (price: number) => price;
 
   useEffect(() => {
     if (!open) return;
@@ -60,7 +65,7 @@ export function QuantityModal({
 
   useEffect(() => {
     if (!open) return;
-    const nextQty = Math.max(1, Math.min(99, Math.trunc(initialQty ?? 1)));
+    const nextQty = Math.max(1, Math.min(maxQty, Math.trunc(initialQty ?? 1)));
     setQty(nextQty);
 
     const nextVariant: Variant = initialVariant ?? "unit";
@@ -69,7 +74,7 @@ export function QuantityModal({
     } else {
       setVariant(nextVariant);
     }
-  }, [open, hasPack, initialQty, initialVariant]);
+  }, [open, hasPack, initialQty, initialVariant, maxQty]);
 
   const variantInfo = useMemo(() => {
     if (!product) return null;
@@ -89,6 +94,9 @@ export function QuantityModal({
 
   const modalTotal = useMemo(() => {
     if (!product || !variantInfo) return 0;
+    if (variant === "unit" && product.offerCondition === "quantity" && product.offerUnitPrice && product.offerMinQty) {
+      return qty >= product.offerMinQty ? product.offerUnitPrice * qty : product.unit.price * qty;
+    }
     if (variant !== "unit" || !product.packPromoUnitPrice || !product.pack?.qty) return variantInfo.price * qty;
     const packQty = Math.max(1, product.pack.qty);
     const promoUnits = Math.floor(qty / packQty) * packQty;
@@ -163,9 +171,9 @@ export function QuantityModal({
                   <div className={["text-sm font-semibold", variant === "unit" ? "text-white" : "text-foreground"].join(" ")}>
                     {hasDiscount ? (
                       <span className="inline-flex items-baseline gap-2">
-                        <span>{formatArs(applyDiscount(product.unit.price))}</span>
+                        <span>{formatArs(product.unit.price)}</span>
                         <span className={["text-xs font-semibold line-through", variant === "unit" ? "text-white/70" : "text-foreground/45"].join(" ")}>
-                          {formatArs(product.unit.price)}
+                          {formatArs(product.unit.listPrice ?? product.unit.price)}
                         </span>
                       </span>
                     ) : (
@@ -197,9 +205,9 @@ export function QuantityModal({
                       <>
                         {hasDiscount ? (
                           <span className="inline-flex items-baseline gap-2">
-                            <span>{formatArs(applyDiscount(product.pack.price))}</span>
+                            <span>{formatArs(product.pack.price)}</span>
                             <span className={["text-xs font-semibold line-through", variant === "pack" ? "text-white/70" : "text-foreground/45"].join(" ")}>
-                              {formatArs(product.pack.price)}
+                              {formatArs(product.pack.listPrice ?? product.pack.price)}
                             </span>
                           </span>
                         ) : (
@@ -241,7 +249,7 @@ export function QuantityModal({
                       onChange={(e) => {
                         const n = Number(e.target.value);
                         if (!Number.isFinite(n)) return;
-                        setQty(Math.max(1, Math.min(99, Math.trunc(n))));
+                        setQty(Math.max(1, Math.min(maxQty, Math.trunc(n))));
                       }}
                       inputMode="numeric"
                       className="app-input h-9 w-14 rounded-xl text-center text-sm font-semibold"
@@ -250,7 +258,7 @@ export function QuantityModal({
                       type="button"
                       tone="ghost"
                       className="h-9 w-9 border border-border !bg-white px-0 !text-foreground hover:!bg-[rgba(69,123,157,0.08)]"
-                      onClick={() => setQty((q) => Math.min(99, q + 1))}
+                      onClick={() => setQty((q) => Math.min(maxQty, q + 1))}
                       aria-label="Sumar"
                     >
                       +
@@ -287,6 +295,9 @@ export function QuantityModal({
                         unitsPerPack: variant === "pack" ? Math.max(1, product.pack?.qty ?? 1) : 1,
                         promoPackQty: product.pack?.qty,
                         promoPackUnitPrice: product.packPromoUnitPrice,
+                        offerMinQty: product.offerMinQty,
+                        offerUnitPrice: product.offerUnitPrice,
+                        offerAllowCoupons: product.offerAllowCoupons,
                       });
                     }}
                     disabled={isOut}

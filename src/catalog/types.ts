@@ -14,8 +14,12 @@ export type Product = {
   stockReal?: number;
   offer?: boolean;
   offerDiscount?: number;
-  offerCondition?: "pack";
+  offerCondition?: "pack" | "quantity";
   packPromoUnitPrice?: number;
+  offerMinQty?: number;
+  offerUnitPrice?: number;
+  offerMaxUnits?: number;
+  offerAllowCoupons?: boolean;
   featured?: boolean;
   featuredOrder?: number;
 };

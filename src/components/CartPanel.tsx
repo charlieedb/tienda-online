@@ -147,6 +147,9 @@ function CartContent({
                             stockLimit: i.stockLimit,
                             promoPackQty: i.promoPackQty,
                             promoPackUnitPrice: i.promoPackUnitPrice,
+                            offerMinQty: i.offerMinQty,
+                            offerUnitPrice: i.offerUnitPrice,
+                            offerAllowCoupons: i.offerAllowCoupons,
                           },
                           1,
                         )

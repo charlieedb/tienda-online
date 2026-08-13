@@ -20,12 +20,20 @@ export type CartItem = {
   stockLimit?: number;
   promoPackQty?: number;
   promoPackUnitPrice?: number;
+  offerMinQty?: number;
+  offerUnitPrice?: number;
+  offerAllowCoupons?: boolean;
   qty: number;
 };
 
 export function getCartItemPricing(item: CartItem) {
   const qty = Math.max(0, Math.trunc(Number(item.qty) || 0));
   const listTotal = Math.max(0, Number(item.price) || 0) * qty;
+  const offerMinQty = Math.max(2, Math.trunc(Number(item.offerMinQty) || 0));
+  const offerUnitPrice = Number(item.offerUnitPrice);
+  if (Number.isFinite(offerUnitPrice) && offerUnitPrice > 0 && qty >= offerMinQty) {
+    return { listTotal, total: offerUnitPrice * qty, promoUnits: qty, regularUnits: 0 };
+  }
   const packQty = Math.max(1, Math.trunc(Number(item.promoPackQty) || 0));
   const promoUnitPrice = Number(item.promoPackUnitPrice);
   if (item.variant !== "unit" || !Number.isFinite(promoUnitPrice) || promoUnitPrice <= 0 || packQty <= 1) {

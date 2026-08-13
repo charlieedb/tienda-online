@@ -88,7 +88,7 @@ function ProductImage({ product, eager, linkToDetail }: { product: Product; eage
     }} /> : null}
     {isReusableCombo ? <div className="combo-product-mark" aria-label="Combo con descuento"><span aria-hidden="true">%</span><small>Combo</small></div> : null}
     {!isReusableCombo && (failed || !resolvedUrl) ? <div className="image-fallback"><span>{product.name.slice(0, 1)}</span><small>Sin foto</small></div> : null}
-    {product.offer ? <span className="offer-badge">{product.offerCondition === "pack" ? "Oferta por caja" : product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
+    {product.offer ? <span className="offer-badge">{product.offerCondition === "pack" ? "Oferta por caja" : product.offerCondition === "quantity" ? `Desde ${product.offerMinQty || 2} unid.` : product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
   </div>;
 
   if (linkToDetail) return <a className="product-image-link" href={productPath(product)} aria-label={`Ver ficha de ${product.name}`} onClick={(event) => {
@@ -125,7 +125,10 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   const packHasPromo = variant === "pack" && Boolean(
     option.discountPct || (option.listPrice && option.listPrice > option.price),
   );
-  const remainingStock = getRemainingStock(items, product.id, product.stockReal);
+  const purchaseLimit = product.offerMaxUnits
+    ? Math.min(product.stockReal ?? product.offerMaxUnits, product.offerMaxUnits)
+    : product.stockReal;
+  const remainingStock = getRemainingStock(items, product.id, purchaseLimit);
   const unitsNeeded = variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1;
   const available = product.active && (remainingStock === undefined || remainingStock >= unitsNeeded);
   const exhausted = product.active && remainingStock !== undefined && remainingStock <= 0;
@@ -135,7 +138,7 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   }, [onPriceChange, option.price]);
 
   const add = () => {
-    addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.stockReal, promoPackQty: product.pack?.qty, promoPackUnitPrice: product.packPromoUnitPrice }, 1);
+    addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.offerMaxUnits ? Math.min(product.stockReal ?? product.offerMaxUnits, product.offerMaxUnits) : product.stockReal, promoPackQty: product.pack?.qty, promoPackUnitPrice: product.packPromoUnitPrice, offerMinQty: product.offerMinQty, offerUnitPrice: product.offerUnitPrice, offerAllowCoupons: product.offerAllowCoupons }, 1);
     trackEvent("add_to_cart", { item_id: product.id, item_name: product.name, item_category: product.category, price: option.price, currency: "ARS", variant });
   };
 

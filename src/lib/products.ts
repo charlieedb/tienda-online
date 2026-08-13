@@ -12,15 +12,19 @@ export type Product = {
   brand?: string;
   category?: string;
   imageUrl?: string;
-  unit: { label: string; price: number };
-  pack?: { qty: number; label: string; price: number };
+  unit: { label: string; price: number; listPrice?: number; discountPct?: number };
+  pack?: { qty: number; label: string; price: number; listPrice?: number; discountPct?: number };
   sortPrice: number;
   keywords: string[];
   active: boolean;
   offer?: boolean;
   offerDiscount?: number;
-  offerCondition?: "pack";
+  offerCondition?: "pack" | "quantity";
   packPromoUnitPrice?: number;
+  offerMinQty?: number;
+  offerUnitPrice?: number;
+  offerMaxUnits?: number;
+  offerAllowCoupons?: boolean;
 };
 
 const LS_KEY = `listita.catalog.${APP_VERSION}`;
