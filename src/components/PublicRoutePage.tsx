@@ -84,11 +84,14 @@ function PublicHeader({ showBack = false }: { showBack?: boolean }) {
   };
   return <div className="top-shell public-top-shell">
     <header className="app-header">
-      <button type="button" className={`menu-button ${menuOpen ? "is-active" : ""}`} onClick={() => setMenuOpen(true)} aria-label="Abrir menú"><Icon name="menu"/></button>
+      <div className="app-header__leading">
+        <button type="button" className={`menu-button ${menuOpen ? "is-active" : ""}`} onClick={() => setMenuOpen(true)} aria-label="Abrir menú"><Icon name="menu"/><span className="header-action-label">Menú</span></button>
+        <a className="business-header-button" href="/?view=business" aria-label="Ingresar a JOMA para comercios"><Icon name="store"/><span className="header-action-label">Tu Comercio</span></a>
+      </div>
         <a className="brand-lockup" href="/" onClick={(event) => { event.preventDefault(); navigateInStore("/"); }} aria-label="Ir al inicio de Joma Group"><img src="/joma-express-white.png" alt="Joma Group, servicio online Joma Express" width="776" height="329"/></a>
       <div className="app-header__actions">
-        <a className="header-whatsapp" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp" title="Consultar por WhatsApp"><WhatsAppIcon/></a>
-        <a className="header-cart" href="/?view=cart" aria-label={`Abrir carrito. ${itemCount} productos`}><Icon name="cart"/>{itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}</a>
+        <a className="header-whatsapp" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="Consultar por WhatsApp" title="Consultar por WhatsApp"><WhatsAppIcon/><span className="header-action-label">Consultas</span></a>
+        <a className="header-cart" href="/?view=cart" aria-label={`Abrir carrito. ${itemCount} productos`}><Icon name="cart"/><span className="header-action-label">Carrito</span>{itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}</a>
       </div>
     </header>
     <div className={`search-dock ${showBack ? "has-back" : ""}`}>{showBack ? <button type="button" className="search-back-button" onClick={goBack} aria-label="Volver a la tienda"><Icon name="arrow"/></button> : null}<label className="top-search"><Icon name="search"/><input readOnly value="" onFocus={() => window.location.assign("/?view=search")} placeholder="¿Qué necesitás?" aria-label="Buscar productos"/><span/></label><NotificationBell onSearch={(value) => window.location.assign(`/?view=search&q=${encodeURIComponent(value)}`)} onOpenCatalog={() => window.location.assign("/?view=categories")} onOpenCart={() => window.location.assign("/?view=cart")} onOpenProduct={(id) => window.location.assign(`/producto/${encodeURIComponent(id)}`)} /></div>

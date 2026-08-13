@@ -1168,8 +1168,8 @@ function StoreApp({
       <div className="top-shell">
         <header className="app-header">
           <div className="app-header__leading">
-            <button type="button" className={`menu-button ${menuOpen ? "is-active" : ""}`} onClick={() => setMenuOpen((open) => !open)} aria-label="Abrir menú" aria-expanded={menuOpen}><Icon name="menu" /></button>
-            <button type="button" className={`business-header-button ${tab === "business" ? "is-active" : ""}`} onClick={() => goTo("business")} aria-label="Ingresar a JOMA para comercios" title="JOMA para comercios"><Icon name="store" /></button>
+            <button type="button" className={`menu-button ${menuOpen ? "is-active" : ""}`} onClick={() => setMenuOpen((open) => !open)} aria-label="Abrir menú" aria-expanded={menuOpen}><Icon name="menu" /><span className="header-action-label">Menú</span></button>
+            <button type="button" className={`business-header-button ${tab === "business" ? "is-active" : ""}`} onClick={() => goTo("business")} aria-label="Ingresar a JOMA para comercios" title="JOMA para comercios"><Icon name="store" /><span className="header-action-label">Tu Comercio</span></button>
           </div>
           <button
             type="button"
@@ -1194,6 +1194,7 @@ function StoreApp({
               title="Consultar por WhatsApp"
             >
               <WhatsAppIcon />
+              <span className="header-action-label">Consultas</span>
             </a>
             <button
               type="button"
@@ -1202,6 +1203,7 @@ function StoreApp({
               aria-label={`Abrir carrito. ${itemCount} productos`}
             >
               <Icon name="cart" />
+              <span className="header-action-label">Carrito</span>
               {itemCount ? <b>{itemCount > 99 ? "99+" : itemCount}</b> : null}
             </button>
           </div>

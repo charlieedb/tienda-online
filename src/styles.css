@@ -130,6 +130,7 @@ img { display: block; max-width: 100%; }
 .menu-button.is-active, .business-header-button.is-active, .header-cart.is-active { background: rgba(255,255,255,.27); }
 .header-cart b { position: absolute; right: -4px; top: -4px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; color: var(--brand-dark); border: 2px solid #c81b16; border-radius: 999px; background: white; font-size: 8px; }
 .app-header__actions { justify-self: end; display: flex; align-items: center; gap: 6px; }
+.header-action-label { display: none; }
 .header-whatsapp { color: white; background: transparent; text-decoration: none; box-shadow: none; }
 .header-whatsapp img { width: 36px; height: 36px; object-fit: contain; }
 .header-whatsapp:hover { color: white; background: transparent; transform: translateY(-1px) scale(1.04); }
@@ -139,6 +140,17 @@ img { display: block; max-width: 100%; }
   .app-header { grid-template-columns: 96px minmax(0, 1fr) 96px; }
   .brand-lockup { width: 96px; }
   .brand-lockup img { width: 92px; }
+}
+@media (min-width: 900px) {
+  .app-header { height: calc(72px + env(safe-area-inset-top)); max-width: 1080px; grid-template-columns: minmax(300px, 1fr) 160px minmax(300px, 1fr); }
+  .app-header__leading, .app-header__actions { gap: 10px; }
+  .menu-button, .business-header-button, .header-cart, .header-whatsapp { width: auto; min-width: 124px; height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 0 14px; text-decoration: none; }
+  .header-action-label { display: inline; color: white; font-size: 13px; font-weight: 750; line-height: 1; white-space: nowrap; }
+  .header-whatsapp img { width: 31px; height: 31px; }
+  .header-cart b { right: 6px; top: -4px; }
+  .brand-lockup { width: 150px; }
+  .brand-lockup img { width: 122px; }
+  .search-dock { max-width: 1080px; }
 }
 .search-dock { width: 100%; height: 60px; display: grid; grid-template-columns: minmax(0, 1fr) 44px; align-items: center; gap: 8px; max-width: 760px; margin: auto; padding: 7px var(--gutter) 9px; box-sizing: border-box; background: #c81b16; }
 .search-dock.has-back { grid-template-columns: 44px minmax(0, 1fr) 44px; }
