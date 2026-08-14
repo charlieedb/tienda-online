@@ -4,7 +4,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { submitCheckoutOrder } from "@/lib/checkoutOrders";
 import { getCachedUserProfile, refreshUserProfile, upsertUserProfile } from "@/lib/userProfile";
 import { notifyTelegramOrder } from "@/lib/telegramOrders";
-import { DEFAULT_DELIVERY_SCHEDULE, getDeliveryScheduleConfig } from "@/lib/featuredProducts";
+import { DEFAULT_CHECKOUT_SETTINGS, DEFAULT_DELIVERY_SCHEDULE, getCheckoutSettingsConfig, getDeliveryScheduleConfig } from "@/lib/featuredProducts";
 import { buildDeliveryDates, buildDeliveryTimeRanges } from "@/lib/deliverySchedule";
 import type { LatLng } from "@/lib/userProfile";
 import { getCartPricingMap, getCartItemUnits, getRemainingStock, useCartStore } from "@/store/cart";
@@ -20,6 +20,7 @@ const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS
 const PROFILE_KEY = "joma.profile.v1";
 
 type CheckoutForm = { nombre: string; telefono: string; direccion: string; nota: string };
+type PaymentMethod = "cash" | "transfer";
 const EMPTY_FORM: CheckoutForm = { nombre: "", telefono: "", direccion: "", nota: "" };
 
 function createRequestId() {
@@ -76,6 +77,8 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   const [deliveryLoading, setDeliveryLoading] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryTimeRange, setDeliveryTimeRange] = useState("");
+  const [checkoutSettings, setCheckoutSettings] = useState(DEFAULT_CHECKOUT_SETTINGS);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
   const [discountInput, setDiscountInput] = useState("");
   const [discountError, setDiscountError] = useState("");
   const [applyingDiscount, setApplyingDiscount] = useState(false);
@@ -85,6 +88,15 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   const pricingByItem = useMemo(() => getCartPricingMap(items), [items]);
   const total = useMemo(() => items.reduce((sum, item) => sum + pricingByItem.get(item.id)!.total, 0), [items, pricingByItem]);
   const finalTotal = Math.max(0, total - (appliedCode?.discountAmount || 0));
+  const shippingCharge = checkoutSettings.freeShipping ? 0 : checkoutSettings.shippingCost;
+  const checkoutTotal = finalTotal + shippingCharge;
+  const minimumRemaining = Math.max(0, checkoutSettings.minimumOrder - finalTotal);
+  const minimumCompleted = minimumRemaining === 0;
+  const minimumProgress = checkoutSettings.minimumOrder > 0 ? Math.min(100, (finalTotal / checkoutSettings.minimumOrder) * 100) : 100;
+
+  useEffect(() => {
+    getCheckoutSettingsConfig().then(setCheckoutSettings).catch(() => {});
+  }, []);
 
   useEffect(() => {
     const paramsCoupon = new URLSearchParams(window.location.search).get("coupon");
@@ -208,16 +220,37 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
     return () => { active = false; };
   }, [checkoutOpen, user]);
 
+  const focusCheckoutField = (id: string) => {
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(id) as HTMLElement | null;
+      target?.focus();
+      target?.scrollIntoView({ block: "center" });
+    });
+  };
+
   const submit = async () => {
+    if (!minimumCompleted) {
+      setError(`Te faltan ${money.format(minimumRemaining)} para alcanzar el mínimo de compra.`);
+      return;
+    }
     const selectedDeliveryDate = deliveryDates.find((date) => date.value === deliveryDate);
     if (!selectedDeliveryDate || !deliveryTimeRange) {
-      setError("Elegí el día y la franja horaria para recibir el pedido."); return;
+      setError("Elegí el día y la franja horaria para recibir el pedido.");
+      focusCheckoutField(!selectedDeliveryDate ? "checkout-delivery-first-day" : "checkout-delivery-time");
+      return;
+    }
+    if (!paymentMethod) {
+      setError("Elegí cómo vas a abonar el pedido.");
+      focusCheckoutField("checkout-payment-cash");
+      return;
     }
     const customer = {
       nombre: form.nombre.trim(), telefono: form.telefono.trim(), direccion: form.direccion.trim(), nota: form.nota.trim(), ubicacion: deliveryLocation,
     };
     if (!customer.nombre || !customer.telefono || !customer.direccion) {
-      setError("Completá nombre, teléfono y dirección para confirmar la compra."); return;
+      setError("Completá nombre, teléfono y dirección para confirmar la compra.");
+      focusCheckoutField(!customer.nombre ? "checkout-name" : !customer.telefono ? "checkout-phone" : "checkout-address");
+      return;
     }
     submitCompleteRef.current = false; setSubmitting(true); setSubmitProgress(3); setError("");
     try {
@@ -259,6 +292,8 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
           dateLabel: selectedDeliveryDate.label,
           timeRange: deliveryTimeRange,
         },
+        paymentMethod,
+        checkoutSettings,
       });
       submitCompleteRef.current = true;
       setSubmitProgress(100);
@@ -270,7 +305,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       try {
         localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, address: customer.direccion, city: "", notes: customer.nota, lat: customer.ubicacion?.lat, lng: customer.ubicacion?.lng }));
       } catch { /* el pedido ya fue enviado */ }
-      clear(); setAppliedCode(null); setCheckoutOpen(false); setSentWarning(""); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTimeRange(""); orderRequestId.current = createRequestId();
+      clear(); setAppliedCode(null); setCheckoutOpen(false); setSentWarning(""); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTimeRange(""); setPaymentMethod(""); orderRequestId.current = createRequestId();
     } catch (nextError) {
       submitCompleteRef.current = false;
       setSubmitProgress(0);
@@ -300,11 +335,20 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       </div>
       <aside className={`cart-benefit-summary ${appliedCode ? "is-active" : ""}`} aria-live="polite">{appliedCode ? <><span>Beneficio aplicado</span><strong>Cupón porcentual · {appliedCode.percentage}%</strong><dl><div><dt>Código</dt><dd>{appliedCode.code}</dd></div><div><dt>Productos alcanzados</dt><dd>{appliedCode.eligibleItemIds.length}</dd></div><div><dt>Descuento obtenido</dt><dd>− {money.format(appliedCode.discountAmount)}</dd></div></dl></> : <><span>Beneficio del pedido</span><strong>Sin cupón aplicado</strong><p>Cuando ingreses un código válido, acá vas a ver el tipo y el descuento obtenido.</p></>}</aside>
       </div>
-      <div className="cart-summary"><div><span>Total estimado</span><strong>{money.format(finalTotal)}</strong></div><p>Revisá las cantidades antes de confirmar.</p><button type="button" className={`checkout-button ${user ? "" : "is-login"}`} onClick={() => {
+      <div className="cart-summary">
+        <div className="cart-summary-shipping"><span>Envío</span><span>{checkoutSettings.freeShipping ? <><s>{money.format(checkoutSettings.shippingCost)}</s><b>Gratis</b></> : <b>{money.format(checkoutSettings.shippingCost)}</b>}</span></div>
+        <div className="cart-summary-total"><span>Total estimado</span><strong>{money.format(checkoutTotal)}</strong></div>
+        <div className={`cart-minimum ${minimumCompleted ? "is-complete" : ""}`} aria-live="polite">
+          <div><span>Mínimo de compra</span><b>{money.format(checkoutSettings.minimumOrder)}</b></div>
+          <p>{minimumCompleted ? "Mínimo de compra completado" : `Te faltan ${money.format(minimumRemaining)} para completar el mínimo de compra`}</p>
+          <span className="cart-minimum-track" aria-hidden="true"><i style={{ transform: `scaleX(${minimumProgress / 100})` }} /></span>
+        </div>
+        <button type="button" className={`checkout-button ${user ? "" : "is-login"}`} disabled={!minimumCompleted} onClick={() => {
         if (!user && onRequireAuth) { onRequireAuth(); return; }
-        trackEvent("begin_checkout", { value: finalTotal, currency: "ARS", item_count: items.length });
+        trackEvent("begin_checkout", { value: checkoutTotal, currency: "ARS", item_count: items.length });
         setError(""); setCheckoutOpen(true);
-      }}>{user ? "Confirmar compra" : "Iniciar sesión para confirmar"}</button></div>
+      }}>{minimumCompleted ? (user ? "Confirmar compra" : "Iniciar sesión para confirmar") : `Faltan ${money.format(minimumRemaining)}`}</button>
+      </div>
       </div>
     </section>}
 
@@ -316,19 +360,27 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
         <p>Elegí desde mañana. Los domingos no realizamos entregas.</p>
         {deliveryLoading ? <div className="checkout-notice"><span className="tiny-spinner"/> Consultando horarios…</div> : <>
           <div className="checkout-delivery-days">
-            {deliveryDates.map((date) => <button type="button" className={deliveryDate === date.value ? "is-active" : ""} onClick={() => setDeliveryDate(date.value)} aria-pressed={deliveryDate === date.value} key={date.value}>{date.shortLabel}</button>)}
+            {deliveryDates.map((date, index) => <button id={index === 0 ? "checkout-delivery-first-day" : undefined} type="button" className={deliveryDate === date.value ? "is-active" : ""} onClick={() => setDeliveryDate(date.value)} aria-pressed={deliveryDate === date.value} key={date.value}>{date.shortLabel}</button>)}
           </div>
-          <label className="checkout-delivery-time"><span>Franja de entrega</span><select value={deliveryTimeRange} onChange={(event) => setDeliveryTimeRange(event.target.value)}>
+          <label className="checkout-delivery-time"><span>Franja de entrega</span><select id="checkout-delivery-time" value={deliveryTimeRange} onChange={(event) => setDeliveryTimeRange(event.target.value)}>
             {deliveryTimeRanges.map((timeRange) => <option value={timeRange} key={timeRange}>{timeRange}</option>)}
           </select></label>
         </>}
       </fieldset>
-      <label><span>Nombre y apellido</span><input value={form.nombre} onChange={(event) => setForm((current) => ({ ...current, nombre: event.target.value }))} autoComplete="name" placeholder="Tu nombre"/></label>
-      <label><span>Teléfono</span><input value={form.telefono} onChange={(event) => setForm((current) => ({ ...current, telefono: event.target.value }))} autoComplete="tel" inputMode="tel" placeholder="WhatsApp o teléfono"/></label>
-      <label><span>Dirección de entrega</span><input value={form.direccion} onChange={(event) => { setForm((current) => ({ ...current, direccion: event.target.value })); setDeliveryLocation(null); }} autoComplete="street-address" placeholder="Calle, número y localidad"/></label>
+      <section className={`checkout-payment ${submitting ? "is-disabled" : ""}`} role="group" aria-labelledby="checkout-payment-title" aria-describedby={paymentMethod ? "checkout-payment-note" : undefined}>
+        <h3 id="checkout-payment-title">¿Cómo vas a abonar?</h3>
+        <div className="checkout-payment-options">
+          <button id="checkout-payment-cash" type="button" disabled={submitting} className={paymentMethod === "cash" ? "is-active" : ""} aria-pressed={paymentMethod === "cash"} onClick={() => { setPaymentMethod("cash"); setError(""); }}><span>Efectivo</span><span className="checkout-payment-mark" aria-hidden="true">{paymentMethod === "cash" ? "✓" : ""}</span></button>
+          <button type="button" disabled={submitting} className={paymentMethod === "transfer" ? "is-active" : ""} aria-pressed={paymentMethod === "transfer"} onClick={() => { setPaymentMethod("transfer"); setError(""); }}><span>Transferencia</span><span className="checkout-payment-mark" aria-hidden="true">{paymentMethod === "transfer" ? "✓" : ""}</span></button>
+        </div>
+        {paymentMethod ? <p id="checkout-payment-note" className="checkout-payment-note">Abonará al momento de recibir la mercadería.</p> : null}
+      </section>
+      <label><span>Nombre y apellido</span><input id="checkout-name" value={form.nombre} onChange={(event) => setForm((current) => ({ ...current, nombre: event.target.value }))} autoComplete="name" placeholder="Tu nombre"/></label>
+      <label><span>Teléfono</span><input id="checkout-phone" value={form.telefono} onChange={(event) => setForm((current) => ({ ...current, telefono: event.target.value }))} autoComplete="tel" inputMode="tel" placeholder="WhatsApp o teléfono"/></label>
+      <label><span>Dirección de entrega</span><input id="checkout-address" value={form.direccion} onChange={(event) => { setForm((current) => ({ ...current, direccion: event.target.value })); setDeliveryLocation(null); }} autoComplete="street-address" placeholder="Calle, número y localidad"/></label>
       <button type="button" className={`checkout-location-button ${deliveryLocation ? "is-marked" : ""}`} onClick={() => setMapOpen(true)} disabled={submitting}><span aria-hidden="true">📍</span><span>{deliveryLocation ? "Ubicación guardada" : "Marcar punto de entrega"}</span>{deliveryLocation ? <small>{deliveryLocation.lat.toFixed(5)}, {deliveryLocation.lng.toFixed(5)}</small> : null}</button>
       <label><span>Nota <em>Opcional</em></span><textarea value={form.nota} onChange={(event) => setForm((current) => ({ ...current, nota: event.target.value }))} rows={3} placeholder="Aclaraciones para el pedido"/></label>
-    </div><div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className={`checkout-submit ${submitting ? "is-submitting" : ""}`} onClick={submit} disabled={submitting || profileLoading || deliveryLoading || !deliveryDate || !deliveryTimeRange} aria-label={submitting ? `Enviando pedido, ${submitProgress}% completado` : "Enviar pedido"} aria-busy={submitting}>{submitting ? <><span className="checkout-submit-progress" style={{ transform: `scaleX(${submitProgress / 100})` }} aria-hidden="true"/><span className="checkout-submit-label">Enviando pedido...</span></> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
+    </div><div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className={`checkout-submit ${submitting ? "is-submitting" : ""}`} onClick={submit} disabled={submitting || profileLoading || deliveryLoading} aria-label={submitting ? `Enviando pedido, ${submitProgress}% completado` : "Enviar pedido"} aria-busy={submitting}>{submitting ? <><span className="checkout-submit-progress" style={{ transform: `scaleX(${submitProgress / 100})` }} aria-hidden="true"/><span className="checkout-submit-label">Enviando pedido...</span></> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
     <MapPickerModal open={mapOpen} initial={deliveryLocation} center={deliveryLocation} initialQuery={form.direccion} onClose={() => setMapOpen(false)} onPick={setDeliveryLocation}/>
   </>;
 }

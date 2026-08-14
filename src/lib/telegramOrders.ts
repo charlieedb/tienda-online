@@ -39,6 +39,12 @@ export type TelegramOrderPayload = {
     dateLabel: string;
     timeRange: string;
   };
+  payment?: {
+    method: "cash" | "transfer";
+    label: string;
+    timing: "on_delivery";
+    note: string;
+  } | null;
   items: TelegramOrderItem[];
   totals: {
     distinct: number;
@@ -155,6 +161,7 @@ export function buildTelegramOrderMessage(payload: TelegramOrderPayload) {
   const preventistaReferido = cleanText(payload.cliente?.preventistaReferido);
   const deliveryDate = cleanText(payload.delivery?.dateLabel);
   const deliveryTimeRange = cleanText(payload.delivery?.timeRange);
+  const paymentLabel = cleanText(payload.payment?.label);
   const lat = Number(payload.cliente?.ubicacion?.lat);
   const lng = Number(payload.cliente?.ubicacion?.lng);
   const mapsUrl = Number.isFinite(lat) && Number.isFinite(lng)
@@ -181,6 +188,9 @@ export function buildTelegramOrderMessage(payload: TelegramOrderPayload) {
     : "\n<b>Origen:</b> Venta orgánica";
   if (deliveryDate && deliveryTimeRange) {
     mensaje += `\n📅 <b>Entrega:</b> ${escapeHtml(deliveryDate)}, de ${escapeHtml(deliveryTimeRange)}`;
+  }
+  if (paymentLabel) {
+    mensaje += `\n💳 <b>Pago:</b> ${escapeHtml(paymentLabel)} al recibir la mercadería`;
   }
 
   if (lineasJoma.length || lineasJonico.length) {

@@ -9,6 +9,19 @@ export type FeaturedProductsConfig = {
   configured: boolean;
   carouselSlides: StoreCarouselSlide[];
   deliverySchedule: DeliveryScheduleConfig;
+  checkoutSettings: CheckoutSettingsConfig;
+};
+
+export type CheckoutSettingsConfig = {
+  shippingCost: number;
+  freeShipping: boolean;
+  minimumOrder: number;
+};
+
+export const DEFAULT_CHECKOUT_SETTINGS: CheckoutSettingsConfig = {
+  shippingCost: 500,
+  freeShipping: true,
+  minimumOrder: 10_000,
 };
 
 export type DeliveryScheduleConfig = {
@@ -60,6 +73,18 @@ function configFromSnapshot(snapshot: { exists(): boolean; data(): Record<string
     configured: snapshot.exists(),
     carouselSlides: normalizeCarouselSlides(snapshot.data()?.carouselSlides),
     deliverySchedule: normalizeDeliverySchedule(snapshot.data()?.deliverySchedule),
+    checkoutSettings: normalizeCheckoutSettings(snapshot.data()?.checkoutSettings),
+  };
+}
+
+function normalizeCheckoutSettings(value: unknown): CheckoutSettingsConfig {
+  const item = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const shippingCost = Number(item.shippingCost);
+  const minimumOrder = Number(item.minimumOrder);
+  return {
+    shippingCost: Number.isFinite(shippingCost) && shippingCost >= 0 ? Math.round(shippingCost) : DEFAULT_CHECKOUT_SETTINGS.shippingCost,
+    freeShipping: typeof item.freeShipping === "boolean" ? item.freeShipping : DEFAULT_CHECKOUT_SETTINGS.freeShipping,
+    minimumOrder: Number.isFinite(minimumOrder) && minimumOrder >= 0 ? Math.round(minimumOrder) : DEFAULT_CHECKOUT_SETTINGS.minimumOrder,
   };
 }
 
@@ -131,6 +156,7 @@ function normalizeStoredConfig(value: unknown): FeaturedProductsConfig | null {
     configured: true,
     carouselSlides: normalizeCarouselSlides(item.carouselSlides),
     deliverySchedule: normalizeDeliverySchedule(item.deliverySchedule),
+    checkoutSettings: normalizeCheckoutSettings(item.checkoutSettings),
   };
 }
 
@@ -155,7 +181,7 @@ function storeValidConfig(config: FeaturedProductsConfig) {
 }
 
 function emptyConfig(): FeaturedProductsConfig {
-  return { ids: [], configured: false, carouselSlides: [], deliverySchedule: DEFAULT_DELIVERY_SCHEDULE };
+  return { ids: [], configured: false, carouselSlides: [], deliverySchedule: DEFAULT_DELIVERY_SCHEDULE, checkoutSettings: DEFAULT_CHECKOUT_SETTINGS };
 }
 
 export async function getFeaturedProductsConfig(options?: { refresh?: boolean }) {
@@ -204,6 +230,7 @@ export async function saveFeaturedProductIds(ids: string[], actor: string) {
     configured: true,
     carouselSlides: cachedConfig?.carouselSlides ?? [],
     deliverySchedule: cachedConfig?.deliverySchedule ?? DEFAULT_DELIVERY_SCHEDULE,
+    checkoutSettings: cachedConfig?.checkoutSettings ?? DEFAULT_CHECKOUT_SETTINGS,
   };
   storeValidConfig(cachedConfig);
   return cachedConfig;
@@ -217,12 +244,37 @@ export async function getDeliveryScheduleConfig(options?: { refresh?: boolean })
   return (await getFeaturedProductsConfig(options)).deliverySchedule;
 }
 
+export async function getCheckoutSettingsConfig(options?: { refresh?: boolean }) {
+  return (await getFeaturedProductsConfig(options)).checkoutSettings;
+}
+
+export async function saveCheckoutSettingsConfig(settings: CheckoutSettingsConfig, actor: string) {
+  const db = getDb();
+  if (!db) throw new Error("Firebase no está configurado.");
+  const normalized = normalizeCheckoutSettings(settings);
+  await setDoc(doc(db, STORE_CONFIG_PATH), {
+    checkoutSettings: normalized,
+    checkoutSettingsUpdatedAt: serverTimestamp(),
+    checkoutSettingsUpdatedBy: actor,
+  }, { merge: true });
+  cachedConfig = {
+    ids: cachedConfig?.ids ?? [],
+    configured: true,
+    carouselSlides: cachedConfig?.carouselSlides ?? [],
+    deliverySchedule: cachedConfig?.deliverySchedule ?? DEFAULT_DELIVERY_SCHEDULE,
+    checkoutSettings: normalized,
+  };
+  storeValidConfig(cachedConfig);
+  return normalized;
+}
+
 export async function saveDeliveryScheduleConfig(schedule: DeliveryScheduleConfig, actor: string) {
   const db = getDb();
   if (!db) throw new Error("Firebase no está configurado.");
   const normalized = normalizeDeliverySchedule(schedule);
   await setDoc(doc(db, STORE_CONFIG_PATH), {
     deliverySchedule: normalized,
+    checkoutSettings: cachedConfig?.checkoutSettings ?? DEFAULT_CHECKOUT_SETTINGS,
     deliveryScheduleUpdatedAt: serverTimestamp(),
     deliveryScheduleUpdatedBy: actor,
   }, { merge: true });
@@ -231,6 +283,7 @@ export async function saveDeliveryScheduleConfig(schedule: DeliveryScheduleConfi
     configured: true,
     carouselSlides: cachedConfig?.carouselSlides ?? [],
     deliverySchedule: normalized,
+    checkoutSettings: cachedConfig?.checkoutSettings ?? DEFAULT_CHECKOUT_SETTINGS,
   };
   storeValidConfig(cachedConfig);
   return normalized;
@@ -250,6 +303,7 @@ export async function saveStoreCarouselSlides(slides: StoreCarouselSlide[], acto
     configured: true,
     carouselSlides: normalized,
     deliverySchedule: cachedConfig?.deliverySchedule ?? DEFAULT_DELIVERY_SCHEDULE,
+    checkoutSettings: cachedConfig?.checkoutSettings ?? DEFAULT_CHECKOUT_SETTINGS,
   };
   storeValidConfig(cachedConfig);
   return normalized;

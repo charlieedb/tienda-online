@@ -7,6 +7,7 @@ import type { TelegramOrderPayload } from "@/lib/telegramOrders";
 import type { DeliverySelection } from "@/lib/deliverySchedule";
 import { calculateDiscount, type AppliedDiscountCode } from "@/lib/discountCodes";
 import { clearDailyOfferUsageCache, getDailyOfferUsage } from "@/lib/offerUsage";
+import type { CheckoutSettingsConfig } from "@/lib/featuredProducts";
 
 type CheckoutCustomer = {
   nombre: string;
@@ -64,6 +65,8 @@ export async function submitCheckoutOrder(params: {
   productsById: Map<string, Product>;
   requestId: string;
   delivery: DeliverySelection;
+  paymentMethod?: "cash" | "transfer";
+  checkoutSettings?: CheckoutSettingsConfig;
   discountCode?: AppliedDiscountCode | null;
   onProgress?: (progress: number, label: string) => void;
 }) {
@@ -161,6 +164,13 @@ export async function submitCheckoutOrder(params: {
     },
     { totalItems: 0, totalUnits: 0, totalBoxes: 0, subtotal: 0, discountTotal: 0 },
   );
+  const minimumOrder = Math.max(0, Number(params.checkoutSettings?.minimumOrder ?? 10_000));
+  const shippingCost = Math.max(0, Number(params.checkoutSettings?.shippingCost ?? 500));
+  const freeShipping = params.checkoutSettings?.freeShipping !== false;
+  const shippingCharge = freeShipping ? 0 : shippingCost;
+  if (metrics.subtotal < minimumOrder) {
+    throw new Error(`El mínimo de compra es de ${new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(minimumOrder)}.`);
+  }
 
   const payload = {
     pedido: {
@@ -186,11 +196,22 @@ export async function submitCheckoutOrder(params: {
       timeRange: params.delivery.timeRange,
       requestedAtIso: nowIso,
     },
+    payment: params.paymentMethod ? {
+      method: params.paymentMethod,
+      label: params.paymentMethod === "cash" ? "Efectivo" : "Transferencia",
+      timing: "on_delivery" as const,
+      note: "Abonará al momento de recibir la mercadería.",
+    } : null,
+    shipping: {
+      referenceCost: shippingCost,
+      chargedAmount: shippingCharge,
+      free: freeShipping,
+    },
     items,
     totals: {
       distinct: items.length,
       totalQty: metrics.totalUnits + metrics.totalBoxes,
-      total: metrics.subtotal,
+      total: roundMoney(metrics.subtotal + shippingCharge),
       subtotal: metrics.subtotal,
       discountTotal: metrics.discountTotal,
       discountCode: effectiveDiscountCode ? {
@@ -257,6 +278,7 @@ export async function submitCheckoutOrder(params: {
       dateLabel: payload.delivery.dateLabel,
       timeRange: payload.delivery.timeRange,
     },
+    payment: payload.payment,
     items: items.map((item) => ({
       codigo: item.codigo,
       nombre: item.nombre,

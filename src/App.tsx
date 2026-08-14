@@ -1183,9 +1183,10 @@ function StoreApp({
   const closeSession = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
-    onSessionClosed();
     try {
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 2000));
       await signOut();
+      onSessionClosed();
     } finally {
       setLoggingOut(false);
     }
@@ -1342,27 +1343,31 @@ function StoreApp({
                     </span>
                     <Icon name="arrow" />
                   </button>
-                  <button type="button" onClick={() => goTo("business")}>
+                  <button type="button" className={!user ? "is-auth-locked" : ""} disabled={!user} aria-disabled={!user} title={!user ? "Iniciá sesión para registrar tu comercio" : undefined} onClick={() => goTo("business")}>
                     <Icon name="store" />
                     <span>
                       <strong>Registrar tu comercio</strong>
-                      <small>Accedé a beneficios para comercios</small>
+                      <small>{user ? "Accedé a beneficios para comercios" : "Iniciá sesión para habilitar esta opción"}</small>
                     </span>
                     <Icon name="arrow" />
                   </button>
-                  <button type="button" onClick={() => goTo("coupons")}>
+                  <button type="button" className={!user ? "is-auth-locked" : ""} disabled={!user} aria-disabled={!user} title={!user ? "Iniciá sesión para ver tus cupones" : undefined} onClick={() => goTo("coupons")}>
                     <Icon name="ticket" />
-                    <span><strong>Mis cupones</strong><small>Ver beneficios vigentes</small></span>
+                    <span><strong>Mis cupones</strong><small>{user ? "Ver beneficios vigentes" : "Iniciá sesión para habilitar esta opción"}</small></span>
                     <Icon name="arrow" />
                   </button>
-                  <a className="drawer-public-link drawer-whatsapp-link" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+                  {user ? <a className="drawer-public-link drawer-whatsapp-link" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
                     <WhatsAppIcon className="drawer-whatsapp-icon" />
                     <span>
                       <strong>Consultas</strong>
                       <small>Escribinos y te ayudamos</small>
                     </span>
                     <Icon name="arrow" />
-                  </a>
+                  </a> : <button type="button" className="drawer-whatsapp-link is-auth-locked" disabled aria-disabled="true" title="Iniciá sesión para realizar una consulta">
+                    <WhatsAppIcon className="drawer-whatsapp-icon" />
+                    <span><strong>Consultas</strong><small>Iniciá sesión para habilitar esta opción</small></span>
+                    <Icon name="arrow" />
+                  </button>}
                   <button
                     type="button"
                     className={`drawer-logout ${user && !loggingOut ? "is-active" : "is-disabled"} ${loggingOut ? "is-closing" : ""}`}
@@ -1380,11 +1385,11 @@ function StoreApp({
                     )}
                     <span aria-live="polite">
                       <strong>
-                        {loggingOut ? "Cerrando…" : "Cerrar sesión"}
+                        {loggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
                       </strong>
                       <small>
                         {loggingOut
-                          ? "Un momento"
+                          ? "Un momento, por favor"
                           : user
                             ? "Salir de esta cuenta"
                             : "Sesión cerrada"}

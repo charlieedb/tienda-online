@@ -4,8 +4,10 @@ import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { Product } from "@/catalog/types";
 import {
   DEFAULT_DELIVERY_SCHEDULE,
+  DEFAULT_CHECKOUT_SETTINGS,
   getFeaturedProductsConfig,
   saveDeliveryScheduleConfig,
+  saveCheckoutSettingsConfig,
   saveFeaturedProductIds,
 } from "@/lib/featuredProducts";
 import { getDiscountCodes, getDiscountCodeUsages, normalizeDiscountCode, saveDiscountCodes, type DiscountCode, type DiscountCodeUsage } from "@/lib/discountCodes";
@@ -40,6 +42,9 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
   const [deliverySchedule, setDeliverySchedule] = useState(DEFAULT_DELIVERY_SCHEDULE);
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [deliveryMessage, setDeliveryMessage] = useState("");
+  const [checkoutSettings, setCheckoutSettings] = useState(DEFAULT_CHECKOUT_SETTINGS);
+  const [savingCheckoutSettings, setSavingCheckoutSettings] = useState(false);
+  const [checkoutSettingsMessage, setCheckoutSettingsMessage] = useState("");
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [newCode, setNewCode] = useState("");
   const [newPercentage, setNewPercentage] = useState(5);
@@ -84,6 +89,7 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
         setProducts(catalog);
         setSelectedIds(config.ids);
         setDeliverySchedule(config.deliverySchedule);
+        setCheckoutSettings(config.checkoutSettings);
         setDiscountCodes(codes);
         setDiscountUsages(usages);
       })
@@ -149,6 +155,20 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
       setDeliveryMessage(error instanceof Error ? error.message : "No se pudo guardar la entrega.");
     } finally {
       setSavingDelivery(false);
+    }
+  };
+
+  const saveCheckoutSettings = async () => {
+    setSavingCheckoutSettings(true);
+    setCheckoutSettingsMessage("");
+    try {
+      const saved = await saveCheckoutSettingsConfig(checkoutSettings, user.email || user.uid);
+      setCheckoutSettings(saved);
+      setCheckoutSettingsMessage("Costos y mínimo de compra guardados.");
+    } catch (error) {
+      setCheckoutSettingsMessage(error instanceof Error ? error.message : "No se pudo guardar la configuración de compra.");
+    } finally {
+      setSavingCheckoutSettings(false);
     }
   };
 
@@ -329,6 +349,21 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
         </div>
         <div className="admin-discount-actions"><button type="button" className="btn success" onClick={() => void persistDiscountCodes()} disabled={savingCodes}>{savingCodes ? "Guardando..." : "Guardar códigos"}</button></div>
         {codesMessage ? <div className="admin-users-message" role="status">{codesMessage}</div> : null}
+      </div>
+    </section>
+    <section className="admin-card admin-checkout-config">
+      <div className="admin-card__head">
+        <div className="admin-headline">
+          <h1 className="admin-title">Compra y envío</h1>
+          <p>Configurá el mínimo del pedido, el costo de referencia del envío y si la tienda lo bonifica.</p>
+        </div>
+      </div>
+      <div className="admin-card__body admin-checkout-settings">
+        <label><span>Mínimo de compra</span><div className="admin-money-input"><b>$</b><input className="admin-input" type="number" min="0" step="100" value={checkoutSettings.minimumOrder} onChange={(event) => setCheckoutSettings((current) => ({ ...current, minimumOrder: Math.max(0, Number(event.target.value)) }))}/></div></label>
+        <label><span>Costo de envío</span><div className="admin-money-input"><b>$</b><input className="admin-input" type="number" min="0" step="50" value={checkoutSettings.shippingCost} onChange={(event) => setCheckoutSettings((current) => ({ ...current, shippingCost: Math.max(0, Number(event.target.value)) }))}/></div></label>
+        <label className="admin-free-shipping-toggle"><input type="checkbox" checked={checkoutSettings.freeShipping} onChange={(event) => setCheckoutSettings((current) => ({ ...current, freeShipping: event.target.checked }))}/><span><strong>Envío gratis</strong><small>El costo se muestra tachado y no se suma al total.</small></span></label>
+        <button type="button" className="btn success" onClick={() => void saveCheckoutSettings()} disabled={savingCheckoutSettings}>{savingCheckoutSettings ? "Guardando..." : "Guardar compra y envío"}</button>
+        {checkoutSettingsMessage ? <div className="admin-users-message" role="status">{checkoutSettingsMessage}</div> : null}
       </div>
     </section>
     <section className="admin-card admin-delivery-config">
