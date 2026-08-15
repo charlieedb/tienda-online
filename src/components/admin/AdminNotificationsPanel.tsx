@@ -1,9 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { User } from "firebase/auth";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { Product } from "@/catalog/types";
 import { getDiscountCodes, normalizeDiscountCode, saveDiscountCodes, type DiscountCode } from "@/lib/discountCodes";
 import { createNotificationCampaign, deleteNotificationCampaign, finishNotificationCampaign, getNotificationCampaigns, notificationPlainText, sanitizeNotificationHtml, type NotificationAction, type NotificationCampaign, type NotificationStatus } from "@/lib/notifications";
+
+const NOTIFICATION_EMOJIS = ["🎉", "🔥", "🎁", "🐔", "💸", "⭐", "🍕", "🍔", "🥩", "🍗", "🥤", "🍺", "🛒", "🏷️", "💳", "🚚", "📦", "✅", "⚡", "💥", "😍", "😋", "🤩", "🥳", "🙌", "📣", "🔔", "⏰", "📅", "❤️", "💙", "🧡", "👉", "👇", "✨", "🎊"];
+
+function normalizeProductSearch(value: string) {
+  return value.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
 
 function formatCampaignDate(value: string) {
   const date = new Date(value);
@@ -26,6 +32,7 @@ function audienceLabel(audience: NotificationCampaign["audience"]) {
 
 export function AdminNotificationsPanel({ user }: { user: User }) {
   const editorRef = useRef<HTMLDivElement | null>(null);
+  const productSearchRef = useRef<HTMLDivElement | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [campaigns, setCampaigns] = useState<NotificationCampaign[]>([]);
@@ -34,6 +41,8 @@ export function AdminNotificationsPanel({ user }: { user: User }) {
   const [audience, setAudience] = useState<"all" | "business" | "consumer">("all");
   const [action, setAction] = useState<NotificationAction>("none");
   const [target, setTarget] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [productSuggestionsOpen, setProductSuggestionsOpen] = useState(false);
   const [status, setStatus] = useState<NotificationStatus>("draft");
   const [scheduledAt, setScheduledAt] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
@@ -69,6 +78,30 @@ export function AdminNotificationsPanel({ user }: { user: User }) {
   useEffect(() => {
     if (!body && editorRef.current?.innerHTML) editorRef.current.innerHTML = "";
   }, [body]);
+
+  useEffect(() => {
+    const closeSuggestions = (event: PointerEvent) => {
+      if (!productSearchRef.current?.contains(event.target as Node)) setProductSuggestionsOpen(false);
+    };
+    document.addEventListener("pointerdown", closeSuggestions);
+    return () => document.removeEventListener("pointerdown", closeSuggestions);
+  }, []);
+
+  const matchingProducts = useMemo(() => {
+    const terms = normalizeProductSearch(productSearch).split(/\s+/).filter(Boolean);
+    return products.filter((product) => {
+      if (product.active === false) return false;
+      if (!terms.length) return true;
+      const searchable = normalizeProductSearch([product.name, product.brand, product.category, product.id].filter(Boolean).join(" "));
+      return terms.every((term) => searchable.includes(term));
+    });
+  }, [productSearch, products]);
+
+  const chooseProduct = (product: Product) => {
+    setTarget(product.id);
+    setProductSearch(product.name);
+    setProductSuggestionsOpen(false);
+  };
 
   const saveCampaign = async () => {
     setMessage("");
@@ -129,11 +162,11 @@ export function AdminNotificationsPanel({ user }: { user: User }) {
       <div className="admin-card__body admin-notification-layout">
         <div className="admin-notification-form">
           <label><span>Título</span><input className="admin-input" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={55} placeholder="Ej: Tenés un cupón disponible"/></label>
-          <div className="admin-rich-field"><span>Mensaje</span><div className="admin-rich-toolbar" aria-label="Formato del mensaje"><button type="button" onMouseDown={(event) => { event.preventDefault(); document.execCommand("bold"); }} aria-label="Negrita"><b>B</b></button><button type="button" onMouseDown={(event) => { event.preventDefault(); document.execCommand("italic"); }} aria-label="Cursiva"><i>I</i></button><button type="button" onMouseDown={(event) => { event.preventDefault(); document.execCommand("underline"); }} aria-label="Subrayado"><u>U</u></button><label className="admin-rich-color" title="Color del texto"><span>Color</span><input type="color" defaultValue="#c81b16" onInput={(event) => { editorRef.current?.focus(); document.execCommand("foreColor", false, event.currentTarget.value); setBody(sanitizeNotificationHtml(editorRef.current?.innerHTML || "")); }}/></label><div className="admin-rich-emojis">{["🎉", "🔥", "🎁", "🐔", "💸", "⭐"].map((emoji) => <button type="button" key={emoji} onMouseDown={(event) => { event.preventDefault(); document.execCommand("insertText", false, emoji); setBody(sanitizeNotificationHtml(editorRef.current?.innerHTML || "")); }} aria-label={`Insertar ${emoji}`}>{emoji}</button>)}</div></div><div ref={editorRef} className="admin-rich-editor" contentEditable role="textbox" aria-multiline="true" data-placeholder="Contale al usuario qué beneficio recibió." onInput={(event) => setBody(sanitizeNotificationHtml(event.currentTarget.innerHTML))} onPaste={(event) => { event.preventDefault(); document.execCommand("insertText", false, event.clipboardData.getData("text/plain").slice(0, 500)); }} /></div>
-          <div className="admin-notification-row"><label><span>Destinatarios</span><select className="admin-input" value={audience} onChange={(event) => setAudience(event.target.value as typeof audience)}><option value="all">Todos los clientes</option><option value="business">Solo comercios</option><option value="consumer">Consumidores finales</option></select></label><label><span>Acción al tocar</span><select className="admin-input" value={action} onChange={(event) => { setAction(event.target.value as NotificationAction); setTarget(""); }}><option value="none">Solo abrir la app</option><option value="coupon">Agregar cupón al carrito</option><option value="search">Buscar en la tienda</option><option value="catalog">Abrir la tienda</option><option value="product">Abrir un producto</option><option value="cart">Abrir el carrito</option></select></label></div>
+          <div className="admin-rich-field"><span>Mensaje</span><div className="admin-rich-toolbar" aria-label="Formato del mensaje"><button type="button" onMouseDown={(event) => { event.preventDefault(); document.execCommand("bold"); }} aria-label="Negrita"><b>B</b></button><button type="button" onMouseDown={(event) => { event.preventDefault(); document.execCommand("italic"); }} aria-label="Cursiva"><i>I</i></button><button type="button" onMouseDown={(event) => { event.preventDefault(); document.execCommand("underline"); }} aria-label="Subrayado"><u>U</u></button><label className="admin-rich-color" title="Color del texto"><span>Color</span><input type="color" defaultValue="#c81b16" onInput={(event) => { editorRef.current?.focus(); document.execCommand("foreColor", false, event.currentTarget.value); setBody(sanitizeNotificationHtml(editorRef.current?.innerHTML || "")); }}/></label><div className="admin-rich-emojis">{NOTIFICATION_EMOJIS.map((emoji) => <button type="button" key={emoji} onMouseDown={(event) => { event.preventDefault(); document.execCommand("insertText", false, emoji); setBody(sanitizeNotificationHtml(editorRef.current?.innerHTML || "")); }} aria-label={`Insertar ${emoji}`}>{emoji}</button>)}</div></div><div ref={editorRef} className="admin-rich-editor" contentEditable role="textbox" aria-multiline="true" data-placeholder="Contale al usuario qué beneficio recibió." onInput={(event) => setBody(sanitizeNotificationHtml(event.currentTarget.innerHTML))} onPaste={(event) => { event.preventDefault(); document.execCommand("insertText", false, event.clipboardData.getData("text/plain").slice(0, 500)); }} /></div>
+          <div className="admin-notification-row"><label><span>Destinatarios</span><select className="admin-input" value={audience} onChange={(event) => setAudience(event.target.value as typeof audience)}><option value="all">Todos los clientes</option><option value="business">Solo comercios</option><option value="consumer">Consumidores finales</option></select></label><label><span>Acción al tocar</span><select className="admin-input" value={action} onChange={(event) => { setAction(event.target.value as NotificationAction); setTarget(""); setProductSearch(""); setProductSuggestionsOpen(false); }}><option value="none">Solo abrir la app</option><option value="coupon">Agregar cupón al carrito</option><option value="search">Buscar en la tienda</option><option value="catalog">Abrir la tienda</option><option value="product">Abrir un producto</option><option value="cart">Abrir el carrito</option></select></label></div>
           {action === "coupon" ? <div className="admin-notification-coupon"><label><span>Código del cupón</span><input className="admin-input" value={target} onChange={(event) => setTarget(normalizeDiscountCode(event.target.value))} maxLength={24} placeholder="EJ: POLLOS10"/></label><label><span>Descuento</span><div className="admin-discount-number"><input className="admin-input" type="number" min="1" max="100" value={couponPercentage} onChange={(event) => setCouponPercentage(Number(event.target.value))}/><b>%</b></div></label><label><span>Usos totales <em>0 = ilimitado</em></span><input className="admin-input" type="number" min="0" value={couponUsageLimit} onChange={(event) => setCouponUsageLimit(Math.max(0, Number(event.target.value)))}/></label><label><span>Usos por usuario</span><input className="admin-input" type="number" min="1" value={couponPerUserLimit} onChange={(event) => setCouponPerUserLimit(Math.max(1, Number(event.target.value)))}/></label></div> : null}
           {action === "search" ? <label><span>Texto que se buscará</span><input className="admin-input" value={target} onChange={(event) => setTarget(event.target.value)} placeholder="Ej: pollos"/></label> : null}
-          {action === "product" ? <label><span>Producto a abrir</span><select className="admin-input" value={target} onChange={(event) => setTarget(event.target.value)}><option value="">Seleccionar producto</option>{products.filter((product) => product.active !== false).slice(0, 250).map((product) => <option value={product.id} key={product.id}>{product.name}</option>)}</select></label> : null}
+          {action === "product" ? <div className="admin-product-picker" ref={productSearchRef}><label htmlFor="notification-product-search">Producto a abrir</label><input id="notification-product-search" className="admin-input" type="search" value={productSearch} placeholder="Buscar por nombre, marca o código" autoComplete="off" onFocus={() => setProductSuggestionsOpen(true)} onChange={(event) => { setProductSearch(event.target.value); setTarget(""); setProductSuggestionsOpen(true); }} onKeyDown={(event) => { if (event.key === "Escape") setProductSuggestionsOpen(false); if (event.key === "Enter" && matchingProducts[0]) { event.preventDefault(); chooseProduct(matchingProducts[0]); } }}/>{productSuggestionsOpen ? <ul className="dropdown sugerencias admin-product-suggestions" role="listbox">{matchingProducts.length ? matchingProducts.map((product) => <li key={product.id}><button type="button" role="option" aria-selected={target === product.id} onClick={() => chooseProduct(product)}><strong>{product.name}</strong><small>{[product.brand, product.category, product.id].filter(Boolean).join(" · ")}</small></button></li>) : <li className="admin-product-suggestions__empty">No encontramos productos con esa búsqueda.</li>}</ul> : null}</div> : null}
           <div className="admin-notification-row"><label><span>Estado</span><select className="admin-input" value={status} onChange={(event) => setStatus(event.target.value as NotificationStatus)}><option value="draft">Borrador</option><option value="scheduled">Programada</option><option value="sent">Publicar ahora</option><option value="paused">Pausada</option></select></label><label><span>Programar para</span><input className="admin-input" type="datetime-local" value={scheduledAt} onChange={(event) => setScheduledAt(event.target.value)} disabled={status !== "scheduled"}/></label></div>
           <label><span>Caducidad de la campaña y cupón <em>Opcional</em></span><input className="admin-input" type="date" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)}/></label>
           <div className="admin-notification-actions"><button type="button" className="btn ghost" onClick={() => { setTitle(""); setBody(""); setAction("none"); setTarget(""); setMessage(""); }}>Limpiar</button><button type="button" className="btn primary" onClick={() => void saveCampaign()} disabled={saving || loading}>{saving ? "Guardando..." : status === "sent" ? "Publicar campaña" : "Guardar campaña"}</button></div>

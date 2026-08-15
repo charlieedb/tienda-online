@@ -1347,6 +1347,80 @@ body .admin-shell .admin-login-card {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  max-height: 108px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.admin-product-picker {
+  position: relative;
+  display: grid;
+  gap: 6px;
+}
+
+.admin-product-picker > label {
+  color: #4f6072;
+  font-size: .75rem;
+  font-weight: 400;
+}
+
+.admin-product-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  max-height: 300px;
+  margin: 0;
+  overflow-y: auto;
+  border: 1px solid #cbd6df;
+  border-radius: 10px;
+  padding: 5px;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 6px 8px rgba(28, 43, 58, .12);
+  list-style: none;
+}
+
+.admin-product-suggestions li + li {
+  border-top: 1px solid #e6ebef;
+}
+
+.admin-product-suggestions button {
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  border-radius: 7px;
+  padding: 9px 10px;
+  color: #26394d;
+  background: transparent;
+  text-align: left;
+}
+
+.admin-product-suggestions button:hover,
+.admin-product-suggestions button:focus-visible,
+.admin-product-suggestions button[aria-selected="true"] {
+  background: #eaf2f8;
+  outline: none;
+}
+
+.admin-product-suggestions strong {
+  font-size: .78rem;
+  font-weight: 650;
+}
+
+.admin-product-suggestions small {
+  overflow: hidden;
+  color: #687789;
+  font-size: .67rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-product-suggestions__empty {
+  padding: 14px 10px;
+  color: #687789;
+  font-size: .75rem;
+  text-align: center;
 }
 
 .admin-rich-editor {
