@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, limit, query, serverTimestamp, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDocs, limit, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 
 export type NotificationAction = "none" | "coupon" | "catalog" | "product" | "cart" | "search";
@@ -33,6 +33,46 @@ export async function createNotificationCampaign(input: Omit<NotificationCampaig
     redeemedCount: 0,
   });
   return { ...input, id: reference.id, createdAtIso };
+}
+
+export async function getNotificationCampaigns(maxResults = 100) {
+  const db = getDb();
+  if (!db) return [];
+  const snapshot = await getDocs(query(collection(db, "notificationCampaigns"), limit(Math.max(1, Math.min(100, maxResults)))));
+  return snapshot.docs.map((entry) => {
+    const item = entry.data() as Record<string, unknown>;
+    const status = String(item.status ?? "draft") as NotificationStatus;
+    return {
+      id: entry.id,
+      title: String(item.title ?? ""),
+      body: String(item.body ?? ""),
+      bodyText: String(item.bodyText ?? ""),
+      audience: (item.audience === "business" || item.audience === "consumer" ? item.audience : "all") as NotificationAudience,
+      action: (["coupon", "catalog", "product", "cart", "search"].includes(String(item.action)) ? item.action : "none") as NotificationAction,
+      target: String(item.target ?? ""),
+      status: (["draft", "scheduled", "sent", "paused", "finished"].includes(status) ? status : "draft") as NotificationStatus,
+      scheduledAt: String(item.scheduledAt ?? ""),
+      expiresAt: String(item.expiresAt ?? ""),
+      createdAtIso: String(item.createdAtIso ?? ""),
+    };
+  }).sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso));
+}
+
+export async function finishNotificationCampaign(campaignId: string, actor: string) {
+  const db = getDb();
+  if (!db) throw new Error("Firebase no está configurado.");
+  await updateDoc(doc(db, "notificationCampaigns", campaignId), {
+    status: "finished",
+    finishedAt: serverTimestamp(),
+    finishedAtIso: new Date().toISOString(),
+    finishedBy: actor,
+  });
+}
+
+export async function deleteNotificationCampaign(campaignId: string) {
+  const db = getDb();
+  if (!db) throw new Error("Firebase no está configurado.");
+  await deleteDoc(doc(db, "notificationCampaigns", campaignId));
 }
 
 export function sanitizeNotificationHtml(value: string) {

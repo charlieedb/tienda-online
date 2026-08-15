@@ -1688,6 +1688,20 @@ export function App() {
     window.addEventListener("popstate", syncLocation);
     return () => window.removeEventListener("popstate", syncLocation);
   }, []);
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const openNotificationTarget = (event: MessageEvent) => {
+      if (event.data?.type !== "JOMA_NOTIFICATION_OPEN" || typeof event.data.url !== "string") return;
+      const target = new URL(event.data.url, window.location.origin);
+      if (target.origin !== window.location.origin) return;
+      const nextLocation = `${target.pathname}${target.search}`;
+      window.history.pushState({ ...window.history.state, jomaView: "notification" }, "", nextLocation);
+      setLocation(nextLocation);
+      window.scrollTo({ top: 0, behavior: "auto" });
+    };
+    navigator.serviceWorker.addEventListener("message", openNotificationTarget);
+    return () => navigator.serviceWorker.removeEventListener("message", openNotificationTarget);
+  }, []);
   const currentUrl = new URL(location, window.location.origin);
   const path = currentUrl.pathname.replace(/\/+$/, "") || "/";
   const params = currentUrl.searchParams;

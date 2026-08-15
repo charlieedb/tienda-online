@@ -94,8 +94,14 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
 
   useEffect(() => {
     const onServiceWorkerMessage = (event: MessageEvent) => {
-      if (event.data?.type !== "JOMA_NOTIFICATION_RECEIVED") return;
-      setUnreadCount((current) => Math.max(1, current + 1));
+      if (event.data?.type === "JOMA_NOTIFICATION_RECEIVED") {
+        setUnreadCount((current) => Math.max(1, current + 1));
+        return;
+      }
+      if (event.data?.type === "JOMA_NOTIFICATION_REMOVED" && typeof event.data.campaignId === "string") {
+        setNotifications((current) => current.filter((item) => item.id !== event.data.campaignId));
+        setUnreadCount((current) => Math.max(0, current - 1));
+      }
     };
     navigator.serviceWorker?.addEventListener("message", onServiceWorkerMessage);
     return () => navigator.serviceWorker?.removeEventListener("message", onServiceWorkerMessage);
@@ -138,11 +144,14 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
     setUnreadCount(0);
     setLoading(true);
     try {
-      const [remoteItems, personalItems, storedItems, codes] = await Promise.all([getActiveNotifications().catch(() => []), user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([]), getStoredPushNotifications(), getDiscountCodes().catch(() => [])]);
+      let remoteLoaded = true;
+      const [remoteItems, personalItems, storedItems, codes] = await Promise.all([getActiveNotifications().catch(() => { remoteLoaded = false; return []; }), user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([]), getStoredPushNotifications(), getDiscountCodes().catch(() => [])]);
       const isLocalPreview = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
       const localItems = isLocalPreview ? [LOCAL_PREVIEW_NOTIFICATION] : [];
       const activeCodes = new Set(codes.filter((code) => code.active).map((code) => code.code));
-      const items = onlyNotificationsWithActiveCoupons([...localItems, ...personalItems, ...storedItems, ...remoteItems.filter((item) => !storedItems.some((stored) => stored.id === item.id))], activeCodes)
+      const remoteIds = new Set(remoteItems.map((item) => item.id));
+      const visibleStoredItems = remoteLoaded ? storedItems.filter((item) => remoteIds.has(item.id)) : storedItems;
+      const items = onlyNotificationsWithActiveCoupons([...localItems, ...personalItems, ...visibleStoredItems, ...remoteItems.filter((item) => !visibleStoredItems.some((stored) => stored.id === item.id))], activeCodes)
         .filter((item) => !item.expiresAt || item.expiresAt >= new Date().toISOString())
         .sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso));
       setNotifications(items);

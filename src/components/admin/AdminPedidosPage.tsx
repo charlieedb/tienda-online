@@ -118,7 +118,7 @@ export function AdminPedidosPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [authError, setAuthError] = useState("");
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-  const [adminView, setAdminView] = useState<"orders" | "customers" | "users" | "configuration" | "carousel">("orders");
+  const [adminView, setAdminView] = useState<"orders" | "customers" | "users" | "notifications" | "configuration" | "carousel">("orders");
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "week">("all");
   const [searchText, setSearchText] = useState("");
@@ -523,6 +523,7 @@ export function AdminPedidosPage() {
               <button type="button" className={adminView === "orders" ? "is-active" : ""} onClick={() => { setAdminView("orders"); setTopMenuOpen(false); }}>Pedidos</button>
               <button type="button" className={adminView === "customers" ? "is-active" : ""} onClick={() => { setAdminView("customers"); setTopMenuOpen(false); }}>Clientes</button>
               <button type="button" className={adminView === "users" ? "is-active" : ""} onClick={() => { setAdminView("users"); setTopMenuOpen(false); }}>Usuarios</button>
+              <button type="button" className={adminView === "notifications" ? "is-active" : ""} onClick={() => { setAdminView("notifications"); setTopMenuOpen(false); }}>Notificaciones</button>
               <button type="button" className={adminView === "configuration" ? "is-active" : ""} onClick={() => { setAdminView("configuration"); setTopMenuOpen(false); }}>Configuración</button>
               <button type="button" className={adminView === "carousel" ? "is-active" : ""} onClick={() => { setAdminView("carousel"); setTopMenuOpen(false); }}>Editar carrusel</button>
               <button type="button" disabled>Reportes <small>Próximamente</small></button>
@@ -554,6 +555,7 @@ export function AdminPedidosPage() {
           <button type="button" className={adminView === "customers" ? "is-active" : ""} onClick={() => setAdminView("customers")}><span aria-hidden="true">●</span><div><strong>Clientes</strong><small>Consumidores y comercios</small></div></button>
           <button type="button" className={adminView === "orders" ? "is-active" : ""} onClick={() => setAdminView("orders")}><span aria-hidden="true">▦</span><div><strong>Pedidos</strong><small>Gestión y estados</small></div></button>
           <button type="button" className={adminView === "users" ? "is-active" : ""} onClick={() => setAdminView("users")}><span aria-hidden="true">◎</span><div><strong>Usuarios</strong><small>Accesos internos</small></div></button>
+          <button type="button" className={adminView === "notifications" ? "is-active" : ""} onClick={() => setAdminView("notifications")}><span aria-hidden="true">◉</span><div><strong>Notificaciones</strong><small>Campañas e historial</small></div></button>
           <button type="button" className={adminView === "configuration" ? "is-active" : ""} onClick={() => setAdminView("configuration")}><span aria-hidden="true">⚙</span><div><strong>Configuración</strong><small>Tienda y cupones</small></div></button>
           <button type="button" className={adminView === "carousel" ? "is-active" : ""} onClick={() => setAdminView("carousel")}><span aria-hidden="true">▤</span><div><strong>Carrusel</strong><small>Imágenes destacadas</small></div></button>
           <button type="button" disabled><span aria-hidden="true">↗</span><div><strong>Reportes</strong><small>Próximamente</small></div></button>
@@ -565,7 +567,7 @@ export function AdminPedidosPage() {
       </aside>
 
       <div className="admin-content">
-      {adminView === "customers" ? <AdminCustomersPanel /> : adminView === "users" ? <AdminUsersPanel /> : adminView === "configuration" && user ? <AdminStoreConfigPanel user={user} /> : adminView === "carousel" && user ? <AdminCarouselPanel user={user} /> : <>
+      {adminView === "customers" ? <AdminCustomersPanel /> : adminView === "users" ? <AdminUsersPanel /> : (adminView === "configuration" || adminView === "notifications") && user ? <AdminStoreConfigPanel user={user} /> : adminView === "carousel" && user ? <AdminCarouselPanel user={user} /> : <>
       <section className="admin-card admin-overview overflow-hidden">
         <div className="admin-card__head">
           <div className="admin-headline">

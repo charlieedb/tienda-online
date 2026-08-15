@@ -11,7 +11,7 @@ import {
   saveFeaturedProductIds,
 } from "@/lib/featuredProducts";
 import { getDiscountCodes, getDiscountCodeUsages, normalizeDiscountCode, saveDiscountCodes, type DiscountCode, type DiscountCodeUsage } from "@/lib/discountCodes";
-import { createNotificationCampaign, notificationPlainText, sanitizeNotificationHtml, type NotificationAction, type NotificationStatus } from "@/lib/notifications";
+import { createNotificationCampaign, deleteNotificationCampaign, finishNotificationCampaign, getNotificationCampaigns, notificationPlainText, sanitizeNotificationHtml, type NotificationAction, type NotificationCampaign, type NotificationStatus } from "@/lib/notifications";
 
 const DELIVERY_DAYS = [
   { value: 1, label: "Lunes" },
@@ -29,6 +29,20 @@ function normalize(value: string) {
 function formatUsageDate(value: string) {
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(date) : "Sin fecha";
+}
+
+function notificationStatusLabel(status: NotificationStatus) {
+  if (status === "sent") return "Publicada";
+  if (status === "scheduled") return "Programada";
+  if (status === "paused") return "Pausada";
+  if (status === "finished") return "Finalizada";
+  return "Borrador";
+}
+
+function notificationAudienceLabel(audience: NotificationCampaign["audience"]) {
+  if (audience === "business") return "Comercios";
+  if (audience === "consumer") return "Consumidores";
+  return "Todos los clientes";
 }
 
 export function AdminStoreConfigPanel({ user }: { user: User }) {
@@ -70,6 +84,10 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
   const [notificationCouponUsageLimit, setNotificationCouponUsageLimit] = useState(0);
   const [notificationCouponPerUserLimit, setNotificationCouponPerUserLimit] = useState(1);
   const [savingNotification, setSavingNotification] = useState(false);
+  const [notificationCampaigns, setNotificationCampaigns] = useState<NotificationCampaign[]>([]);
+  const [finishingCampaignId, setFinishingCampaignId] = useState("");
+  const [deletingCampaignId, setDeletingCampaignId] = useState("");
+  const [campaignsMessage, setCampaignsMessage] = useState("");
 
   useEffect(() => {
     if (!notificationBody && notificationEditorRef.current?.innerHTML) notificationEditorRef.current.innerHTML = "";
@@ -83,8 +101,8 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
       const groups = await Promise.all(manifest.categories.map((category) => catalog.getCategoryProducts(category.id)));
       return groups.flat();
     };
-    Promise.all([loadRealProducts(), getFeaturedProductsConfig({ refresh: true }), getDiscountCodes(), getDiscountCodeUsages().catch(() => [])])
-      .then(([catalog, config, codes, usages]) => {
+    Promise.all([loadRealProducts(), getFeaturedProductsConfig({ refresh: true }), getDiscountCodes(), getDiscountCodeUsages().catch(() => []), getNotificationCampaigns()])
+      .then(([catalog, config, codes, usages, campaigns]) => {
         if (!active) return;
         setProducts(catalog);
         setSelectedIds(config.ids);
@@ -92,6 +110,7 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
         setCheckoutSettings(config.checkoutSettings);
         setDiscountCodes(codes);
         setDiscountUsages(usages);
+        setNotificationCampaigns(campaigns);
       })
       .catch((error) => {
         if (active) setMessage(error instanceof Error ? error.message : "No se pudo cargar la configuración.");
@@ -266,11 +285,44 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
         });
         setDiscountCodes(await saveDiscountCodes(nextCodes, user.email || user.uid));
       }
+      setNotificationCampaigns((current) => [campaign, ...current]);
       setNotificationMessage(notificationStatus === "draft" ? "Campaña guardada como borrador." : notificationStatus === "scheduled" ? "Campaña programada." : "Campaña publicada en la campana de la tienda.");
     } catch (error) {
       setNotificationMessage(error instanceof Error ? error.message : "No se pudo guardar la campaña.");
     } finally {
       setSavingNotification(false);
+    }
+  };
+
+  const finishCampaign = async (campaign: NotificationCampaign) => {
+    if (campaign.status === "finished" || finishingCampaignId || deletingCampaignId) return;
+    if (!window.confirm(`¿Finalizar la campaña “${campaign.title}”? Dejará de aparecer en la tienda.`)) return;
+    setFinishingCampaignId(campaign.id);
+    setCampaignsMessage("");
+    try {
+      await finishNotificationCampaign(campaign.id, user.email || user.uid);
+      setNotificationCampaigns((current) => current.map((item) => item.id === campaign.id ? { ...item, status: "finished" } : item));
+      setCampaignsMessage(`La campaña “${campaign.title}” fue finalizada.`);
+    } catch (error) {
+      setCampaignsMessage(error instanceof Error ? error.message : "No se pudo finalizar la campaña.");
+    } finally {
+      setFinishingCampaignId("");
+    }
+  };
+
+  const deleteCampaign = async (campaign: NotificationCampaign) => {
+    if (finishingCampaignId || deletingCampaignId) return;
+    if (!window.confirm(`¿Borrar la campaña “${campaign.title}”? Desaparecerá definitivamente de la campanita de la app.`)) return;
+    setDeletingCampaignId(campaign.id);
+    setCampaignsMessage("");
+    try {
+      await deleteNotificationCampaign(campaign.id);
+      setNotificationCampaigns((current) => current.filter((item) => item.id !== campaign.id));
+      setCampaignsMessage(`La campaña “${campaign.title}” fue borrada de la app.`);
+    } catch (error) {
+      setCampaignsMessage(error instanceof Error ? error.message : "No se pudo borrar la campaña.");
+    } finally {
+      setDeletingCampaignId("");
     }
   };
 
@@ -304,6 +356,33 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
           <div className="admin-notification-preview__card"><div className="admin-notification-preview__icon">J</div><div><strong>{notificationTitle || "Título de la notificación"}</strong>{notificationBody ? <p dangerouslySetInnerHTML={{ __html: sanitizeNotificationHtml(notificationBody) }} /> : <p>El mensaje que reciba el cliente aparecerá acá.</p>}<small>JOMA Express · ahora</small></div></div>
           <div className="admin-notification-action-summary"><span>Al tocar</span><strong>{notificationAction === "coupon" ? `Agregar cupón ${notificationTarget || "seleccionado"}` : notificationAction === "search" ? `Buscar “${notificationTarget || "..."}”` : notificationAction === "catalog" ? "Abrir la tienda" : notificationAction === "product" ? "Abrir el producto seleccionado" : notificationAction === "cart" ? "Abrir el carrito" : "Mostrar el mensaje"}</strong></div>
         </aside>
+      </div>
+      <div className="admin-card__body admin-notification-history">
+        <div className="admin-notification-history__head">
+          <div>
+            <h2>Historial de campañas</h2>
+            <p>Finalizá una campaña o borrala definitivamente para quitarla de la campanita de la app.</p>
+          </div>
+          <span className="ofertas-count">{notificationCampaigns.length}</span>
+        </div>
+        {campaignsMessage ? <div className="admin-users-message" role="status">{campaignsMessage}</div> : null}
+        {notificationCampaigns.length ? <div className="admin-notification-history__list">
+          {notificationCampaigns.map((campaign) => {
+            const canFinish = campaign.status === "sent" || campaign.status === "scheduled" || campaign.status === "paused";
+            return <article className="admin-notification-history__item" key={campaign.id}>
+              <div className="admin-notification-history__copy">
+                <strong>{campaign.title || "Campaña sin título"}</strong>
+                <p>{campaign.bodyText || notificationPlainText(campaign.body) || "Sin mensaje"}</p>
+                <small>{formatUsageDate(campaign.createdAtIso)} · {notificationAudienceLabel(campaign.audience)}</small>
+              </div>
+              <span className={`admin-notification-status is-${campaign.status}`}>{notificationStatusLabel(campaign.status)}</span>
+              <div className="admin-notification-history__actions">
+                {canFinish ? <button type="button" className="btn ghost admin-campaign-finish" onClick={() => void finishCampaign(campaign)} disabled={Boolean(finishingCampaignId || deletingCampaignId)}>{finishingCampaignId === campaign.id ? "Finalizando..." : "Finalizar"}</button> : null}
+                <button type="button" className="btn ofertas-danger admin-campaign-delete" onClick={() => void deleteCampaign(campaign)} disabled={Boolean(finishingCampaignId || deletingCampaignId)}>{deletingCampaignId === campaign.id ? "Borrando..." : "Borrar"}</button>
+              </div>
+            </article>;
+          })}
+        </div> : <div className="admin-notification-history__empty">Todavía no hay campañas guardadas.</div>}
       </div>
     </section>
     <section className="admin-card admin-discount-config">
