@@ -1,6 +1,12 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/producto/:productId",
+      "destination": "/index.html"
+    }
+  ],
   "redirects": [
     {
       "source": "/",
