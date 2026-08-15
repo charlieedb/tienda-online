@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { getAdminProfile, type AdminProfile } from "@/lib/adminAuth";
 import { AdminUsersPanel } from "@/components/admin/AdminUsersPanel";
 import { AdminStoreConfigPanel } from "@/components/admin/AdminStoreConfigPanel";
+import { AdminNotificationsPanel } from "@/components/admin/AdminNotificationsPanel";
 import { AdminCarouselPanel } from "@/components/admin/AdminCarouselPanel";
 import { AdminCustomersPanel } from "@/components/admin/AdminCustomersPanel";
 import { generateOrderRemitoPdf } from "@/lib/remitoPdf";
@@ -567,7 +568,7 @@ export function AdminPedidosPage() {
       </aside>
 
       <div className="admin-content">
-      {adminView === "customers" ? <AdminCustomersPanel /> : adminView === "users" ? <AdminUsersPanel /> : (adminView === "configuration" || adminView === "notifications") && user ? <AdminStoreConfigPanel user={user} /> : adminView === "carousel" && user ? <AdminCarouselPanel user={user} /> : <>
+      {adminView === "customers" ? <AdminCustomersPanel /> : adminView === "users" ? <AdminUsersPanel /> : adminView === "notifications" && user ? <AdminNotificationsPanel user={user} /> : adminView === "configuration" && user ? <AdminStoreConfigPanel user={user} /> : adminView === "carousel" && user ? <AdminCarouselPanel user={user} /> : <>
       <section className="admin-card admin-overview overflow-hidden">
         <div className="admin-card__head">
           <div className="admin-headline">

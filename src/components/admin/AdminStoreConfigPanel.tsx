@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { Product } from "@/catalog/types";
@@ -11,7 +11,6 @@ import {
   saveFeaturedProductIds,
 } from "@/lib/featuredProducts";
 import { getDiscountCodes, getDiscountCodeUsages, normalizeDiscountCode, saveDiscountCodes, type DiscountCode, type DiscountCodeUsage } from "@/lib/discountCodes";
-import { createNotificationCampaign, deleteNotificationCampaign, finishNotificationCampaign, getNotificationCampaigns, notificationPlainText, sanitizeNotificationHtml, type NotificationAction, type NotificationCampaign, type NotificationStatus } from "@/lib/notifications";
 
 const DELIVERY_DAYS = [
   { value: 1, label: "Lunes" },
@@ -31,22 +30,7 @@ function formatUsageDate(value: string) {
   return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(date) : "Sin fecha";
 }
 
-function notificationStatusLabel(status: NotificationStatus) {
-  if (status === "sent") return "Publicada";
-  if (status === "scheduled") return "Programada";
-  if (status === "paused") return "Pausada";
-  if (status === "finished") return "Finalizada";
-  return "Borrador";
-}
-
-function notificationAudienceLabel(audience: NotificationCampaign["audience"]) {
-  if (audience === "business") return "Comercios";
-  if (audience === "consumer") return "Consumidores";
-  return "Todos los clientes";
-}
-
 export function AdminStoreConfigPanel({ user }: { user: User }) {
-  const notificationEditorRef = useRef<HTMLDivElement | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
@@ -71,27 +55,6 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
   const [loadingUsages, setLoadingUsages] = useState(false);
   const [savingCodes, setSavingCodes] = useState(false);
   const [codesMessage, setCodesMessage] = useState("");
-  const [notificationTitle, setNotificationTitle] = useState("");
-  const [notificationBody, setNotificationBody] = useState("");
-  const [notificationAudience, setNotificationAudience] = useState<"all" | "business" | "consumer">("all");
-  const [notificationAction, setNotificationAction] = useState<NotificationAction>("none");
-  const [notificationTarget, setNotificationTarget] = useState("");
-  const [notificationMessage, setNotificationMessage] = useState("");
-  const [notificationStatus, setNotificationStatus] = useState<NotificationStatus>("draft");
-  const [notificationScheduledAt, setNotificationScheduledAt] = useState("");
-  const [notificationExpiresAt, setNotificationExpiresAt] = useState("");
-  const [notificationCouponPercentage, setNotificationCouponPercentage] = useState(10);
-  const [notificationCouponUsageLimit, setNotificationCouponUsageLimit] = useState(0);
-  const [notificationCouponPerUserLimit, setNotificationCouponPerUserLimit] = useState(1);
-  const [savingNotification, setSavingNotification] = useState(false);
-  const [notificationCampaigns, setNotificationCampaigns] = useState<NotificationCampaign[]>([]);
-  const [finishingCampaignId, setFinishingCampaignId] = useState("");
-  const [deletingCampaignId, setDeletingCampaignId] = useState("");
-  const [campaignsMessage, setCampaignsMessage] = useState("");
-
-  useEffect(() => {
-    if (!notificationBody && notificationEditorRef.current?.innerHTML) notificationEditorRef.current.innerHTML = "";
-  }, [notificationBody]);
 
   useEffect(() => {
     let active = true;
@@ -101,8 +64,8 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
       const groups = await Promise.all(manifest.categories.map((category) => catalog.getCategoryProducts(category.id)));
       return groups.flat();
     };
-    Promise.all([loadRealProducts(), getFeaturedProductsConfig({ refresh: true }), getDiscountCodes(), getDiscountCodeUsages().catch(() => []), getNotificationCampaigns()])
-      .then(([catalog, config, codes, usages, campaigns]) => {
+    Promise.all([loadRealProducts(), getFeaturedProductsConfig({ refresh: true }), getDiscountCodes(), getDiscountCodeUsages().catch(() => [])])
+      .then(([catalog, config, codes, usages]) => {
         if (!active) return;
         setProducts(catalog);
         setSelectedIds(config.ids);
@@ -110,7 +73,6 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
         setCheckoutSettings(config.checkoutSettings);
         setDiscountCodes(codes);
         setDiscountUsages(usages);
-        setNotificationCampaigns(campaigns);
       })
       .catch((error) => {
         if (active) setMessage(error instanceof Error ? error.message : "No se pudo cargar la configuración.");
@@ -257,134 +219,7 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
     }
   };
 
-  const saveNotificationCampaign = async () => {
-    setNotificationMessage("");
-    if (!notificationTitle.trim() || !notificationPlainText(notificationBody)) {
-      setNotificationMessage("Completá el título y el mensaje para guardar el borrador.");
-      return;
-    }
-    if ((notificationAction === "coupon" || notificationAction === "product" || notificationAction === "search") && !notificationTarget.trim()) {
-      setNotificationMessage("Elegí el cupón o producto asociado a la acción.");
-      return;
-    }
-    setSavingNotification(true);
-    try {
-      const campaign = await createNotificationCampaign({
-        title: notificationTitle.trim(), body: sanitizeNotificationHtml(notificationBody), bodyText: notificationPlainText(notificationBody), audience: notificationAudience,
-        action: notificationAction, target: notificationTarget.trim(), status: notificationStatus,
-        scheduledAt: notificationScheduledAt ? new Date(notificationScheduledAt).toISOString() : "",
-        expiresAt: notificationExpiresAt ? new Date(`${notificationExpiresAt}T23:59:59`).toISOString() : "",
-      }, user.email || user.uid);
-      if (notificationAction === "coupon") {
-        const code = normalizeDiscountCode(notificationTarget);
-        const nextCodes = discountCodes.filter((item) => item.code !== code).concat({
-          code, percentage: notificationCouponPercentage, active: true, validFrom: "",
-          validUntil: notificationExpiresAt, usageLimit: notificationCouponUsageLimit, usageCount: 0,
-          perUserLimit: notificationCouponPerUserLimit, audience: notificationAudience === "business" ? "business" as const : "all" as const,
-          source: "notification" as const, campaignId: campaign.id,
-        });
-        setDiscountCodes(await saveDiscountCodes(nextCodes, user.email || user.uid));
-      }
-      setNotificationCampaigns((current) => [campaign, ...current]);
-      setNotificationMessage(notificationStatus === "draft" ? "Campaña guardada como borrador." : notificationStatus === "scheduled" ? "Campaña programada." : "Campaña publicada en la campana de la tienda.");
-    } catch (error) {
-      setNotificationMessage(error instanceof Error ? error.message : "No se pudo guardar la campaña.");
-    } finally {
-      setSavingNotification(false);
-    }
-  };
-
-  const finishCampaign = async (campaign: NotificationCampaign) => {
-    if (campaign.status === "finished" || finishingCampaignId || deletingCampaignId) return;
-    if (!window.confirm(`¿Finalizar la campaña “${campaign.title}”? Dejará de aparecer en la tienda.`)) return;
-    setFinishingCampaignId(campaign.id);
-    setCampaignsMessage("");
-    try {
-      await finishNotificationCampaign(campaign.id, user.email || user.uid);
-      setNotificationCampaigns((current) => current.map((item) => item.id === campaign.id ? { ...item, status: "finished" } : item));
-      setCampaignsMessage(`La campaña “${campaign.title}” fue finalizada.`);
-    } catch (error) {
-      setCampaignsMessage(error instanceof Error ? error.message : "No se pudo finalizar la campaña.");
-    } finally {
-      setFinishingCampaignId("");
-    }
-  };
-
-  const deleteCampaign = async (campaign: NotificationCampaign) => {
-    if (finishingCampaignId || deletingCampaignId) return;
-    if (!window.confirm(`¿Borrar la campaña “${campaign.title}”? Desaparecerá definitivamente de la campanita de la app.`)) return;
-    setDeletingCampaignId(campaign.id);
-    setCampaignsMessage("");
-    try {
-      await deleteNotificationCampaign(campaign.id);
-      setNotificationCampaigns((current) => current.filter((item) => item.id !== campaign.id));
-      setCampaignsMessage(`La campaña “${campaign.title}” fue borrada de la app.`);
-    } catch (error) {
-      setCampaignsMessage(error instanceof Error ? error.message : "No se pudo borrar la campaña.");
-    } finally {
-      setDeletingCampaignId("");
-    }
-  };
-
   return <div className="admin-content-box admin-store-config">
-    <section className="admin-card admin-notification-config">
-      <div className="admin-card__head">
-        <div className="admin-headline">
-          <h1 className="admin-title">Notificaciones</h1>
-          <p>Prepará el mensaje, definí quién lo recibe y qué debe ocurrir cuando el usuario lo toca.</p>
-        </div>
-        <span className="admin-module-state">En preparación</span>
-      </div>
-      <div className="admin-card__body admin-notification-layout">
-        <div className="admin-notification-form">
-          <label><span>Título</span><input className="admin-input" value={notificationTitle} onChange={(event) => setNotificationTitle(event.target.value)} maxLength={55} placeholder="Ej: Tenés un cupón disponible"/></label>
-          <div className="admin-rich-field"><span>Mensaje</span><div className="admin-rich-toolbar" aria-label="Formato del mensaje"><button type="button" onMouseDown={(event) => { event.preventDefault(); document.execCommand("bold"); }} aria-label="Negrita"><b>B</b></button><button type="button" onMouseDown={(event) => { event.preventDefault(); document.execCommand("italic"); }} aria-label="Cursiva"><i>I</i></button><button type="button" onMouseDown={(event) => { event.preventDefault(); document.execCommand("underline"); }} aria-label="Subrayado"><u>U</u></button><label className="admin-rich-color" title="Color del texto"><span>Color</span><input type="color" defaultValue="#c81b16" onInput={(event) => { notificationEditorRef.current?.focus(); document.execCommand("foreColor", false, event.currentTarget.value); setNotificationBody(sanitizeNotificationHtml(notificationEditorRef.current?.innerHTML || "")); }}/></label><div className="admin-rich-emojis">{["🎉", "🔥", "🎁", "🐔", "💸", "⭐"].map((emoji) => <button type="button" key={emoji} onMouseDown={(event) => { event.preventDefault(); document.execCommand("insertText", false, emoji); setNotificationBody(sanitizeNotificationHtml(notificationEditorRef.current?.innerHTML || "")); }} aria-label={`Insertar ${emoji}`}>{emoji}</button>)}</div></div><div ref={notificationEditorRef} className="admin-rich-editor" contentEditable role="textbox" aria-multiline="true" data-placeholder="Contale al usuario qué beneficio recibió." onInput={(event) => setNotificationBody(sanitizeNotificationHtml(event.currentTarget.innerHTML))} onPaste={(event) => { event.preventDefault(); document.execCommand("insertText", false, event.clipboardData.getData("text/plain").slice(0, 500)); }} /></div>
-          <div className="admin-notification-row">
-            <label><span>Destinatarios</span><select className="admin-input" value={notificationAudience} onChange={(event) => setNotificationAudience(event.target.value as "all" | "business" | "consumer")}><option value="all">Todos los clientes</option><option value="business">Solo comercios</option><option value="consumer">Consumidores finales</option></select></label>
-            <label><span>Acción al tocar</span><select className="admin-input" value={notificationAction} onChange={(event) => { setNotificationAction(event.target.value as NotificationAction); setNotificationTarget(""); }}><option value="none">Solo abrir la notificación</option><option value="coupon">Agregar cupón al carrito</option><option value="search">Buscar en la tienda</option><option value="catalog">Abrir la tienda</option><option value="product">Abrir un producto</option><option value="cart">Abrir el carrito</option></select></label>
-          </div>
-          {notificationAction === "coupon" ? <div className="admin-notification-coupon"><label><span>Código del cupón</span><input className="admin-input" value={notificationTarget} onChange={(event) => setNotificationTarget(normalizeDiscountCode(event.target.value))} maxLength={24} placeholder="EJ: POLLOS10"/></label><label><span>Descuento</span><div className="admin-discount-number"><input className="admin-input" type="number" min="1" max="100" value={notificationCouponPercentage} onChange={(event) => setNotificationCouponPercentage(Number(event.target.value))}/><b>%</b></div></label><label><span>Usos totales <em>0 = ilimitado</em></span><input className="admin-input" type="number" min="0" value={notificationCouponUsageLimit} onChange={(event) => setNotificationCouponUsageLimit(Math.max(0, Number(event.target.value)))}/></label><label><span>Usos por usuario</span><input className="admin-input" type="number" min="1" value={notificationCouponPerUserLimit} onChange={(event) => setNotificationCouponPerUserLimit(Math.max(1, Number(event.target.value)))}/></label></div> : null}
-          {notificationAction === "search" ? <label><span>Texto que se buscará</span><input className="admin-input" value={notificationTarget} onChange={(event) => setNotificationTarget(event.target.value)} placeholder="Ej: pollos"/></label> : null}
-          {notificationAction === "product" ? <label><span>Producto a abrir</span><select className="admin-input" value={notificationTarget} onChange={(event) => setNotificationTarget(event.target.value)}><option value="">Seleccionar producto</option>{products.filter((product) => product.active !== false).slice(0, 250).map((product) => <option value={product.id} key={product.id}>{product.name}</option>)}</select></label> : null}
-          <div className="admin-notification-row"><label><span>Estado</span><select className="admin-input" value={notificationStatus} onChange={(event) => setNotificationStatus(event.target.value as NotificationStatus)}><option value="draft">Borrador</option><option value="scheduled">Programada</option><option value="sent">Publicar ahora</option><option value="paused">Pausada</option></select></label><label><span>Programar para</span><input className="admin-input" type="datetime-local" value={notificationScheduledAt} onChange={(event) => setNotificationScheduledAt(event.target.value)} disabled={notificationStatus !== "scheduled"}/></label></div>
-          <label><span>Caducidad de la campaña y cupón <em>Opcional</em></span><input className="admin-input" type="date" value={notificationExpiresAt} onChange={(event) => setNotificationExpiresAt(event.target.value)}/></label>
-          <div className="admin-notification-actions"><button type="button" className="btn ghost" onClick={() => { setNotificationTitle(""); setNotificationBody(""); setNotificationAction("none"); setNotificationTarget(""); setNotificationMessage(""); }}>Limpiar</button><button type="button" className="btn primary" onClick={() => void saveNotificationCampaign()} disabled={savingNotification}>{savingNotification ? "Guardando..." : notificationStatus === "sent" ? "Publicar campaña" : "Guardar campaña"}</button></div>
-          {notificationMessage ? <div className="admin-users-message" role="status">{notificationMessage}</div> : null}
-        </div>
-        <aside className="admin-notification-preview" aria-label="Vista previa de la notificación">
-          <span>Vista previa</span>
-          <div className="admin-notification-preview__card"><div className="admin-notification-preview__icon">J</div><div><strong>{notificationTitle || "Título de la notificación"}</strong>{notificationBody ? <p dangerouslySetInnerHTML={{ __html: sanitizeNotificationHtml(notificationBody) }} /> : <p>El mensaje que reciba el cliente aparecerá acá.</p>}<small>JOMA Express · ahora</small></div></div>
-          <div className="admin-notification-action-summary"><span>Al tocar</span><strong>{notificationAction === "coupon" ? `Agregar cupón ${notificationTarget || "seleccionado"}` : notificationAction === "search" ? `Buscar “${notificationTarget || "..."}”` : notificationAction === "catalog" ? "Abrir la tienda" : notificationAction === "product" ? "Abrir el producto seleccionado" : notificationAction === "cart" ? "Abrir el carrito" : "Mostrar el mensaje"}</strong></div>
-        </aside>
-      </div>
-      <div className="admin-card__body admin-notification-history">
-        <div className="admin-notification-history__head">
-          <div>
-            <h2>Historial de campañas</h2>
-            <p>Finalizá una campaña o borrala definitivamente para quitarla de la campanita de la app.</p>
-          </div>
-          <span className="ofertas-count">{notificationCampaigns.length}</span>
-        </div>
-        {campaignsMessage ? <div className="admin-users-message" role="status">{campaignsMessage}</div> : null}
-        {notificationCampaigns.length ? <div className="admin-notification-history__list">
-          {notificationCampaigns.map((campaign) => {
-            const canFinish = campaign.status === "sent" || campaign.status === "scheduled" || campaign.status === "paused";
-            return <article className="admin-notification-history__item" key={campaign.id}>
-              <div className="admin-notification-history__copy">
-                <strong>{campaign.title || "Campaña sin título"}</strong>
-                <p>{campaign.bodyText || notificationPlainText(campaign.body) || "Sin mensaje"}</p>
-                <small>{formatUsageDate(campaign.createdAtIso)} · {notificationAudienceLabel(campaign.audience)}</small>
-              </div>
-              <span className={`admin-notification-status is-${campaign.status}`}>{notificationStatusLabel(campaign.status)}</span>
-              <div className="admin-notification-history__actions">
-                {canFinish ? <button type="button" className="btn ghost admin-campaign-finish" onClick={() => void finishCampaign(campaign)} disabled={Boolean(finishingCampaignId || deletingCampaignId)}>{finishingCampaignId === campaign.id ? "Finalizando..." : "Finalizar"}</button> : null}
-                <button type="button" className="btn ofertas-danger admin-campaign-delete" onClick={() => void deleteCampaign(campaign)} disabled={Boolean(finishingCampaignId || deletingCampaignId)}>{deletingCampaignId === campaign.id ? "Borrando..." : "Borrar"}</button>
-              </div>
-            </article>;
-          })}
-        </div> : <div className="admin-notification-history__empty">Todavía no hay campañas guardadas.</div>}
-      </div>
-    </section>
     <section className="admin-card admin-discount-config">
       <div className="admin-card__head">
         <div className="admin-headline">

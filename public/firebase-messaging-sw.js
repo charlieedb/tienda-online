@@ -3,21 +3,23 @@ self.addEventListener("push", (event) => {
   try { payload = event.data?.json() || {}; } catch { payload = { notification: { body: event.data?.text() || "" } }; }
   const notification = payload.notification || {};
   const data = payload.data || {};
-  if (data.removeCampaignId) {
+  const removeCampaignId = data.removeCampaignId || data.data?.removeCampaignId || payload.removeCampaignId || "";
+  if (removeCampaignId) {
     event.waitUntil(Promise.all([
       self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-        clients.forEach((client) => client.postMessage({ type: "JOMA_NOTIFICATION_REMOVED", campaignId: data.removeCampaignId }));
+        clients.forEach((client) => client.postMessage({ type: "JOMA_NOTIFICATION_REMOVED", campaignId: removeCampaignId }));
       }),
       caches.open("joma-notifications").then(async (cache) => {
         const previous = await cache.match("/__joma_notifications__");
         let items = [];
         try { items = previous ? await previous.json() : []; } catch { items = []; }
-        const next = items.filter((item) => item?.id !== data.removeCampaignId);
+        const next = items.filter((item) => item?.id !== removeCampaignId);
         await cache.put("/__joma_notifications__", new Response(JSON.stringify(next), { headers: { "Content-Type": "application/json" } }));
       }),
     ]));
     return;
   }
+  if (!payload.notification) return;
   const storedNotification = {
     id: data.campaignId || `${Date.now()}`,
     title: notification.title || "JOMA Express",
