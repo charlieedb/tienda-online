@@ -4,7 +4,7 @@
   "rewrites": [
     {
       "source": "/producto/:productId",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ],
   "redirects": [
