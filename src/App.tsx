@@ -1694,10 +1694,8 @@ export function App() {
       if (event.data?.type !== "JOMA_NOTIFICATION_OPEN" || typeof event.data.url !== "string") return;
       const target = new URL(event.data.url, window.location.origin);
       if (target.origin !== window.location.origin) return;
-      const nextLocation = `${target.pathname}${target.search}`;
-      window.history.pushState({ ...window.history.state, jomaView: "notification" }, "", nextLocation);
-      setLocation(nextLocation);
-      window.scrollTo({ top: 0, behavior: "auto" });
+      target.searchParams.set("jomaPush", `${Date.now()}`);
+      window.location.replace(target.href);
     };
     navigator.serviceWorker.addEventListener("message", openNotificationTarget);
     return () => navigator.serviceWorker.removeEventListener("message", openNotificationTarget);

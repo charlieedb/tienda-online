@@ -53,7 +53,9 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  const target = new URL(event.notification.data?.url || "/", self.location.origin);
+  target.searchParams.set("jomaPush", `${Date.now()}`);
+  const targetUrl = target.href;
   event.waitUntil((async () => {
     const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     const existing = clients.find((client) => new URL(client.url).origin === self.location.origin);
@@ -62,9 +64,10 @@ self.addEventListener("notificationclick", (event) => {
       return;
     }
     existing.postMessage({ type: "JOMA_NOTIFICATION_OPEN", url: targetUrl });
-    await existing.focus();
     try {
-      await existing.navigate(targetUrl);
+      const navigated = await existing.navigate(targetUrl);
+      if (navigated) await navigated.focus();
+      else await self.clients.openWindow(targetUrl);
     } catch {
       await self.clients.openWindow(targetUrl);
     }
