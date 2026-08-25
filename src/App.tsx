@@ -736,7 +736,8 @@ function StoreApp({
   onSessionClosed: () => void;
 }) {
   const { user, signOut } = useAuth();
-  const [tab, setTab] = useState<Tab>(initialTab);
+  const requestedSearch = new URLSearchParams(window.location.search).get("q")?.trim() ?? "";
+  const [tab, setTab] = useState<Tab>(requestedSearch ? "search" : initialTab);
   const [infoPage, setInfoPage] = useState<InfoPage>(initialInfo);
   const [catalogRevision, setCatalogRevision] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -755,7 +756,7 @@ function StoreApp({
   const [categoryProducts, setCategoryProducts] = useState<Product[]>([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [categoryError, setCategoryError] = useState("");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(requestedSearch);
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
@@ -787,13 +788,6 @@ function StoreApp({
     };
   }, [user]);
 
-  useEffect(() => {
-    const requestedSearch = new URLSearchParams(window.location.search).get("q")?.trim();
-    if (requestedSearch) {
-      setQuery(requestedSearch);
-      setTab("search");
-    }
-  }, []);
   const pendingStoreRefresh = useRef(false);
   const activeScreen = useRef(
     `${initialTab}:${initialCategoryId}:${initialInfo}`,
