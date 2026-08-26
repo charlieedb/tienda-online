@@ -2,10 +2,12 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/Icons";
-import { getActiveNotifications, getUserNotifications, sanitizeNotificationHtml, type NotificationCampaign } from "@/lib/notifications";
+import { getActiveNotifications, getUserNotifications, sanitizeNotificationHtml, type NotificationAction, type NotificationCampaign } from "@/lib/notifications";
 import { enablePushNotifications, isInstalledPwa, syncPushNotificationRegistration } from "@/lib/pushNotifications";
 import { useAuth } from "@/auth/AuthProvider";
 import { getDiscountCodes, getMyDiscountCodes } from "@/lib/discountCodes";
+import { getMessaging, onMessage } from "firebase/messaging";
+import { getFirebaseApp } from "@/lib/firebase";
 
 type Props = {
   onSearch?: (query: string) => void;
@@ -105,6 +107,34 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
     document.addEventListener("visibilitychange", syncDevice);
     return () => { window.removeEventListener("pageshow", syncDevice); document.removeEventListener("visibilitychange", syncDevice); };
   }, [user, installedApp]);
+
+  useEffect(() => {
+    if (!installedApp || !("Notification" in window) || Notification.permission !== "granted") return;
+    const app = getFirebaseApp();
+    if (!app) return;
+    const unsubscribe = onMessage(getMessaging(app), (payload) => {
+      const data = payload.data || {};
+      const notification = payload.notification || {};
+      const item: NotificationCampaign = {
+        id: String(data.campaignId || Date.now()),
+        title: String(notification.title || "JOMA Express"),
+        body: String(notification.body || data.body || "Tenés una novedad en la tienda."),
+        audience: data.audience === "business" || data.audience === "consumer" ? data.audience : "all",
+        action: ["coupon", "catalog", "product", "cart", "search"].includes(String(data.action)) ? data.action as NotificationAction : "none",
+        target: String(data.target || ""), status: "sent", scheduledAt: "",
+        expiresAt: String(data.expiresAt || ""), createdAtIso: String(data.createdAtIso || new Date().toISOString()),
+      };
+      setNotifications((current) => [item, ...current.filter((entry) => entry.id !== item.id)]);
+      setUnreadCount((current) => current + 1);
+      void navigator.serviceWorker.ready.then((registration) => registration.showNotification(item.title, {
+        body: notification.body || "Tenés una novedad en la tienda.",
+        icon: "/joma-express-icon.png",
+        badge: "/joma-express-icon.png",
+        data: { url: data.url || "/", campaignId: item.id },
+      }));
+    });
+    return unsubscribe;
+  }, [installedApp]);
 
   useEffect(() => {
     if (!open) return;
