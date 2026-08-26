@@ -327,28 +327,42 @@ export async function upsertUserProfile(profile: UserProfile) {
 
   const ref = doc(db, "users", profile.uid);
   const first = direcciones[0] ?? null;
+  const normalizedEmail = String(normalizedProfile.email ?? "").trim().toLowerCase();
+  const profileData = {
+    email: normalizedEmail || null,
+    username: normalizedProfile.username,
+    dni: normalizedProfile.dni,
+    displayName: normalizedProfile.displayName ?? null,
+    nombre: normalizedProfile.nombre ?? "",
+    apellido: normalizedProfile.apellido ?? "",
+    telefono: normalizedProfile.telefono ?? "",
+    preventistaReferido: normalizedProfile.preventistaReferido ?? "",
+    notes: normalizedProfile.notes ?? "",
+    direcciones: direcciones.length ? direcciones : [],
+    provincia: first?.provincia ?? "",
+    localidad: first?.localidad ?? "",
+    direccion: first?.direccion ?? "",
+    ubicacion: first?.ubicacion ?? null,
+    accountType: normalizedProfile.accountType,
+    business: normalizedProfile.business ?? null,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (normalizedEmail) {
+    const emailRef = doc(db, "userEmails", normalizedEmail);
+    await runTransaction(db, async (transaction) => {
+      const emailSnapshot = await transaction.get(emailRef);
+      const reservedUid = String(emailSnapshot.data()?.uid ?? "");
+      if (emailSnapshot.exists() && reservedUid !== profile.uid) throw new Error("Ese email ya está asociado a otra cuenta.");
+      transaction.set(emailRef, { uid: profile.uid, email: normalizedEmail, updatedAt: serverTimestamp() }, { merge: true });
+      transaction.set(ref, profileData, { merge: true });
+    });
+    return;
+  }
 
   await setDoc(
     ref,
-    {
-      email: normalizedProfile.email ?? null,
-      username: normalizedProfile.username,
-      dni: normalizedProfile.dni,
-      displayName: normalizedProfile.displayName ?? null,
-      nombre: normalizedProfile.nombre ?? "",
-      apellido: normalizedProfile.apellido ?? "",
-      telefono: normalizedProfile.telefono ?? "",
-      preventistaReferido: normalizedProfile.preventistaReferido ?? "",
-      notes: normalizedProfile.notes ?? "",
-      direcciones: direcciones.length ? direcciones : [],
-      provincia: first?.provincia ?? "",
-      localidad: first?.localidad ?? "",
-      direccion: first?.direccion ?? "",
-      ubicacion: first?.ubicacion ?? null,
-      accountType: normalizedProfile.accountType,
-      business: normalizedProfile.business ?? null,
-      updatedAt: serverTimestamp(),
-    },
+    profileData,
     { merge: true },
   );
 }
