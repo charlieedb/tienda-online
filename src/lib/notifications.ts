@@ -31,8 +31,9 @@ export async function sendPersonalCouponNotification(input: { uid: string; code:
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
     body: JSON.stringify(input),
   });
-  const payload = await response.json().catch(() => ({})) as { error?: string };
+  const payload = await response.json().catch(() => ({})) as { error?: string; deliveredCount?: number };
   if (!response.ok) throw new Error(payload.error || "No se pudo enviar la notificación.");
+  return { deliveredCount: Math.max(0, Number(payload.deliveredCount) || 0) };
 }
 
 export async function createNotificationCampaign(input: Omit<NotificationCampaign, "id" | "createdAtIso">, actor: string) {

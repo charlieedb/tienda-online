@@ -1693,7 +1693,7 @@ export function App() {
   const { user, loading } = useAuth();
   const prefersReducedMotion = useReducedMotion();
   const catalog = useMemo(() => createRemoteCatalog(), []);
-  const [splashMinimumElapsed, setSplashMinimumElapsed] = useState(false);
+  const [splashMinimumElapsed, setSplashMinimumElapsed] = useState(() => new URLSearchParams(window.location.search).has("jomaPush"));
   const [location, setLocation] = useState(
     () => `${window.location.pathname}${window.location.search}`,
   );

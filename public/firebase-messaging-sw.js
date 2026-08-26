@@ -65,9 +65,7 @@ self.addEventListener("notificationclick", (event) => {
   target.searchParams.set("jomaPush", `${Date.now()}`);
   const targetUrl = target.href;
   event.waitUntil((async () => {
-    // Revalida el documento antes de navegar. El identificador en la URL evita
-    // reutilizar una instancia o una respuesta anterior de la aplicación.
-    try { await fetch(targetUrl, { cache: "reload", credentials: "include" }); } catch {}
+    // La URL única fuerza una navegación completa sin sumar una descarga previa.
     const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     const existing = clients.find((client) => new URL(client.url).origin === self.location.origin);
     if (!existing) {

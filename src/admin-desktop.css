@@ -1082,6 +1082,15 @@ body .admin-shell .admin-login-card {
 .admin-coupon-selected-customer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding: 10px 12px; border: 1px solid #b9d9cb; border-radius: 12px; background: #eef9f3; }
 .admin-coupon-selected-customer > span { display: grid; gap: 2px; }
 .admin-coupon-selected-customer small { color: #4f6f61; font-size: 11px; }
+.admin-coupon-save-note { margin: 10px 0 0; color: #536b7c; font-size: 12px; line-height: 1.45; }
+.admin-coupon-notify-button { white-space: nowrap; }
+.admin-coupon-notification-row > td { padding: 0 !important; background: #f4f9fc; }
+.admin-coupon-notification-composer { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(420px, 1.3fr); gap: 14px 18px; padding: 18px; border-top: 1px solid #cfe2ee; border-bottom: 1px solid #cfe2ee; }
+.admin-coupon-notification-composer > div:first-child { display: grid; align-content: start; gap: 4px; }
+.admin-coupon-notification-composer > div:first-child > small { color: #526d80; font-size: 11px; line-height: 1.45; }
+.admin-coupon-notification-composer .admin-coupon-notification-preview,
+.admin-coupon-notification-composer .admin-coupon-notification-actions { grid-column: 2; }
+.admin-coupon-notification-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .admin-coupon-notification { display: grid; gap: 12px; margin-top: 12px; padding: 14px; border: 1px solid #d6e3eb; border-radius: 12px; background: #f7fafc; }
 .admin-coupon-notification-toggle { display: flex !important; align-items: center; gap: 10px !important; cursor: pointer; }
 .admin-coupon-notification-toggle input { width: 18px; height: 18px; margin: 0; accent-color: #176789; }
@@ -1124,6 +1133,11 @@ body .admin-shell .admin-login-card {
   .admin-coupon-customer-picker { grid-column: auto; }
   .admin-coupon-selected-customer { align-items: stretch; flex-direction: column; }
   .admin-coupon-selected-customer .btn { width: 100%; }
+  .admin-coupon-notification-composer { grid-template-columns: 1fr; padding: 14px; }
+  .admin-coupon-notification-composer .admin-coupon-notification-preview,
+  .admin-coupon-notification-composer .admin-coupon-notification-actions { grid-column: 1; }
+  .admin-coupon-notification-actions { flex-direction: column-reverse; }
+  .admin-coupon-notification-actions .btn { width: 100%; }
   .admin-coupon-notification-fields { grid-template-columns: 1fr; }
   .admin-discount-create .btn, .admin-discount-actions .btn { width: 100%; }
   .admin-discount-actions { display: block; }
