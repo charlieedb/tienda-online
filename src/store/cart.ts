@@ -6,6 +6,15 @@ import { persist } from "zustand/middleware";
 export const CART_STORAGE_KEY = "listita_cart_v1";
 export const CART_DURATION_MS = 10 * 60 * 1000;
 
+function clearPendingCoupon() {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem("joma.pendingCoupon");
+  } catch {
+    // Ignore privacy / storage errors.
+  }
+}
+
 export type CartItem = {
   id: string;
   productId: string;
@@ -185,10 +194,11 @@ export const useCartStore = create<CartState>()(
           const nextQty = Math.max(0, Math.min(999, Math.trunc(qty)));
           if (nextQty === 0) {
             const items = state.items.filter((i) => i.id !== id);
+            if (!items.length) clearPendingCoupon();
             return {
               items,
               expiresAt: nextExpiry(state.items, items, state.expiresAt),
-              appliedDiscountCode: state.appliedDiscountCode,
+              appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
             };
           }
           const existing = state.items.find((i) => i.id === id);
@@ -213,10 +223,11 @@ export const useCartStore = create<CartState>()(
           if (!existing) return {};
           if (existing.qty <= 1) {
             const items = state.items.filter((i) => i.id !== id);
+            if (!items.length) clearPendingCoupon();
             return {
               items,
               expiresAt: nextExpiry(state.items, items, state.expiresAt),
-              appliedDiscountCode: state.appliedDiscountCode,
+              appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
             };
           }
           const items = state.items.map((i) =>
@@ -230,19 +241,26 @@ export const useCartStore = create<CartState>()(
       removeItem: (id) =>
         set((state) => {
           const items = state.items.filter((i) => i.id !== id);
+          if (!items.length) clearPendingCoupon();
           return {
             items,
             expiresAt: nextExpiry(state.items, items, state.expiresAt),
-            appliedDiscountCode: state.appliedDiscountCode,
+            appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
           };
         }),
       setAppliedDiscountCode: (appliedDiscountCode) => set({ appliedDiscountCode }),
-      clear: () => set({ items: [], expiresAt: null, appliedDiscountCode: null }),
+      clear: () => {
+        clearPendingCoupon();
+        set({ items: [], expiresAt: null, appliedDiscountCode: null });
+      },
       extendExpiry: () =>
         set((state) => ({
           expiresAt: state.items.length ? Date.now() + CART_DURATION_MS : null,
         })),
-      resetSession: () => set({ open: false, items: [], expiresAt: null, appliedDiscountCode: null }),
+      resetSession: () => {
+        clearPendingCoupon();
+        set({ open: false, items: [], expiresAt: null, appliedDiscountCode: null });
+      },
       setDailyOfferUsage: (usage) => set((state) => ({
         dailyOfferUsage: usage,
         items: state.items.map((item) => ({
@@ -253,19 +271,18 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: CART_STORAGE_KEY,
-      version: 3,
+      version: 4,
+      partialize: (state) => ({
+        ...state,
+        appliedDiscountCode: null,
+      }),
       migrate: (persistedState) => {
         const state = persistedState as Partial<CartState>;
         const items = Array.isArray(state.items) ? state.items : [];
         return {
           ...state,
           items,
-          appliedDiscountCode: state.appliedDiscountCode
-            ? {
-                ...state.appliedDiscountCode,
-                eligibleSubtotalByItem: state.appliedDiscountCode.eligibleSubtotalByItem ?? {},
-              }
-            : null,
+          appliedDiscountCode: null,
           expiresAt: items.length ? Date.now() + CART_DURATION_MS : null,
         } as CartState;
       },
@@ -280,4 +297,11 @@ export function clearPersistedCart() {
   } catch {
     // Ignore privacy / storage errors.
   }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", () => {
+    clearPendingCoupon();
+    useCartStore.getState().setAppliedDiscountCode(null);
+  });
 }

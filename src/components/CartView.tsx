@@ -99,15 +99,21 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   }, []);
 
   useEffect(() => {
-    const paramsCoupon = new URLSearchParams(window.location.search).get("coupon");
-    const pendingCoupon = paramsCoupon || window.localStorage.getItem("joma.pendingCoupon");
+    const currentUrl = new URL(window.location.href);
+    const paramsCoupon = currentUrl.searchParams.get("coupon");
+    const pendingCoupon = paramsCoupon || window.sessionStorage.getItem("joma.pendingCoupon");
     if (!pendingCoupon) return;
+    window.sessionStorage.setItem("joma.pendingCoupon", pendingCoupon);
+    if (paramsCoupon) {
+      currentUrl.searchParams.delete("coupon");
+      window.history.replaceState(window.history.state, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+    }
     setDiscountInput(pendingCoupon);
   }, []);
 
   useEffect(() => {
     const clearBusinessCoupon = () => {
-      window.localStorage.removeItem("joma.pendingCoupon");
+      window.sessionStorage.removeItem("joma.pendingCoupon");
       setDiscountInput("");
       setAppliedCode(null);
       setDiscountError("");
@@ -133,13 +139,13 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   const applyDiscount = async (codeOverride?: string) => {
     setApplyingDiscount(true);
     setDiscountError("");
+    window.sessionStorage.removeItem("joma.pendingCoupon");
     try {
       const catalog = await getActiveCatalog();
       const productsById = new Map<string, Product>(catalog.map((product) => [product.id, product]));
       productsByIdRef.current = productsById;
       setAppliedCode(await validateDiscountCode(codeOverride || discountInput, items, productsById, user?.uid, !items.length));
       setDiscountInput("");
-      window.localStorage.removeItem("joma.pendingCoupon");
     } catch (nextError) {
       setDiscountError(nextError instanceof Error ? nextError.message : "No pudimos aplicar el código.");
     } finally {
@@ -148,8 +154,13 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
   };
 
   useEffect(() => {
-    const pendingCoupon = window.localStorage.getItem("joma.pendingCoupon");
-    if (appliedCode || applyingDiscount || !pendingCoupon) return;
+    const pendingCoupon = window.sessionStorage.getItem("joma.pendingCoupon");
+    if (applyingDiscount || !pendingCoupon) return;
+    if (appliedCode?.code === pendingCoupon) {
+      window.sessionStorage.removeItem("joma.pendingCoupon");
+      return;
+    }
+    if (appliedCode) setAppliedCode(null);
     setDiscountInput(pendingCoupon);
     void applyDiscount(pendingCoupon);
   }, [items.length, appliedCode?.code]);
@@ -161,7 +172,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       setAppliedCode(null);
       setDiscountError("");
       setDiscountInput(code);
-      window.localStorage.setItem("joma.pendingCoupon", code);
+      window.sessionStorage.setItem("joma.pendingCoupon", code);
       void applyDiscount(code);
     };
     window.addEventListener("joma:coupon-selected", selectCoupon);
@@ -315,7 +326,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
 
   if (!items.length && !sent) return <section className="empty-state">
     <div className="empty-icon"><Icon name="cart" /></div><h2>Tu carrito está esperando</h2><p>Agregá tus productos favoritos y los vas a encontrar acá.</p>
-    {appliedCode ? <div className="empty-cart-coupon"><Icon name="ticket"/><div><strong>Cupón {appliedCode.code} disponible</strong><span>Se aplicará automáticamente cuando agregues productos.</span></div><button type="button" onClick={() => { setAppliedCode(null); setDiscountInput(""); setDiscountError(""); window.localStorage.removeItem("joma.pendingCoupon"); }}>Quitar</button></div> : discountInput || discountError ? <div className="empty-cart-coupon-form"><label htmlFor="empty-cart-coupon-input">Código de descuento</label><div><span><input id="empty-cart-coupon-input" value={discountInput} onChange={(event) => { setDiscountInput(event.target.value.toLocaleUpperCase("es-AR")); setDiscountError(""); }} />{discountInput ? <button type="button" className="coupon-input-clear" aria-label="Borrar código" onClick={() => { setDiscountInput(""); setDiscountError(""); window.localStorage.removeItem("joma.pendingCoupon"); }}><Icon name="close"/></button> : null}</span><button type="button" disabled={!discountInput.trim() || applyingDiscount} onClick={() => void applyDiscount()}>{applyingDiscount ? "Verificando…" : "Aplicar"}</button></div>{discountError ? <p role="alert">{discountError}</p> : null}</div> : null}
+    {appliedCode ? <div className="empty-cart-coupon"><Icon name="ticket"/><div><strong>Cupón {appliedCode.code} disponible</strong><span>Se aplicará automáticamente cuando agregues productos.</span></div><button type="button" onClick={() => { setAppliedCode(null); setDiscountInput(""); setDiscountError(""); window.sessionStorage.removeItem("joma.pendingCoupon"); }}>Quitar</button></div> : discountInput || discountError ? <div className="empty-cart-coupon-form"><label htmlFor="empty-cart-coupon-input">Código de descuento</label><div><span><input id="empty-cart-coupon-input" value={discountInput} onChange={(event) => { setDiscountInput(event.target.value.toLocaleUpperCase("es-AR")); setDiscountError(""); }} />{discountInput ? <button type="button" className="coupon-input-clear" aria-label="Borrar código" onClick={() => { setDiscountInput(""); setDiscountError(""); window.sessionStorage.removeItem("joma.pendingCoupon"); }}><Icon name="close"/></button> : null}</span><button type="button" disabled={!discountInput.trim() || applyingDiscount} onClick={() => void applyDiscount()}>{applyingDiscount ? "Verificando…" : "Aplicar"}</button></div>{discountError ? <p role="alert">{discountError}</p> : null}</div> : null}
     <button type="button" className="primary-action" onClick={onContinue}>Explorar productos</button>
   </section>;
 
@@ -330,7 +341,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       <div className="cart-discount-area">
       <div className={`cart-discount-module ${appliedCode ? "is-valid state-feedback" : discountError ? "is-invalid state-feedback" : ""}`}>
         <label htmlFor="cart-discount-input">Código de descuento</label>
-        {appliedCode ? <div className="cart-discount-applied"><div><strong>{appliedCode.code}</strong><span>{appliedCode.percentage}% aplicado</span></div><button type="button" onClick={() => { setAppliedCode(null); setDiscountError(""); }}>Quitar</button></div> : <div className="cart-discount-form"><span className="coupon-input-wrap"><input id="cart-discount-input" value={discountInput} onChange={(event) => { const value = event.target.value.toLocaleUpperCase("es-AR"); setDiscountInput(value); if (!value.trim()) setDiscountError(""); }} onKeyDown={(event) => { if (event.key === "Enter") void applyDiscount(); }} placeholder="Ingresá tu código" autoCapitalize="characters" maxLength={24}/>{discountError && discountInput ? <button type="button" className="coupon-input-clear" aria-label="Borrar código" onClick={() => { setDiscountInput(""); setDiscountError(""); window.localStorage.removeItem("joma.pendingCoupon"); }}><Icon name="close"/></button> : null}</span><button type="button" onClick={() => void applyDiscount()} disabled={applyingDiscount || !discountInput.trim()}>{applyingDiscount ? "Aplicando..." : "Aplicar"}</button></div>}
+        {appliedCode ? <div className="cart-discount-applied"><div><strong>{appliedCode.code}</strong><span>{appliedCode.percentage}% aplicado</span></div><button type="button" onClick={() => { setAppliedCode(null); setDiscountError(""); window.sessionStorage.removeItem("joma.pendingCoupon"); }}>Quitar</button></div> : <div className="cart-discount-form"><span className="coupon-input-wrap"><input id="cart-discount-input" value={discountInput} onChange={(event) => { const value = event.target.value.toLocaleUpperCase("es-AR"); setDiscountInput(value); if (!value.trim()) setDiscountError(""); }} onKeyDown={(event) => { if (event.key === "Enter") void applyDiscount(); }} placeholder="Ingresá tu código" autoCapitalize="characters" maxLength={24}/>{discountError && discountInput ? <button type="button" className="coupon-input-clear" aria-label="Borrar código" onClick={() => { setDiscountInput(""); setDiscountError(""); window.sessionStorage.removeItem("joma.pendingCoupon"); }}><Icon name="close"/></button> : null}</span><button type="button" onClick={() => void applyDiscount()} disabled={applyingDiscount || !discountInput.trim()}>{applyingDiscount ? "Aplicando..." : "Aplicar"}</button></div>}
         {discountError ? <p className="cart-discount-error" role="alert">{discountError}</p> : null}
       </div>
       <aside className={`cart-benefit-summary ${appliedCode ? "is-active" : ""}`} aria-live="polite">{appliedCode ? <><span>Beneficio aplicado</span><strong>Cupón porcentual · {appliedCode.percentage}%</strong><dl><div><dt>Código</dt><dd>{appliedCode.code}</dd></div><div><dt>Productos alcanzados</dt><dd>{appliedCode.eligibleItemIds.length}</dd></div><div><dt>Descuento obtenido</dt><dd>− {money.format(appliedCode.discountAmount)}</dd></div></dl></> : <><span>Beneficio del pedido</span><strong>Sin cupón aplicado</strong><p>Cuando ingreses un código válido, acá vas a ver el tipo y el descuento obtenido.</p></>}</aside>
