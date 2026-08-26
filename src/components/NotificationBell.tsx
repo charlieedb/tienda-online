@@ -120,7 +120,7 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
         return;
       }
       if (event.data?.type === "JOMA_NOTIFICATION_REMOVED" && typeof event.data.campaignId === "string") {
-        setNotifications((current) => current.filter((item) => item.id !== event.data.campaignId));
+        setNotifications((current) => current.filter((item) => item.id !== event.data.campaignId && item.id !== `personal-${event.data.campaignId}`));
         setUnreadCount((current) => Math.max(0, current - 1));
       }
     };

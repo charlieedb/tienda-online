@@ -4,6 +4,8 @@ import { getAuthClient } from "@/lib/firebase";
 
 const PERSONAL_COUPON_NOTIFICATION_URL = "https://us-central1-app-presu.cloudfunctions.net/sendPersonalCouponNotification";
 const PERSONAL_NOTIFICATION_URL = "https://us-central1-app-presu.cloudfunctions.net/sendPersonalTiendaNotification";
+const PERSONAL_NOTIFICATION_HISTORY_URL = "https://us-central1-app-presu.cloudfunctions.net/getPersonalTiendaNotificationHistory";
+const DELETE_PERSONAL_NOTIFICATION_URL = "https://us-central1-app-presu.cloudfunctions.net/deletePersonalTiendaNotification";
 
 export type NotificationAction = "none" | "coupon" | "catalog" | "product" | "cart" | "search";
 export type NotificationAudience = "all" | "business" | "consumer";
@@ -23,6 +25,8 @@ export type NotificationCampaign = {
   createdAtIso: string;
 };
 
+export type PersonalNotificationHistory = { id: string; uid: string; customerName: string; customerEmail: string; title: string; bodyText: string; action: NotificationAction; target: string; createdAtIso: string; createdBy: string };
+
 export async function sendPersonalCouponNotification(input: { uid: string; code: string; title: string; body: string }) {
   const auth = getAuthClient();
   const user = auth?.currentUser;
@@ -32,9 +36,26 @@ export async function sendPersonalCouponNotification(input: { uid: string; code:
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
     body: JSON.stringify(input),
   });
-  const payload = await response.json().catch(() => ({})) as { error?: string; deliveredCount?: number };
+  const payload = await response.json().catch(() => ({})) as { error?: string; deliveredCount?: number; notificationId?: string; createdAtIso?: string };
   if (!response.ok) throw new Error(payload.error || "No se pudo enviar la notificación.");
-  return { deliveredCount: Math.max(0, Number(payload.deliveredCount) || 0) };
+  return { deliveredCount: Math.max(0, Number(payload.deliveredCount) || 0), notificationId: String(payload.notificationId || ""), createdAtIso: String(payload.createdAtIso || new Date().toISOString()) };
+}
+
+export async function getPersonalNotificationHistory(): Promise<PersonalNotificationHistory[]> {
+  const user = getAuthClient()?.currentUser;
+  if (!user) throw new Error("La sesión de administrador venció.");
+  const response = await fetch(PERSONAL_NOTIFICATION_HISTORY_URL, { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
+  const payload = await response.json().catch(() => ({})) as { error?: string; notifications?: PersonalNotificationHistory[] };
+  if (!response.ok) throw new Error(payload.error || "No se pudo cargar el historial individual.");
+  return Array.isArray(payload.notifications) ? payload.notifications : [];
+}
+
+export async function deletePersonalNotification(uid: string, notificationId: string) {
+  const user = getAuthClient()?.currentUser;
+  if (!user) throw new Error("La sesión de administrador venció.");
+  const response = await fetch(DELETE_PERSONAL_NOTIFICATION_URL, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` }, body: JSON.stringify({ uid, notificationId }) });
+  const payload = await response.json().catch(() => ({})) as { error?: string };
+  if (!response.ok) throw new Error(payload.error || "No se pudo borrar la notificación.");
 }
 
 export async function sendPersonalNotification(input: { uid: string; title: string; body: string; action: NotificationAction; target: string; expiresAt?: string }) {
@@ -46,9 +67,9 @@ export async function sendPersonalNotification(input: { uid: string; title: stri
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
     body: JSON.stringify(input),
   });
-  const payload = await response.json().catch(() => ({})) as { error?: string; deliveredCount?: number };
+  const payload = await response.json().catch(() => ({})) as { error?: string; deliveredCount?: number; notificationId?: string; createdAtIso?: string };
   if (!response.ok) throw new Error(payload.error || "No se pudo enviar la notificación.");
-  return { deliveredCount: Math.max(0, Number(payload.deliveredCount) || 0) };
+  return { deliveredCount: Math.max(0, Number(payload.deliveredCount) || 0), notificationId: String(payload.notificationId || ""), createdAtIso: String(payload.createdAtIso || new Date().toISOString()) };
 }
 
 export async function createNotificationCampaign(input: Omit<NotificationCampaign, "id" | "createdAtIso">, actor: string) {

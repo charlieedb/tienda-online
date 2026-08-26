@@ -4,7 +4,7 @@ import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { Product } from "@/catalog/types";
 import { fetchRegisteredCustomers, type AdminCustomer } from "@/lib/adminCustomers";
 import { getDiscountCodes, normalizeDiscountCode, saveDiscountCodes, type DiscountCode } from "@/lib/discountCodes";
-import { createNotificationCampaign, deleteNotificationCampaign, finishNotificationCampaign, getNotificationCampaigns, notificationPlainText, sanitizeNotificationHtml, sendPersonalNotification, type NotificationAction, type NotificationCampaign, type NotificationStatus } from "@/lib/notifications";
+import { createNotificationCampaign, deleteNotificationCampaign, deletePersonalNotification, finishNotificationCampaign, getNotificationCampaigns, getPersonalNotificationHistory, notificationPlainText, sanitizeNotificationHtml, sendPersonalNotification, type NotificationAction, type NotificationCampaign, type NotificationStatus, type PersonalNotificationHistory } from "@/lib/notifications";
 
 const NOTIFICATION_EMOJIS = ["🎉", "🔥", "🎁", "🐔", "💸", "⭐", "🍕", "🍔", "🥩", "🍗", "🥤", "🍺", "🛒", "🏷️", "💳", "🚚", "📦", "✅", "⚡", "💥", "😍", "😋", "🤩", "🥳", "🙌", "📣", "🔔", "⏰", "📅", "❤️", "💙", "🧡", "👉", "👇", "✨", "🎊"];
 
@@ -37,6 +37,7 @@ export function AdminNotificationsPanel({ user }: { user: User }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [campaigns, setCampaigns] = useState<NotificationCampaign[]>([]);
+  const [personalHistory, setPersonalHistory] = useState<PersonalNotificationHistory[]>([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState<"all" | "business" | "consumer" | "customer">("all");
@@ -67,12 +68,13 @@ export function AdminNotificationsPanel({ user }: { user: User }) {
       const groups = await Promise.all(manifest.categories.map((category) => catalog.getCategoryProducts(category.id)));
       return groups.flat();
     };
-    Promise.all([loadProducts(), getDiscountCodes(), getNotificationCampaigns()])
-      .then(([catalogProducts, codes, notificationCampaigns]) => {
+    Promise.all([loadProducts(), getDiscountCodes(), getNotificationCampaigns(), getPersonalNotificationHistory()])
+      .then(([catalogProducts, codes, notificationCampaigns, personalNotifications]) => {
         if (!active) return;
         setProducts(catalogProducts);
         setDiscountCodes(codes);
         setCampaigns(notificationCampaigns);
+        setPersonalHistory(personalNotifications);
       })
       .catch((error) => { if (active) setMessage(error instanceof Error ? error.message : "No se pudieron cargar las notificaciones."); })
       .finally(() => { if (active) setLoading(false); });
@@ -133,6 +135,7 @@ export function AdminNotificationsPanel({ user }: { user: User }) {
           setDiscountCodes(await saveDiscountCodes(nextCodes, user.email || user.uid));
         }
         const delivery = await sendPersonalNotification({ uid: selectedCustomer.uid, title: title.trim(), body: cleanBody, action, target: target.trim(), expiresAt: expiresAt ? new Date(`${expiresAt}T23:59:59`).toISOString() : "" });
+        if (delivery.notificationId) setPersonalHistory((current) => [{ id: delivery.notificationId, uid: selectedCustomer.uid, customerName: selectedCustomer.name, customerEmail: selectedCustomer.email, title: title.trim(), bodyText: notificationPlainText(body), action, target: target.trim(), createdAtIso: delivery.createdAtIso, createdBy: user.email || user.uid }, ...current]);
         setMessage(delivery.deliveredCount ? `Notificación enviada a ${selectedCustomer.name}.` : `El aviso quedó en la cuenta de ${selectedCustomer.name}, pero no tiene un dispositivo con notificaciones activo.`);
         return;
       }
@@ -183,6 +186,18 @@ export function AdminNotificationsPanel({ user }: { user: User }) {
     finally { setBusyCampaignId(""); }
   };
 
+  const deletePersonalHistoryItem = async (notification: PersonalNotificationHistory) => {
+    if (busyCampaignId || !window.confirm(`¿Borrar la notificación “${notification.title}” de ${notification.customerName}? Se quitará también de sus dispositivos.`)) return;
+    setBusyCampaignId(`personal-${notification.id}`);
+    setHistoryMessage("");
+    try {
+      await deletePersonalNotification(notification.uid, notification.id);
+      setPersonalHistory((current) => current.filter((item) => item.id !== notification.id || item.uid !== notification.uid));
+      setHistoryMessage(`La notificación de ${notification.customerName} fue borrada.`);
+    } catch (error) { setHistoryMessage(error instanceof Error ? error.message : "No se pudo borrar la notificación."); }
+    finally { setBusyCampaignId(""); }
+  };
+
   return <div className="admin-content-box admin-store-config">
     <section className="admin-card admin-notification-config">
       <div className="admin-card__head"><div className="admin-headline"><h1 className="admin-title">Notificaciones</h1><p>Creá campañas y administrá qué novedades permanecen visibles en la app.</p></div><span className="admin-module-state">{loading ? "Cargando" : "Activo"}</span></div>
@@ -203,9 +218,9 @@ export function AdminNotificationsPanel({ user }: { user: User }) {
         <aside className="admin-notification-preview" aria-label="Vista previa de la notificación"><span>Vista previa</span><div className="admin-notification-preview__card"><div className="admin-notification-preview__icon">J</div><div><strong>{title || "Título de la notificación"}</strong>{body ? <p dangerouslySetInnerHTML={{ __html: sanitizeNotificationHtml(body) }} /> : <p>El mensaje que reciba el cliente aparecerá acá.</p>}<small>JOMA Express · ahora</small></div></div><div className="admin-notification-action-summary"><span>Al tocar</span><strong>{action === "coupon" ? `Agregar cupón ${target || "seleccionado"}` : action === "search" ? `Buscar “${target || "..."}”` : action === "catalog" ? "Abrir la tienda" : action === "product" ? "Abrir el producto seleccionado" : action === "cart" ? "Abrir el carrito" : "Abrir la app"}</strong></div></aside>
       </div>
       <div className="admin-card__body admin-notification-history">
-        <div className="admin-notification-history__head"><div><h2>Historial de campañas</h2><p>Finalizá una campaña o borrala definitivamente para quitarla de la campanita de la app.</p></div><span className="ofertas-count">{campaigns.length}</span></div>
+        <div className="admin-notification-history__head"><div><h2>Historial de notificaciones</h2><p>Revisá todos los envíos y borralos manualmente de la campanita de los dispositivos.</p></div><span className="ofertas-count">{campaigns.length + personalHistory.length}</span></div>
         {historyMessage ? <div className="admin-users-message" role="status">{historyMessage}</div> : null}
-        {campaigns.length ? <div className="admin-notification-history__list">{campaigns.map((campaign) => { const canFinish = campaign.status === "sent" || campaign.status === "scheduled" || campaign.status === "paused"; return <article className="admin-notification-history__item" key={campaign.id}><div className="admin-notification-history__copy"><strong>{campaign.title || "Campaña sin título"}</strong><p>{campaign.bodyText || notificationPlainText(campaign.body) || "Sin mensaje"}</p><small>{formatCampaignDate(campaign.createdAtIso)} · {audienceLabel(campaign.audience)}</small></div><span className={`admin-notification-status is-${campaign.status}`}>{statusLabel(campaign.status)}</span><div className="admin-notification-history__actions">{canFinish ? <button type="button" className="btn ghost admin-campaign-finish" onClick={() => void finishCampaign(campaign)} disabled={Boolean(busyCampaignId)}>{busyCampaignId === campaign.id ? "Procesando..." : "Finalizar"}</button> : null}<button type="button" className="btn ofertas-danger admin-campaign-delete" onClick={() => void deleteCampaign(campaign)} disabled={Boolean(busyCampaignId)}>{busyCampaignId === campaign.id ? "Procesando..." : "Borrar"}</button></div></article>; })}</div> : <div className="admin-notification-history__empty">{loading ? "Cargando campañas..." : "Todavía no hay campañas guardadas."}</div>}
+        {campaigns.length || personalHistory.length ? <div className="admin-notification-history__list">{personalHistory.map((notification) => <article className="admin-notification-history__item" key={`personal-${notification.uid}-${notification.id}`}><div className="admin-notification-history__copy"><strong>{notification.title || "Notificación sin título"}</strong><p>{notification.bodyText || "Sin mensaje"}</p><small>{formatCampaignDate(notification.createdAtIso)} · {notification.customerName} {notification.customerEmail ? `· ${notification.customerEmail}` : ""}</small></div><span className="admin-notification-status is-sent">Individual</span><div className="admin-notification-history__actions"><button type="button" className="btn ofertas-danger admin-campaign-delete" onClick={() => void deletePersonalHistoryItem(notification)} disabled={Boolean(busyCampaignId)}>{busyCampaignId === `personal-${notification.id}` ? "Procesando..." : "Borrar"}</button></div></article>)}{campaigns.map((campaign) => { const canFinish = campaign.status === "sent" || campaign.status === "scheduled" || campaign.status === "paused"; return <article className="admin-notification-history__item" key={campaign.id}><div className="admin-notification-history__copy"><strong>{campaign.title || "Campaña sin título"}</strong><p>{campaign.bodyText || notificationPlainText(campaign.body) || "Sin mensaje"}</p><small>{formatCampaignDate(campaign.createdAtIso)} · {audienceLabel(campaign.audience)}</small></div><span className={`admin-notification-status is-${campaign.status}`}>{statusLabel(campaign.status)}</span><div className="admin-notification-history__actions">{canFinish ? <button type="button" className="btn ghost admin-campaign-finish" onClick={() => void finishCampaign(campaign)} disabled={Boolean(busyCampaignId)}>{busyCampaignId === campaign.id ? "Procesando..." : "Finalizar"}</button> : null}<button type="button" className="btn ofertas-danger admin-campaign-delete" onClick={() => void deleteCampaign(campaign)} disabled={Boolean(busyCampaignId)}>{busyCampaignId === campaign.id ? "Procesando..." : "Borrar"}</button></div></article>; })}</div> : <div className="admin-notification-history__empty">{loading ? "Cargando notificaciones..." : "Todavía no hay notificaciones guardadas."}</div>}
       </div>
     </section>
   </div>;
