@@ -16,6 +16,10 @@ export function canShowIosInstallGuide() {
   return (preview || isIosDevice()) && !isStandalone();
 }
 
+function notificationPermission(): NotificationPermission {
+  return "Notification" in window ? Notification.permission : "default";
+}
+
 export function PwaInstallGuide() {
   const { user } = useAuth();
   const reduceMotion = useReducedMotion();
@@ -23,7 +27,7 @@ export function PwaInstallGuide() {
   const [open, setOpen] = useState(false);
   const [installed, setInstalled] = useState(isStandalone);
   const [dismissed, setDismissed] = useState(() => !preview && window.localStorage.getItem("joma.installGuideDismissed") === "1");
-  const [pushState, setPushState] = useState<"idle" | "loading" | "enabled" | "blocked">(() => Notification.permission === "granted" ? "enabled" : Notification.permission === "denied" ? "blocked" : "idle");
+  const [pushState, setPushState] = useState<"idle" | "loading" | "enabled" | "blocked">(() => notificationPermission() === "granted" ? "enabled" : notificationPermission() === "denied" ? "blocked" : "idle");
   const [message, setMessage] = useState("");
   const showIosGuide = preview || isIosDevice();
 
@@ -46,7 +50,7 @@ export function PwaInstallGuide() {
   }, []);
 
   useEffect(() => {
-    if (!user || Notification.permission !== "granted") return;
+    if (!user || notificationPermission() !== "granted") return;
     void syncPushNotificationRegistration(user).then((synced) => {
       if (synced) setPushState("enabled");
     }).catch(() => {});
@@ -69,7 +73,7 @@ export function PwaInstallGuide() {
       setPushState("enabled");
       setMessage("Notificaciones activadas en este iPhone.");
     } catch (error) {
-      setPushState(Notification.permission === "denied" ? "blocked" : "idle");
+      setPushState(notificationPermission() === "denied" ? "blocked" : "idle");
       setMessage(error instanceof Error ? error.message : "No pudimos activar las notificaciones.");
     }
   };
