@@ -94,7 +94,16 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
 
   useEffect(() => {
     if (!user || !installedApp || !("Notification" in window) || Notification.permission !== "granted") return;
-    void syncPushNotificationRegistration(user).then((synced) => setPushEnabled(synced)).catch(() => setPushEnabled(false));
+    let lastSyncAt = 0;
+    const syncDevice = () => {
+      if (document.visibilityState === "hidden" || Date.now() - lastSyncAt < 30_000) return;
+      lastSyncAt = Date.now();
+      void syncPushNotificationRegistration(user).then((synced) => setPushEnabled(synced)).catch(() => setPushEnabled(false));
+    };
+    syncDevice();
+    window.addEventListener("pageshow", syncDevice);
+    document.addEventListener("visibilitychange", syncDevice);
+    return () => { window.removeEventListener("pageshow", syncDevice); document.removeEventListener("visibilitychange", syncDevice); };
   }, [user, installedApp]);
 
   useEffect(() => {

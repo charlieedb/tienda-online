@@ -136,7 +136,7 @@ export function AdminNotificationsPanel({ user }: { user: User }) {
         }
         const delivery = await sendPersonalNotification({ uid: selectedCustomer.uid, title: title.trim(), body: cleanBody, action, target: target.trim(), expiresAt: expiresAt ? new Date(`${expiresAt}T23:59:59`).toISOString() : "" });
         if (delivery.notificationId) setPersonalHistory((current) => [{ id: delivery.notificationId, uid: selectedCustomer.uid, customerName: selectedCustomer.name, customerEmail: selectedCustomer.email, title: title.trim(), bodyText: notificationPlainText(body), action, target: target.trim(), createdAtIso: delivery.createdAtIso, createdBy: user.email || user.uid }, ...current]);
-        setMessage(delivery.deliveredCount ? `Notificación enviada a ${selectedCustomer.name}.` : `El aviso quedó en la cuenta de ${selectedCustomer.name}, pero no tiene un dispositivo con notificaciones activo.`);
+        setMessage(delivery.deliveredCount ? `Notificación enviada a ${selectedCustomer.name} (${delivery.deliveredCount} dispositivo${delivery.deliveredCount === 1 ? "" : "s"}).` : delivery.registeredDeviceCount ? `El aviso quedó en la cuenta de ${selectedCustomer.name}, pero Firebase rechazó el dispositivo registrado. Se limpió el token vencido para que la app lo renueve.` : `El aviso quedó en la cuenta de ${selectedCustomer.name}, pero no tiene un dispositivo con notificaciones activo.`);
         return;
       }
       const campaign = await createNotificationCampaign({

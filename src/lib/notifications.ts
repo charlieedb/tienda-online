@@ -36,9 +36,9 @@ export async function sendPersonalCouponNotification(input: { uid: string; code:
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
     body: JSON.stringify(input),
   });
-  const payload = await response.json().catch(() => ({})) as { error?: string; deliveredCount?: number; notificationId?: string; createdAtIso?: string };
+  const payload = await response.json().catch(() => ({})) as { error?: string; registeredDeviceCount?: number; deliveredCount?: number; failedCount?: number; notificationId?: string; createdAtIso?: string };
   if (!response.ok) throw new Error(payload.error || "No se pudo enviar la notificación.");
-  return { deliveredCount: Math.max(0, Number(payload.deliveredCount) || 0), notificationId: String(payload.notificationId || ""), createdAtIso: String(payload.createdAtIso || new Date().toISOString()) };
+  return { registeredDeviceCount: Math.max(0, Number(payload.registeredDeviceCount) || 0), deliveredCount: Math.max(0, Number(payload.deliveredCount) || 0), failedCount: Math.max(0, Number(payload.failedCount) || 0), notificationId: String(payload.notificationId || ""), createdAtIso: String(payload.createdAtIso || new Date().toISOString()) };
 }
 
 export async function getPersonalNotificationHistory(): Promise<PersonalNotificationHistory[]> {
@@ -67,9 +67,9 @@ export async function sendPersonalNotification(input: { uid: string; title: stri
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
     body: JSON.stringify(input),
   });
-  const payload = await response.json().catch(() => ({})) as { error?: string; deliveredCount?: number; notificationId?: string; createdAtIso?: string };
+  const payload = await response.json().catch(() => ({})) as { error?: string; registeredDeviceCount?: number; deliveredCount?: number; failedCount?: number; notificationId?: string; createdAtIso?: string };
   if (!response.ok) throw new Error(payload.error || "No se pudo enviar la notificación.");
-  return { deliveredCount: Math.max(0, Number(payload.deliveredCount) || 0), notificationId: String(payload.notificationId || ""), createdAtIso: String(payload.createdAtIso || new Date().toISOString()) };
+  return { registeredDeviceCount: Math.max(0, Number(payload.registeredDeviceCount) || 0), deliveredCount: Math.max(0, Number(payload.deliveredCount) || 0), failedCount: Math.max(0, Number(payload.failedCount) || 0), notificationId: String(payload.notificationId || ""), createdAtIso: String(payload.createdAtIso || new Date().toISOString()) };
 }
 
 export async function createNotificationCampaign(input: Omit<NotificationCampaign, "id" | "createdAtIso">, actor: string) {
