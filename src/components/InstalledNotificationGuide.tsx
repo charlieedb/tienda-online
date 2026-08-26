@@ -1,0 +1,63 @@
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/auth/AuthProvider";
+import { enablePushNotifications, syncPushNotificationRegistration } from "@/lib/pushNotifications";
+
+function isStandalone() {
+  return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
+export function InstalledNotificationGuide() {
+  const { user } = useAuth();
+  const reduceMotion = useReducedMotion();
+  const supported = "Notification" in window && "serviceWorker" in navigator;
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [permission, setPermission] = useState<NotificationPermission>(() => supported ? Notification.permission : "denied");
+
+  useEffect(() => {
+    if (!user || !supported || !isStandalone()) return;
+    if (Notification.permission === "granted") {
+      void syncPushNotificationRegistration(user).catch(() => {});
+      return;
+    }
+    if (Notification.permission !== "default" || window.localStorage.getItem("joma.notificationGuideDismissed") === "1") return;
+    const timer = window.setTimeout(() => setOpen(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, [user, supported]);
+
+  if (!supported || !isStandalone() || !user || permission === "granted") return null;
+
+  const close = () => {
+    setOpen(false);
+    window.localStorage.setItem("joma.notificationGuideDismissed", "1");
+  };
+
+  const enable = async () => {
+    setBusy(true);
+    setMessage("");
+    try {
+      await enablePushNotifications(user);
+      setPermission("granted");
+      setOpen(false);
+      window.localStorage.removeItem("joma.notificationGuideDismissed");
+    } catch (error) {
+      setPermission(Notification.permission);
+      setMessage(error instanceof Error ? error.message : "No pudimos activar las notificaciones.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return <AnimatePresence>{open ? <motion.div className="pwa-guide-scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? .01 : .18 }}>
+    <motion.section className="pwa-guide installed-notification-guide" role="dialog" aria-modal="true" aria-labelledby="installed-notification-title" initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 24 }} transition={{ duration: reduceMotion ? .01 : .22, ease: [0.22, 1, 0.36, 1] }}>
+      <div className="pwa-guide__head"><span className="android-install-guide__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></span><div><span>Un último paso</span><h2 id="installed-notification-title">¿Querés recibir avisos?</h2></div><button type="button" onClick={close} aria-label="Cerrar">×</button></div>
+      <p className="pwa-guide__intro">Podemos avisarte cuando recibas un cupón o haya una novedad importante.</p>
+      <div className="android-install-privacy"><strong>Vos decidís</strong><p>Es opcional y podés desactivarlo cuando quieras. JOMA no solicita acceso a fotos, contactos ni archivos.</p></div>
+      <button type="button" className="android-install-confirm" disabled={busy} onClick={() => void enable()}>{busy ? "Activando…" : "Activar notificaciones"}</button>
+      {message ? <div className="android-install-message" role="status">{message}</div> : null}
+      <button type="button" className="android-install-later" onClick={close}>Ahora no</button>
+    </motion.section>
+  </motion.div> : null}</AnimatePresence>;
+}

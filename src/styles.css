@@ -162,6 +162,23 @@ img { display: block; max-width: 100%; }
 .pwa-guide__notifications { display: grid; gap: 7px; }
 .pwa-guide__notifications button:disabled { opacity: .66; cursor: default; }
 .pwa-guide__notifications small { color: #60717d; font-size: 12px; line-height: 1.4; }
+.android-install-guide__icon { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 14px; color: #176fa9; background: #e8f3fb; }
+.android-install-guide__icon svg { width: 27px; height: 27px; }
+.android-install-privacy { display: grid; gap: 3px; margin-top: 10px; padding: 11px 13px; border: 1px solid #cfe5d8; border-radius: 12px; color: #245c3e; background: #edf8f2; }
+.android-install-privacy strong { font-size: 13px; }
+.android-install-privacy p { margin: 0; color: #52705f; font-size: 12px; line-height: 1.4; }
+.android-install-confirm { width: 100%; min-height: 48px; margin-top: 14px; border: 0; border-radius: 12px; color: #fff; background: #176fa9; font: inherit; font-weight: 850; cursor: pointer; }
+.android-install-confirm:disabled { opacity: .65; cursor: wait; }
+.android-install-later { width: 100%; min-height: 42px; margin-top: 6px; border: 0; color: #506574; background: transparent; font: inherit; font-size: 13px; font-weight: 750; cursor: pointer; }
+.android-install-message { margin-top: 10px; padding: 10px 12px; border-radius: 10px; color: #315873; background: #eaf5fb; font-size: 12px; line-height: 1.4; }
+.android-system-prompt-label { margin-bottom: 10px; color: #667986; font-size: 11px; font-weight: 800; text-align: center; }
+.android-system-prompt { display: grid; justify-items: center; gap: 9px; padding: 20px 16px 14px; border-radius: 16px; color: #1d2a36; background: #f1f4f6; text-align: center; }
+.android-system-prompt__bell { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; color: #176fa9; background: #dcecf6; }
+.android-system-prompt strong { max-width: 290px; font-size: 16px; line-height: 1.3; }
+.android-system-prompt p { margin: 0; color: #60717d; font-size: 13px; }
+.android-system-prompt > div { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.android-system-prompt button { min-height: 42px; border: 0; border-radius: 999px; color: #176fa9; background: #fff; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.android-system-prompt button:last-child { color: #fff; background: #176fa9; }
 @media (min-width: 700px) { .pwa-guide-scrim { align-items: center; }.pwa-guide { padding: 22px; } }
 @media (prefers-reduced-motion: reduce) { .pwa-guide-launcher, .pwa-guide, .pwa-guide-scrim { transition: none !important; animation: none !important; } }
 .business-registered-actions .business-delete-link { min-height: 44px; padding: 0 17px; border: 1px solid rgba(194, 64, 64, .42); border-radius: 12px; color: #a52f2f; background: rgba(255, 245, 245, .9); box-shadow: 0 5px 14px rgba(120, 28, 28, .06); font: inherit; font-weight: 700; cursor: pointer; transition: transform .18s ease, background-color .18s ease, border-color .18s ease; }

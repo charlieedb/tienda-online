@@ -20,6 +20,8 @@ import { AuthWelcome } from "@/components/AuthWelcome";
 import { PublicRoutePage } from "@/components/PublicRoutePage";
 import { NotificationBell } from "@/components/NotificationBell";
 import { PwaInstallGuide, canShowIosInstallGuide } from "@/components/PwaInstallGuide";
+import { AndroidInstallGuide, canShowAndroidInstallGuide } from "@/components/AndroidInstallGuide";
+import { InstalledNotificationGuide } from "@/components/InstalledNotificationGuide";
 import {
   StoreCreditBar,
   StoreInfoFooter,
@@ -744,6 +746,7 @@ function StoreApp({
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const showIosInstallMenu = canShowIosInstallGuide();
+  const showAndroidInstallMenu = canShowAndroidInstallGuide();
   const [manifest, setManifest] = useState<CatalogManifest | null>(null);
   const [featured, setFeatured] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Product[]>([]);
@@ -1357,6 +1360,11 @@ function StoreApp({
                     <span><strong>Instalar JOMA</strong><small>Tener la tienda en tu inicio</small></span>
                     <Icon name="arrow" />
                   </button> : null}
+                  {showAndroidInstallMenu ? <button type="button" className="drawer-install-link" onClick={() => { setMenuOpen(false); window.dispatchEvent(new Event("joma:open-android-install-guide")); }}>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v11"/><path d="m8 10 4 4 4-4"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
+                    <span><strong>Instalar JOMA</strong><small>Tener la tienda entre tus apps</small></span>
+                    <Icon name="arrow" />
+                  </button> : null}
                   {user ? <a className="drawer-public-link drawer-whatsapp-link" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
                     <WhatsAppIcon className="drawer-whatsapp-icon" />
                     <span>
@@ -1668,6 +1676,8 @@ function StoreApp({
         </button>
       ) : null}
       <PwaInstallGuide />
+      <AndroidInstallGuide />
+      <InstalledNotificationGuide />
     </div>
   );
 }
