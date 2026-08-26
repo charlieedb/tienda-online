@@ -4,7 +4,12 @@ import { getFirebaseApp } from "@/lib/firebase";
 
 const REGISTER_PUSH_URL = "https://us-central1-app-presu.cloudfunctions.net/registerTiendaPushDevice";
 
+export function isInstalledPwa() {
+  return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+}
+
 export async function enablePushNotifications(user: User) {
+  if (!isInstalledPwa()) throw new Error("Instalá JOMA en este dispositivo antes de activar las notificaciones.");
   if (!(await isSupported()) || !("serviceWorker" in navigator) || !("Notification" in window)) {
     throw new Error("Este navegador no admite notificaciones push.");
   }
@@ -32,6 +37,7 @@ async function registerPushDevice(user: User) {
 }
 
 export async function syncPushNotificationRegistration(user: User) {
+  if (!isInstalledPwa()) return false;
   if (!(await isSupported()) || !('serviceWorker' in navigator) || !('Notification' in window)) return false;
   if (Notification.permission !== "granted") return false;
   await registerPushDevice(user);
