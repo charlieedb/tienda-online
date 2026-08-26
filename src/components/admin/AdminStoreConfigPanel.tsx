@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
 import type { Product } from "@/catalog/types";
@@ -10,7 +10,6 @@ import {
   saveCheckoutSettingsConfig,
   saveFeaturedProductIds,
 } from "@/lib/featuredProducts";
-import { getDiscountCodes, getDiscountCodeUsages, normalizeDiscountCode, saveDiscountCodes, type DiscountCode, type DiscountCodeUsage } from "@/lib/discountCodes";
 
 const DELIVERY_DAYS = [
   { value: 1, label: "Lunes" },
@@ -23,11 +22,6 @@ const DELIVERY_DAYS = [
 
 function normalize(value: string) {
   return value.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-}
-
-function formatUsageDate(value: string) {
-  const date = new Date(value);
-  return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat("es-AR", { dateStyle: "short", timeStyle: "short" }).format(date) : "Sin fecha";
 }
 
 export function AdminStoreConfigPanel({ user }: { user: User }) {
@@ -43,18 +37,6 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
   const [checkoutSettings, setCheckoutSettings] = useState(DEFAULT_CHECKOUT_SETTINGS);
   const [savingCheckoutSettings, setSavingCheckoutSettings] = useState(false);
   const [checkoutSettingsMessage, setCheckoutSettingsMessage] = useState("");
-  const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
-  const [newCode, setNewCode] = useState("");
-  const [newPercentage, setNewPercentage] = useState(5);
-  const [newValidFrom, setNewValidFrom] = useState("");
-  const [newValidUntil, setNewValidUntil] = useState("");
-  const [newUsageLimit, setNewUsageLimit] = useState(0);
-  const [newAudience, setNewAudience] = useState<"all" | "business">("all");
-  const [discountUsages, setDiscountUsages] = useState<DiscountCodeUsage[]>([]);
-  const [expandedCode, setExpandedCode] = useState("");
-  const [loadingUsages, setLoadingUsages] = useState(false);
-  const [savingCodes, setSavingCodes] = useState(false);
-  const [codesMessage, setCodesMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -64,15 +46,13 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
       const groups = await Promise.all(manifest.categories.map((category) => catalog.getCategoryProducts(category.id)));
       return groups.flat();
     };
-    Promise.all([loadRealProducts(), getFeaturedProductsConfig({ refresh: true }), getDiscountCodes(), getDiscountCodeUsages().catch(() => [])])
-      .then(([catalog, config, codes, usages]) => {
+    Promise.all([loadRealProducts(), getFeaturedProductsConfig({ refresh: true })])
+      .then(([catalog, config]) => {
         if (!active) return;
         setProducts(catalog);
         setSelectedIds(config.ids);
         setDeliverySchedule(config.deliverySchedule);
         setCheckoutSettings(config.checkoutSettings);
-        setDiscountCodes(codes);
-        setDiscountUsages(usages);
       })
       .catch((error) => {
         if (active) setMessage(error instanceof Error ? error.message : "No se pudo cargar la configuración.");
@@ -153,118 +133,7 @@ export function AdminStoreConfigPanel({ user }: { user: User }) {
     }
   };
 
-  const addDiscountCode = () => {
-    const code = normalizeDiscountCode(newCode);
-    setCodesMessage("");
-    if (!/^[A-Z0-9_-]{3,24}$/.test(code)) {
-      setCodesMessage("Usá entre 3 y 24 letras, números, guion o guion bajo.");
-      return;
-    }
-    if (discountCodes.some((item) => item.code === code)) {
-      setCodesMessage("Ese código ya existe.");
-      return;
-    }
-    if (!Number.isFinite(newPercentage) || newPercentage <= 0 || newPercentage > 100) {
-      setCodesMessage("El porcentaje debe ser mayor a 0 y no superar el 100%.");
-      return;
-    }
-    if (newValidFrom && newValidUntil && newValidUntil < newValidFrom) {
-      setCodesMessage("La fecha de finalización no puede ser anterior al inicio.");
-      return;
-    }
-    setDiscountCodes((current) => [...current, {
-      code,
-      percentage: Math.round(newPercentage * 100) / 100,
-      active: true,
-      validFrom: newValidFrom,
-      validUntil: newValidUntil,
-      usageLimit: Math.max(0, Math.trunc(newUsageLimit || 0)),
-      usageCount: 0,
-      audience: newAudience,
-    }]);
-    setNewCode("");
-    setNewPercentage(5);
-    setNewValidFrom("");
-    setNewValidUntil("");
-    setNewUsageLimit(0);
-    setNewAudience("all");
-  };
-
-  const refreshDiscountData = async () => {
-    setLoadingUsages(true);
-    setCodesMessage("");
-    try {
-      const [codes, usages] = await Promise.all([getDiscountCodes(), getDiscountCodeUsages()]);
-      setDiscountCodes(codes);
-      setDiscountUsages(usages);
-      setCodesMessage("Listado actualizado.");
-    } catch (error) {
-      setCodesMessage(error instanceof Error ? error.message : "No se pudo actualizar el listado.");
-    } finally {
-      setLoadingUsages(false);
-    }
-  };
-
-  const persistDiscountCodes = async () => {
-    setSavingCodes(true);
-    setCodesMessage("");
-    try {
-      const saved = await saveDiscountCodes(discountCodes, user.email || user.uid);
-      setDiscountCodes(saved);
-      setCodesMessage("Códigos de descuento guardados.");
-    } catch (error) {
-      setCodesMessage(error instanceof Error ? error.message : "No se pudieron guardar los códigos.");
-    } finally {
-      setSavingCodes(false);
-    }
-  };
-
   return <div className="admin-content-box admin-store-config">
-    <section className="admin-card admin-discount-config">
-      <div className="admin-card__head">
-        <div className="admin-headline">
-          <h1 className="admin-title">Códigos de descuento</h1>
-          <p>Definí el porcentaje, la vigencia y el límite de usos. El descuento se aplica solo a productos sin promociones previas.</p>
-        </div>
-        <button type="button" className="btn ghost" onClick={() => void refreshDiscountData()} disabled={loadingUsages}>{loadingUsages ? "Actualizando..." : "Actualizar listado"}</button>
-      </div>
-      <div className="admin-card__body">
-        <div className="admin-discount-create">
-          <label><span>Código</span><input className="admin-input" value={newCode} onChange={(event) => setNewCode(normalizeDiscountCode(event.target.value))} maxLength={24} placeholder="EJ: CLIENTE10"/></label>
-          <label><span>Porcentaje</span><div className="admin-discount-number"><input className="admin-input" type="number" min="0.01" max="100" step="0.01" value={newPercentage} onChange={(event) => setNewPercentage(Number(event.target.value))}/><b>%</b></div></label>
-          <label><span>Válido desde <em>Opcional</em></span><input className="admin-input" type="date" value={newValidFrom} onChange={(event) => setNewValidFrom(event.target.value)}/></label>
-          <label><span>Válido hasta <em>Opcional</em></span><input className="admin-input" type="date" value={newValidUntil} min={newValidFrom || undefined} onChange={(event) => setNewValidUntil(event.target.value)}/></label>
-          <label><span>Límite de usos <em>0 = ilimitado</em></span><input className="admin-input" type="number" min="0" step="1" value={newUsageLimit} onChange={(event) => setNewUsageLimit(Math.max(0, Number(event.target.value)))}/></label>
-          <label><span>Disponible para</span><select className="admin-input" value={newAudience} onChange={(event) => setNewAudience(event.target.value === "business" ? "business" : "all")}><option value="all">Todos los clientes</option><option value="business">Solo comercios</option></select></label>
-          <button type="button" className="btn primary" onClick={addDiscountCode}>+ Agregar código</button>
-        </div>
-        <div className="admin-discount-list-wrap">
-          <table className="admin-discount-table">
-            <thead><tr><th>Código</th><th>Origen</th><th>Descuento</th><th>Usuarios</th><th>Vigencia</th><th>Usos</th><th>Estado</th><th>Acciones</th></tr></thead>
-            <tbody>{discountCodes.map((item) => {
-              const usages = discountUsages.filter((usage) => usage.code === item.code);
-              const exhausted = item.usageLimit > 0 && item.usageCount >= item.usageLimit;
-              return <Fragment key={item.code}>
-                <tr>
-                  <td><strong>{item.code}</strong></td>
-                  <td><span className={`admin-discount-origin ${item.source === "notification" ? "is-notification" : ""}`}>{item.source === "notification" ? "Notificación" : item.source === "business_welcome" ? "Registro comercio" : "Manual"}</span></td>
-                  <td>{item.source === "notification" ? <div className="admin-discount-inline-number"><input className="admin-input" type="number" min="1" max="100" value={item.percentage} onChange={(event) => setDiscountCodes((current) => current.map((code) => code.code === item.code ? { ...code, percentage: Number(event.target.value) } : code))}/><span>%</span></div> : `${item.percentage}%`}</td>
-                  <td>{item.ownerUid ? <><strong>{item.ownerUsername || "Usuario"}</strong><small>{item.ownerEmail || item.ownerUid}</small></> : <>{item.audience === "business" ? "Solo comercios" : "Todos"}{item.source === "notification" ? <label className="admin-discount-inline-limit"><span>Por usuario</span><input className="admin-input" type="number" min="1" value={item.perUserLimit || 1} onChange={(event) => setDiscountCodes((current) => current.map((code) => code.code === item.code ? { ...code, perUserLimit: Math.max(1, Number(event.target.value)) } : code))}/></label> : <small>{item.perUserLimit ? `${item.perUserLimit} por usuario` : "Sin límite individual"}</small>}</>}</td>
-                  <td>{item.source === "notification" ? <label className="admin-discount-inline-date"><span>Caduca</span><input className="admin-input" type="date" value={item.validUntil} onChange={(event) => setDiscountCodes((current) => current.map((code) => code.code === item.code ? { ...code, validUntil: event.target.value } : code))}/></label> : <><span>{item.validFrom || "Sin inicio"}</span><small>hasta {item.validUntil || "sin vencimiento"}</small></>}</td>
-                  <td><button type="button" className="admin-discount-usage-button" onClick={() => setExpandedCode((current) => current === item.code ? "" : item.code)}>{item.usageCount}{item.usageLimit > 0 ? ` / ${item.usageLimit}` : " / ∞"}<small>Ver clientes</small></button></td>
-                  <td><span className={`admin-discount-status ${item.active && !exhausted ? "is-active" : "is-inactive"}`}>{exhausted ? "Agotado" : item.active ? "Activo" : "Inactivo"}</span></td>
-                  <td><div className="admin-discount-row-actions"><button type="button" className="btn ghost" onClick={() => setDiscountCodes((current) => current.map((code) => code.code === item.code ? { ...code, active: !code.active } : code))}>{item.active ? "Desactivar" : "Activar"}</button><button type="button" className="btn ofertas-danger" onClick={() => setDiscountCodes((current) => current.filter((code) => code.code !== item.code))}>Eliminar</button></div></td>
-                </tr>
-                {expandedCode === item.code ? <tr className="admin-discount-usage-row"><td colSpan={6}>{usages.length ? <div className="admin-discount-usages">{usages.map((usage) => <article key={usage.id}><div><strong>{usage.customerName || "Cliente sin nombre"}</strong><span>{usage.customerEmail || usage.customerPhone || usage.customerUid}</span></div><div><span>{formatUsageDate(usage.usedAtIso)}</span><small>Pedido {usage.orderId}</small></div><b>−{new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(usage.discountAmount)}</b></article>)}</div> : <p className="admin-discount-empty">Todavía no hay usos registrados para este código.</p>}</td></tr> : null}
-              </Fragment>;
-            })}</tbody>
-          </table>
-          {!discountCodes.length ? <p className="admin-discount-empty">Todavía no creaste códigos.</p> : null}
-        </div>
-        <div className="admin-discount-actions"><button type="button" className="btn success" onClick={() => void persistDiscountCodes()} disabled={savingCodes}>{savingCodes ? "Guardando..." : "Guardar códigos"}</button></div>
-        {codesMessage ? <div className="admin-users-message" role="status">{codesMessage}</div> : null}
-      </div>
-    </section>
     <section className="admin-card admin-checkout-config">
       <div className="admin-card__head">
         <div className="admin-headline">

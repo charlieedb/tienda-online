@@ -8,6 +8,7 @@ import { AdminStoreConfigPanel } from "@/components/admin/AdminStoreConfigPanel"
 import { AdminNotificationsPanel } from "@/components/admin/AdminNotificationsPanel";
 import { AdminCarouselPanel } from "@/components/admin/AdminCarouselPanel";
 import { AdminCustomersPanel } from "@/components/admin/AdminCustomersPanel";
+import { AdminCouponsPanel } from "@/components/admin/AdminCouponsPanel";
 import { generateOrderRemitoPdf } from "@/lib/remitoPdf";
 import {
   buildMetrics,
@@ -119,7 +120,7 @@ export function AdminPedidosPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [authError, setAuthError] = useState("");
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-  const [adminView, setAdminView] = useState<"orders" | "customers" | "users" | "notifications" | "configuration" | "carousel">("orders");
+  const [adminView, setAdminView] = useState<"orders" | "customers" | "users" | "notifications" | "configuration" | "coupons" | "carousel">("orders");
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "week">("all");
   const [searchText, setSearchText] = useState("");
@@ -526,6 +527,7 @@ export function AdminPedidosPage() {
               <button type="button" className={adminView === "users" ? "is-active" : ""} onClick={() => { setAdminView("users"); setTopMenuOpen(false); }}>Usuarios</button>
               <button type="button" className={adminView === "notifications" ? "is-active" : ""} onClick={() => { setAdminView("notifications"); setTopMenuOpen(false); }}>Notificaciones</button>
               <button type="button" className={adminView === "configuration" ? "is-active" : ""} onClick={() => { setAdminView("configuration"); setTopMenuOpen(false); }}>Configuración</button>
+              <button type="button" className={adminView === "coupons" ? "is-active" : ""} onClick={() => { setAdminView("coupons"); setTopMenuOpen(false); }}>Cupones</button>
               <button type="button" className={adminView === "carousel" ? "is-active" : ""} onClick={() => { setAdminView("carousel"); setTopMenuOpen(false); }}>Editar carrusel</button>
               <button type="button" disabled>Reportes <small>Próximamente</small></button>
               <div className="admin-main-menu__separator" />
@@ -557,7 +559,8 @@ export function AdminPedidosPage() {
           <button type="button" className={adminView === "orders" ? "is-active" : ""} onClick={() => setAdminView("orders")}><span aria-hidden="true">▦</span><div><strong>Pedidos</strong><small>Gestión y estados</small></div></button>
           <button type="button" className={adminView === "users" ? "is-active" : ""} onClick={() => setAdminView("users")}><span aria-hidden="true">◎</span><div><strong>Usuarios</strong><small>Accesos internos</small></div></button>
           <button type="button" className={adminView === "notifications" ? "is-active" : ""} onClick={() => setAdminView("notifications")}><span aria-hidden="true">◉</span><div><strong>Notificaciones</strong><small>Campañas e historial</small></div></button>
-          <button type="button" className={adminView === "configuration" ? "is-active" : ""} onClick={() => setAdminView("configuration")}><span aria-hidden="true">⚙</span><div><strong>Configuración</strong><small>Tienda y cupones</small></div></button>
+          <button type="button" className={adminView === "configuration" ? "is-active" : ""} onClick={() => setAdminView("configuration")}><span aria-hidden="true">⚙</span><div><strong>Configuración</strong><small>Compra, entrega y destacados</small></div></button>
+          <button type="button" className={adminView === "coupons" ? "is-active" : ""} onClick={() => setAdminView("coupons")}><span aria-hidden="true">◇</span><div><strong>Cupones</strong><small>Descuentos y destinatarios</small></div></button>
           <button type="button" className={adminView === "carousel" ? "is-active" : ""} onClick={() => setAdminView("carousel")}><span aria-hidden="true">▤</span><div><strong>Carrusel</strong><small>Imágenes destacadas</small></div></button>
           <button type="button" disabled><span aria-hidden="true">↗</span><div><strong>Reportes</strong><small>Próximamente</small></div></button>
         </nav>
@@ -568,7 +571,7 @@ export function AdminPedidosPage() {
       </aside>
 
       <div className="admin-content">
-      {adminView === "customers" ? <AdminCustomersPanel /> : adminView === "users" ? <AdminUsersPanel /> : adminView === "notifications" && user ? <AdminNotificationsPanel user={user} /> : adminView === "configuration" && user ? <AdminStoreConfigPanel user={user} /> : adminView === "carousel" && user ? <AdminCarouselPanel user={user} /> : <>
+      {adminView === "customers" ? <AdminCustomersPanel /> : adminView === "users" ? <AdminUsersPanel /> : adminView === "notifications" && user ? <AdminNotificationsPanel user={user} /> : adminView === "configuration" && user ? <AdminStoreConfigPanel user={user} /> : adminView === "coupons" && user ? <AdminCouponsPanel user={user} /> : adminView === "carousel" && user ? <AdminCarouselPanel user={user} /> : <>
       <section className="admin-card admin-overview overflow-hidden">
         <div className="admin-card__head">
           <div className="admin-headline">
