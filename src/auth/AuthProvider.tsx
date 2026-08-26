@@ -55,20 +55,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    let active = true;
-    let unsub = () => {};
-    void setPersistence(auth, browserLocalPersistence)
-      .catch(() => {
-        // Firebase conserva su persistencia disponible si IndexedDB está bloqueado.
-      })
-      .finally(() => {
-        if (!active) return;
-        unsub = onAuthStateChanged(auth, (u) => {
-          setUser(u);
-          setLoading(false);
-        });
-      });
-    return () => { active = false; unsub(); };
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    void setPersistence(auth, browserLocalPersistence).catch(() => {
+      // No bloqueamos la apertura si iOS demora o restringe IndexedDB.
+    });
+    return () => unsub();
   }, [auth]);
 
   useEffect(() => {
