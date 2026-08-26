@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
-import { fetchRegisteredCustomers, type AdminCustomer } from "@/lib/adminCustomers";
-import { getDiscountCodes, getDiscountCodeUsages, normalizeDiscountCode, saveDiscountCodes, type DiscountCode, type DiscountCodeUsage } from "@/lib/discountCodes";
+import type { AdminCustomer } from "@/lib/adminCustomers";
+import { getCouponAdminData, getDiscountCodes, normalizeDiscountCode, saveDiscountCodes, type DiscountCode, type DiscountCodeUsage } from "@/lib/discountCodes";
 import { sendPersonalCouponNotification } from "@/lib/notifications";
 
 type CouponAudience = "all" | "business" | "customer";
@@ -40,14 +40,13 @@ export function AdminCouponsPanel({ user }: { user: User }) {
     setLoading(true);
     setMessage("");
     try {
-      const [codes, usages, registeredCustomers] = await Promise.all([
+      const [codes, adminData] = await Promise.all([
         getDiscountCodes(),
-        getDiscountCodeUsages().catch(() => []),
-        fetchRegisteredCustomers(500),
+        getCouponAdminData(),
       ]);
       setDiscountCodes(codes);
-      setDiscountUsages(usages);
-      setCustomers(registeredCustomers);
+      setDiscountUsages(adminData.usages);
+      setCustomers(adminData.customers);
       if (announce) setMessage("Listado actualizado.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se pudieron cargar los cupones.");

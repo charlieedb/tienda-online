@@ -1,10 +1,13 @@
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, runTransaction, serverTimestamp, where } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
+import { getAuthClient } from "@/lib/firebase";
+import type { AdminCustomer } from "@/lib/adminCustomers";
 import { refreshUserProfile } from "@/lib/userProfile";
 import type { Product } from "@/lib/products";
 import { getCartPricingMap, type CartItem } from "@/store/cart";
 
 const STORE_CONFIG_PATH = "config/tiendaOnlineStore";
+const COUPON_ADMIN_DATA_URL = "https://us-central1-app-presu.cloudfunctions.net/getTiendaCouponAdminData";
 
 export type DiscountCode = {
   code: string;
@@ -42,6 +45,18 @@ export type AppliedDiscountCode = DiscountCode & {
   eligibleSubtotal: number;
   discountAmount: number;
 };
+
+export async function getCouponAdminData(): Promise<{ customers: AdminCustomer[]; usages: DiscountCodeUsage[] }> {
+  const auth = getAuthClient();
+  const user = auth?.currentUser;
+  if (!user) throw new Error("La sesión de administrador venció.");
+  const response = await fetch(COUPON_ADMIN_DATA_URL, {
+    headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+  });
+  const payload = await response.json().catch(() => ({})) as { error?: string; customers?: AdminCustomer[]; usages?: DiscountCodeUsage[] };
+  if (!response.ok) throw new Error(payload.error || "No se pudieron cargar los datos de cupones.");
+  return { customers: Array.isArray(payload.customers) ? payload.customers : [], usages: Array.isArray(payload.usages) ? payload.usages : [] };
+}
 
 export function normalizeDiscountCode(value: unknown) {
   return String(value ?? "").trim().toLocaleUpperCase("es-AR").replace(/\s+/g, "");
