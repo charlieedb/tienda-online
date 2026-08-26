@@ -67,7 +67,7 @@ async function getVisibleDiscountCodes(uid?: string) {
 
 export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenProduct }: Props) {
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).has("jomaPush"));
   const [notifications, setNotifications] = useState<NotificationCampaign[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pushMessage, setPushMessage] = useState("");
@@ -77,6 +77,13 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
   const panelId = useId();
   const reduceMotion = useReducedMotion();
   const installedApp = isInstalledPwa();
+
+  useEffect(() => {
+    const currentUrl = new URL(window.location.href);
+    if (!currentUrl.searchParams.has("jomaPush")) return;
+    currentUrl.searchParams.delete("jomaPush");
+    window.history.replaceState(window.history.state, "", `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`);
+  }, []);
 
   useEffect(() => {
     if (!user || !installedApp || !("Notification" in window) || Notification.permission !== "granted") return;
@@ -115,7 +122,14 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
   }, []);
 
   useEffect(() => {
-    void Promise.all([getStoredPushNotifications(), user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([]), getVisibleDiscountCodes(user?.uid)]).then(([storedItems, personalItems, codes]) => {
+    const storedItemsPromise = getStoredPushNotifications();
+    void storedItemsPromise.then((storedItems) => {
+      if (!storedItems.length) return;
+      const readIds = getReadNotificationIds();
+      setNotifications(storedItems);
+      setUnreadCount(storedItems.filter((item) => !readIds.has(item.id)).length);
+    });
+    void Promise.all([storedItemsPromise, user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([]), getVisibleDiscountCodes(user?.uid)]).then(([storedItems, personalItems, codes]) => {
       const readIds = getReadNotificationIds();
       const isLocalPreview = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
       if (isLocalPreview && !window.sessionStorage.getItem("joma.localPreviewSeededV2")) {
