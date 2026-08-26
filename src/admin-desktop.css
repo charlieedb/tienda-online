@@ -208,6 +208,52 @@
   box-shadow: none;
 }
 
+.admin-shell .btn {
+  border: 1px solid #b9c7d3;
+  color: #25384a;
+  background: #eef3f7;
+  -webkit-text-fill-color: currentColor;
+}
+
+.admin-shell .btn.primary {
+  border-color: #176789;
+  color: #ffffff;
+  background: #176789;
+}
+
+.admin-shell .btn.success {
+  border-color: #19764f;
+  color: #ffffff;
+  background: #19764f;
+}
+
+.admin-shell .btn.ghost,
+.admin-shell .btn.btn-cancelar {
+  border-color: #aebdca;
+  color: #26394a;
+  background: #ffffff;
+}
+
+.admin-shell .btn.ofertas-danger {
+  border-color: #c84b52;
+  color: #8f1f25;
+  background: #fff0f1;
+}
+
+.admin-shell .btn.primary:hover { background: #125774; }
+.admin-shell .btn.success:hover { background: #12643f; }
+.admin-shell .btn.ghost:hover,
+.admin-shell .btn.btn-cancelar:hover { color: #172b3c; background: #e8f0f5; }
+.admin-shell .btn.ofertas-danger:hover { color: #ffffff; background: #a62c33; }
+
+.admin-shell .btn:disabled {
+  border-color: #d1d9e0;
+  color: #687887;
+  background: #e5eaee;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
 .admin-actions-closed {
   grid-column: 1 / -1;
   border-radius: 8px;
