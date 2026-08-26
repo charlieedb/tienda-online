@@ -55,15 +55,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    setPersistence(auth, browserLocalPersistence).catch(() => {
-      // If persistence cannot be set (privacy mode / blocked storage), fall back silently.
-    });
-
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-    return () => unsub();
+    let active = true;
+    let unsub = () => {};
+    void setPersistence(auth, browserLocalPersistence)
+      .catch(() => {
+        // Firebase conserva su persistencia disponible si IndexedDB está bloqueado.
+      })
+      .finally(() => {
+        if (!active) return;
+        unsub = onAuthStateChanged(auth, (u) => {
+          setUser(u);
+          setLoading(false);
+        });
+      });
+    return () => { active = false; unsub(); };
   }, [auth]);
 
   useEffect(() => {
@@ -146,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       signInGoogle: async () => {
         if (!auth) throw new Error("Firebase no está configurado.");
+        await setPersistence(auth, browserLocalPersistence);
         const provider = new GoogleAuthProvider();
         try {
           await signInWithPopup(auth, provider);

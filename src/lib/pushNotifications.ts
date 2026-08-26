@@ -10,6 +10,10 @@ export async function enablePushNotifications(user: User) {
   }
   const permission = await Notification.requestPermission();
   if (permission !== "granted") throw new Error("El permiso de notificaciones no fue concedido.");
+  return registerPushDevice(user);
+}
+
+async function registerPushDevice(user: User) {
   const app = getFirebaseApp();
   const vapidKey = String(import.meta.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "").trim();
   if (!app || !vapidKey) throw new Error("Las notificaciones todavía no están configuradas.");
@@ -25,4 +29,11 @@ export async function enablePushNotifications(user: User) {
   const result = await response.json().catch(() => null) as { error?: string } | null;
   if (!response.ok) throw new Error(result?.error || "No se pudo activar el dispositivo.");
   return token;
+}
+
+export async function syncPushNotificationRegistration(user: User) {
+  if (!(await isSupported()) || !('serviceWorker' in navigator) || !('Notification' in window)) return false;
+  if (Notification.permission !== "granted") return false;
+  await registerPushDevice(user);
+  return true;
 }
