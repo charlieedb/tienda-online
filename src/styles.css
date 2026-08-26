@@ -179,6 +179,9 @@ img { display: block; max-width: 100%; }
 .android-system-prompt > div { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .android-system-prompt button { min-height: 42px; border: 0; border-radius: 999px; color: #176fa9; background: #fff; font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
 .android-system-prompt button:last-child { color: #fff; background: #176fa9; }
+.notification-permission-blocked { display: grid; gap: 4px; margin-top: 12px; padding: 12px 13px; border-radius: 12px; color: #704d18; background: #fff4dc; }
+.notification-permission-blocked strong { font-size: 13px; }
+.notification-permission-blocked p { margin: 0; color: #806a47; font-size: 12px; line-height: 1.4; }
 @media (min-width: 700px) { .pwa-guide-scrim { align-items: center; }.pwa-guide { padding: 22px; } }
 @media (prefers-reduced-motion: reduce) { .pwa-guide-launcher, .pwa-guide, .pwa-guide-scrim { transition: none !important; animation: none !important; } }
 .business-registered-actions .business-delete-link { min-height: 44px; padding: 0 17px; border: 1px solid rgba(194, 64, 64, .42); border-radius: 12px; color: #a52f2f; background: rgba(255, 245, 245, .9); box-shadow: 0 5px 14px rgba(120, 28, 28, .06); font: inherit; font-weight: 700; cursor: pointer; transition: transform .18s ease, background-color .18s ease, border-color .18s ease; }

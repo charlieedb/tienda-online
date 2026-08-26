@@ -22,6 +22,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { PwaInstallGuide, canShowIosInstallGuide } from "@/components/PwaInstallGuide";
 import { AndroidInstallGuide, canShowAndroidInstallGuide } from "@/components/AndroidInstallGuide";
 import { InstalledNotificationGuide } from "@/components/InstalledNotificationGuide";
+import { isInstalledPwa } from "@/lib/pushNotifications";
 import {
   StoreCreditBar,
   StoreInfoFooter,
@@ -747,6 +748,7 @@ function StoreApp({
   const [loggingOut, setLoggingOut] = useState(false);
   const showIosInstallMenu = canShowIosInstallGuide();
   const showAndroidInstallMenu = canShowAndroidInstallGuide();
+  const showNotificationMenu = Boolean(user) && isInstalledPwa() && "Notification" in window && Notification.permission !== "granted";
   const [manifest, setManifest] = useState<CatalogManifest | null>(null);
   const [featured, setFeatured] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Product[]>([]);
@@ -1363,6 +1365,11 @@ function StoreApp({
                   {showAndroidInstallMenu ? <button type="button" className="drawer-install-link" onClick={() => { setMenuOpen(false); window.dispatchEvent(new Event("joma:open-android-install-guide")); }}>
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v11"/><path d="m8 10 4 4 4-4"/><path d="M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/></svg>
                     <span><strong>Instalar JOMA</strong><small>Tener la tienda entre tus apps</small></span>
+                    <Icon name="arrow" />
+                  </button> : null}
+                  {showNotificationMenu ? <button type="button" className="drawer-notification-link" onClick={() => { setMenuOpen(false); window.dispatchEvent(new Event("joma:open-notification-guide")); }}>
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+                    <span><strong>Activar notificaciones</strong><small>Recibir cupones y novedades</small></span>
                     <Icon name="arrow" />
                   </button> : null}
                   {user ? <a className="drawer-public-link drawer-whatsapp-link" href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
