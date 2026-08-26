@@ -1,5 +1,8 @@
 import { addDoc, collection, deleteDoc, doc, getDocs, limit, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
+import { getAuthClient } from "@/lib/firebase";
+
+const PERSONAL_COUPON_NOTIFICATION_URL = "https://us-central1-app-presu.cloudfunctions.net/sendPersonalCouponNotification";
 
 export type NotificationAction = "none" | "coupon" | "catalog" | "product" | "cart" | "search";
 export type NotificationAudience = "all" | "business" | "consumer";
@@ -18,6 +21,19 @@ export type NotificationCampaign = {
   expiresAt: string;
   createdAtIso: string;
 };
+
+export async function sendPersonalCouponNotification(input: { uid: string; code: string; title: string; body: string }) {
+  const auth = getAuthClient();
+  const user = auth?.currentUser;
+  if (!user) throw new Error("La sesión de administrador venció.");
+  const response = await fetch(PERSONAL_COUPON_NOTIFICATION_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => ({})) as { error?: string };
+  if (!response.ok) throw new Error(payload.error || "No se pudo enviar la notificación.");
+}
 
 export async function createNotificationCampaign(input: Omit<NotificationCampaign, "id" | "createdAtIso">, actor: string) {
   const db = getDb();

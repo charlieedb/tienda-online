@@ -1082,6 +1082,18 @@ body .admin-shell .admin-login-card {
 .admin-coupon-selected-customer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; padding: 10px 12px; border: 1px solid #b9d9cb; border-radius: 12px; background: #eef9f3; }
 .admin-coupon-selected-customer > span { display: grid; gap: 2px; }
 .admin-coupon-selected-customer small { color: #4f6f61; font-size: 11px; }
+.admin-coupon-notification { display: grid; gap: 12px; margin-top: 12px; padding: 14px; border: 1px solid #d6e3eb; border-radius: 12px; background: #f7fafc; }
+.admin-coupon-notification-toggle { display: flex !important; align-items: center; gap: 10px !important; cursor: pointer; }
+.admin-coupon-notification-toggle input { width: 18px; height: 18px; margin: 0; accent-color: #176789; }
+.admin-coupon-notification-toggle > span { display: grid; gap: 2px; }
+.admin-coupon-notification-toggle small { color: #607184; font-size: 11px; font-weight: 600; }
+.admin-coupon-notification-fields { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(280px, 1.2fr); gap: 12px; }
+.admin-coupon-notification-fields > label { display: grid; gap: 7px; }
+.admin-coupon-notification-fields textarea { min-height: 88px; resize: vertical; }
+.admin-coupon-notification-preview { grid-column: 1 / -1; display: grid; gap: 5px; padding: 12px 14px; border-radius: 12px; color: #26394a; background: #eaf3f8; }
+.admin-coupon-notification-preview > span { color: #607184; font-size: 10px; font-weight: 800; }
+.admin-coupon-notification-preview p { margin: 0; font-size: 13px; line-height: 1.45; }
+.admin-coupon-notification-preview small { color: #526d80; font-size: 11px; }
 .admin-delivery-days { display: flex; flex-wrap: wrap; gap: 9px; }
 .admin-checkout-settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; align-items: end; }
 .admin-checkout-settings > label:not(.admin-free-shipping-toggle) { display: grid; gap: 7px; color: #4b5563; font-size: 12px; font-weight: 750; }
@@ -1112,6 +1124,7 @@ body .admin-shell .admin-login-card {
   .admin-coupon-customer-picker { grid-column: auto; }
   .admin-coupon-selected-customer { align-items: stretch; flex-direction: column; }
   .admin-coupon-selected-customer .btn { width: 100%; }
+  .admin-coupon-notification-fields { grid-template-columns: 1fr; }
   .admin-discount-create .btn, .admin-discount-actions .btn { width: 100%; }
   .admin-discount-actions { display: block; }
   .admin-delivery-range { grid-template-columns: 1fr; }
