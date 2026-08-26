@@ -282,6 +282,8 @@ img { display: block; max-width: 100%; }
 .notifications__list > button:last-child { border-bottom: 0; }
 .notifications__list > button:hover, .notifications__list > button:focus-visible { background: #f7f2ec; }
 .notifications__list > button.is-read { opacity: .72; }
+.notifications__list > button.is-unread { background: #e7f5fd; }
+.notifications__list > button.is-unread:hover, .notifications__list > button.is-unread:focus-visible { background: #d8effb; }
 .notifications__list > button.is-unread .notifications__empty-icon { color: #fff; background: var(--brand); }
 .notifications__list > button > div:last-child { min-width: 0; display: grid; gap: 3px; }
 .notifications__list small { color: var(--brand); font-size: 10px; font-weight: 700; }

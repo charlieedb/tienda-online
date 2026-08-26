@@ -26,7 +26,7 @@ export function PwaInstallGuide() {
   const preview = new URLSearchParams(window.location.search).get("previewInstallIos") === "1";
   const [open, setOpen] = useState(false);
   const [installed, setInstalled] = useState(isStandalone);
-  const [dismissed, setDismissed] = useState(() => !preview && window.localStorage.getItem("joma.installGuideDismissed") === "1");
+  const [dismissed, setDismissed] = useState(() => !preview && window.sessionStorage.getItem("joma.installGuideDismissed") === "1");
   const [pushState, setPushState] = useState<"idle" | "loading" | "enabled" | "blocked">(() => notificationPermission() === "granted" ? "enabled" : notificationPermission() === "denied" ? "blocked" : "idle");
   const [message, setMessage] = useState("");
   const showIosGuide = preview || isIosDevice();
@@ -61,7 +61,7 @@ export function PwaInstallGuide() {
   const close = () => {
     setOpen(false);
     setDismissed(true);
-    if (!preview) window.localStorage.setItem("joma.installGuideDismissed", "1");
+    if (!preview) window.sessionStorage.setItem("joma.installGuideDismissed", "1");
   };
 
   const enableNotifications = async () => {

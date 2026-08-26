@@ -748,7 +748,7 @@ function StoreApp({
   const [loggingOut, setLoggingOut] = useState(false);
   const showIosInstallMenu = canShowIosInstallGuide();
   const showAndroidInstallMenu = canShowAndroidInstallGuide();
-  const showNotificationMenu = Boolean(user) && isInstalledPwa() && "Notification" in window && Notification.permission !== "granted";
+  const showNotificationMenu = isInstalledPwa() && "Notification" in window && Notification.permission !== "granted";
   const [manifest, setManifest] = useState<CatalogManifest | null>(null);
   const [featured, setFeatured] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Product[]>([]);

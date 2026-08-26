@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
-import { enablePushNotifications, syncPushNotificationRegistration } from "@/lib/pushNotifications";
+import { requestPushNotificationPermission, syncPushNotificationRegistration } from "@/lib/pushNotifications";
 
 function isStandalone() {
   return window.matchMedia("(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
@@ -17,9 +17,9 @@ export function InstalledNotificationGuide() {
   const [permission, setPermission] = useState<NotificationPermission>(() => supported ? Notification.permission : "denied");
 
   useEffect(() => {
-    if (!user || !supported || !isStandalone()) return;
+    if (!supported || !isStandalone()) return;
     if (Notification.permission === "granted") {
-      void syncPushNotificationRegistration(user).catch(() => {});
+      if (user) void syncPushNotificationRegistration(user).catch(() => {});
       return;
     }
     if (window.localStorage.getItem("joma.notificationGuideDismissed") === "1") return;
@@ -29,16 +29,16 @@ export function InstalledNotificationGuide() {
 
   useEffect(() => {
     const openFromMenu = () => {
-      if (!user || !supported || !isStandalone() || Notification.permission === "granted") return;
+      if (!supported || !isStandalone() || Notification.permission === "granted") return;
       setPermission(Notification.permission);
       setMessage("");
       setOpen(true);
     };
     window.addEventListener("joma:open-notification-guide", openFromMenu);
     return () => window.removeEventListener("joma:open-notification-guide", openFromMenu);
-  }, [user, supported]);
+  }, [supported]);
 
-  if (!supported || !isStandalone() || !user || permission === "granted") return null;
+  if (!supported || !isStandalone() || permission === "granted") return null;
 
   const close = () => {
     setOpen(false);
@@ -49,13 +49,20 @@ export function InstalledNotificationGuide() {
     setBusy(true);
     setMessage("");
     try {
-      await enablePushNotifications(user);
-      setPermission("granted");
+      await requestPushNotificationPermission();
       setOpen(false);
+      setPermission("granted");
       window.localStorage.removeItem("joma.notificationGuideDismissed");
+      if (user) void syncPushNotificationRegistration(user).catch(() => {});
     } catch (error) {
-      setPermission(Notification.permission);
-      setMessage(error instanceof Error ? error.message : "No pudimos activar las notificaciones.");
+      const nextPermission = Notification.permission;
+      setPermission(nextPermission);
+      if (nextPermission === "denied") {
+        setOpen(false);
+        window.localStorage.setItem("joma.notificationGuideDismissed", "1");
+      } else {
+        setMessage(error instanceof Error ? error.message : "No pudimos activar las notificaciones.");
+      }
     } finally {
       setBusy(false);
     }

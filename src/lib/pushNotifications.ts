@@ -8,13 +8,18 @@ export function isInstalledPwa() {
   return window.matchMedia("(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
-export async function enablePushNotifications(user: User) {
+export async function requestPushNotificationPermission() {
   if (!isInstalledPwa()) throw new Error("Instalá JOMA en este dispositivo antes de activar las notificaciones.");
   if (!(await isSupported()) || !("serviceWorker" in navigator) || !("Notification" in window)) {
     throw new Error("Este navegador no admite notificaciones push.");
   }
   const permission = await Notification.requestPermission();
   if (permission !== "granted") throw new Error("El permiso de notificaciones no fue concedido.");
+  return permission;
+}
+
+export async function enablePushNotifications(user: User) {
+  await requestPushNotificationPermission();
   return registerPushDevice(user);
 }
 

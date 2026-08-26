@@ -36,12 +36,6 @@ function getReadNotificationIds() {
   }
 }
 
-function markNotificationsAsRead(items: NotificationCampaign[]) {
-  const readIds = getReadNotificationIds();
-  items.forEach((item) => readIds.add(item.id));
-  window.localStorage.setItem("joma.readNotifications", JSON.stringify([...readIds]));
-}
-
 async function getStoredPushNotifications(): Promise<NotificationCampaign[]> {
   if (!("caches" in window)) return [];
   try {
@@ -74,7 +68,6 @@ async function getVisibleDiscountCodes(uid?: string) {
 export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenProduct }: Props) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<NotificationCampaign[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pushMessage, setPushMessage] = useState("");
@@ -133,7 +126,7 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
       const activeCodes = new Set(codes.filter((code) => code.active).map((code) => code.code));
       const items = onlyNotificationsWithActiveCoupons([...personalItems, ...storedItems], activeCodes);
       const visibleItems = isLocalPreview && !items.some((item) => item.id === LOCAL_PREVIEW_NOTIFICATION.id) ? [LOCAL_PREVIEW_NOTIFICATION, ...items] : items;
-      if (visibleItems.length) setNotifications(visibleItems);
+      setNotifications(visibleItems);
       setUnreadCount(visibleItems.filter((item) => !readIds.has(item.id)).length);
     });
   }, [user]);
@@ -154,9 +147,6 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
     const nextOpen = !open;
     setOpen(nextOpen);
     if (!nextOpen) return;
-    markNotificationsAsRead(notifications);
-    setUnreadCount(0);
-    setLoading(true);
     try {
       let remoteLoaded = true;
       if (user) await getMyDiscountCodes(user.uid, true).catch(() => []);
@@ -170,10 +160,10 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
         .filter((item) => !item.expiresAt || item.expiresAt >= new Date().toISOString())
         .sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso));
       setNotifications(items);
-      markNotificationsAsRead(items);
-      setUnreadCount(0);
+      const readIds = getReadNotificationIds();
+      setUnreadCount(items.filter((item) => !readIds.has(item.id)).length);
     }
-    finally { setLoading(false); }
+    catch { /* La bandeja conserva el contenido disponible y se actualiza silenciosamente. */ }
   };
 
   const activate = (notification: NotificationCampaign) => {
@@ -195,7 +185,7 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
       <motion.button type="button" className="notifications__scrim" aria-label="Cerrar notificaciones" onClick={closePanel} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduceMotion ? .01 : .18 }} />
       <motion.aside id={panelId} className="notifications__panel" role="dialog" aria-modal="true" aria-label="Notificaciones" initial={reduceMotion ? { opacity: 0 } : { x: "100%" }} animate={{ opacity: 1, x: 0 }} exit={reduceMotion ? { opacity: 0 } : { x: "100%" }} transition={{ duration: reduceMotion ? .01 : .22, ease: [0.22, 1, 0.36, 1] }}>
       <div className="notifications__head"><div><strong>Notificaciones</strong><span>{notifications.length ? `${notifications.length} activas` : "Historial activo"}</span></div><button type="button" autoFocus onClick={closePanel} aria-label="Cerrar notificaciones"><Icon name="close" /></button></div>
-      {loading ? <div className="notifications__empty"><span>Cargando notificaciones...</span></div> : notifications.length ? <div className="notifications__list">{notifications.map((notification) => { const isRead = getReadNotificationIds().has(notification.id); return <button type="button" className={isRead ? "is-read" : "is-unread"} key={notification.id} onClick={() => activate(notification)}><div className="notifications__empty-icon"><Icon name="bell" /></div><div><strong>{notification.title}</strong><span dangerouslySetInnerHTML={{ __html: sanitizeNotificationHtml(notification.body) }} /><small>{isRead ? "Leída" : notification.action !== "none" ? "Nueva · Tocá para continuar" : "Nueva"}</small></div></button>; })}</div> : <div className="notifications__empty"><div className="notifications__empty-icon"><Icon name="bell" /></div><div><strong>Sin notificaciones</strong><span>Cuando tengas novedades, aparecerán acá.</span></div></div>}
+      {notifications.length ? <div className="notifications__list">{notifications.map((notification) => { const isRead = getReadNotificationIds().has(notification.id); return <button type="button" className={isRead ? "is-read" : "is-unread"} key={notification.id} onClick={() => activate(notification)}><div className="notifications__empty-icon"><Icon name="bell" /></div><div><strong>{notification.title}</strong><span dangerouslySetInnerHTML={{ __html: sanitizeNotificationHtml(notification.body) }} /><small>{isRead ? "Leída" : notification.action !== "none" ? "Nueva · Tocá para continuar" : "Nueva"}</small></div></button>; })}</div> : <div className="notifications__empty"><div className="notifications__empty-icon"><Icon name="bell" /></div><div><strong>Sin notificaciones</strong><span>Cuando tengas novedades, aparecerán acá.</span></div></div>}
       {user && installedApp && !pushEnabled ? <div className="notifications__push"><button type="button" disabled={enablingPush} onClick={async () => { setEnablingPush(true); setPushMessage(""); try { await enablePushNotifications(user); setPushEnabled(true); } catch (error) { setPushMessage(error instanceof Error ? error.message : "No se pudieron activar los avisos."); } finally { setEnablingPush(false); } }}>{enablingPush ? "Activando..." : "Activar avisos en este dispositivo"}</button>{pushMessage ? <small role="status">{pushMessage}</small> : null}</div> : null}
       </motion.aside>
     </> : null}</AnimatePresence>, document.body) : null}
