@@ -65,9 +65,16 @@ async function getVisibleDiscountCodes(uid?: string) {
   return [...new Map([...publicCodes, ...personalCodes].map((code) => [code.code, code])).values()];
 }
 
+function shouldOpenNotificationPanelFromUrl() {
+  const currentUrl = new URL(window.location.href);
+  if (!currentUrl.searchParams.has("jomaPush")) return false;
+  const hasActionTarget = currentUrl.pathname !== "/" || currentUrl.searchParams.has("view") || currentUrl.searchParams.has("q") || currentUrl.searchParams.has("coupon");
+  return !hasActionTarget;
+}
+
 export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenProduct }: Props) {
   const { user } = useAuth();
-  const [open, setOpen] = useState(() => new URLSearchParams(window.location.search).has("jomaPush"));
+  const [open, setOpen] = useState(shouldOpenNotificationPanelFromUrl);
   const [notifications, setNotifications] = useState<NotificationCampaign[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pushMessage, setPushMessage] = useState("");
