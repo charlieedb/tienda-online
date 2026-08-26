@@ -4,7 +4,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { enablePushNotifications, syncPushNotificationRegistration } from "@/lib/pushNotifications";
 
 function isStandalone() {
-  return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  return window.matchMedia("(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
 export function InstalledNotificationGuide() {
@@ -22,7 +22,7 @@ export function InstalledNotificationGuide() {
       void syncPushNotificationRegistration(user).catch(() => {});
       return;
     }
-    if (Notification.permission !== "default" || window.localStorage.getItem("joma.notificationGuideDismissed") === "1") return;
+    if (window.localStorage.getItem("joma.notificationGuideDismissed") === "1") return;
     const timer = window.setTimeout(() => setOpen(true), 1200);
     return () => window.clearTimeout(timer);
   }, [user, supported]);

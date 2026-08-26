@@ -8,6 +8,8 @@ import { getCartPricingMap, type CartItem } from "@/store/cart";
 
 const STORE_CONFIG_PATH = "config/tiendaOnlineStore";
 const COUPON_ADMIN_DATA_URL = "https://us-central1-app-presu.cloudfunctions.net/getTiendaCouponAdminData";
+const MY_COUPONS_URL = "https://us-central1-app-presu.cloudfunctions.net/getMyTiendaCoupons";
+let myCouponsCache: { uid: string; expiresAt: number; codes: DiscountCode[] } | null = null;
 
 export type DiscountCode = {
   code: string;
@@ -56,6 +58,19 @@ export async function getCouponAdminData(): Promise<{ customers: AdminCustomer[]
   const payload = await response.json().catch(() => ({})) as { error?: string; customers?: AdminCustomer[]; usages?: DiscountCodeUsage[] };
   if (!response.ok) throw new Error(payload.error || "No se pudieron cargar los datos de cupones.");
   return { customers: Array.isArray(payload.customers) ? payload.customers : [], usages: Array.isArray(payload.usages) ? payload.usages : [] };
+}
+
+export async function getMyDiscountCodes(uid: string, refresh = false): Promise<DiscountCode[]> {
+  if (!refresh && myCouponsCache?.uid === uid && myCouponsCache.expiresAt > Date.now()) return myCouponsCache.codes;
+  const auth = getAuthClient();
+  const user = auth?.currentUser;
+  if (!user || user.uid !== uid) throw new Error("Necesitás iniciar sesión para ver tus cupones.");
+  const response = await fetch(MY_COUPONS_URL, { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
+  const payload = await response.json().catch(() => ({})) as { error?: string; codes?: DiscountCode[] };
+  if (!response.ok) throw new Error(payload.error || "No pudimos cargar tus cupones.");
+  const codes = normalizeCodes(payload.codes);
+  myCouponsCache = { uid, expiresAt: Date.now() + 60_000, codes };
+  return codes;
 }
 
 export function normalizeDiscountCode(value: unknown) {

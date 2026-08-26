@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthProvider";
-import { getDiscountCodes, type DiscountCode } from "@/lib/discountCodes";
+import { getMyDiscountCodes, type DiscountCode } from "@/lib/discountCodes";
 import { Icon } from "@/components/Icons";
 
 export function MyCouponsPage({ onLogin, onUse }: { onLogin: () => void; onUse: (code: string) => void }) {
@@ -13,7 +13,7 @@ export function MyCouponsPage({ onLogin, onUse }: { onLogin: () => void; onUse: 
     let active = true;
     if (!user) { setLoading(false); return; }
     setLoading(true);
-    getDiscountCodes().then((codes) => {
+    getMyDiscountCodes(user.uid, true).then((codes) => {
       if (active) setItems(previewEmpty ? [] : codes.filter((code) => code.ownerUid === user.uid && code.active && (!code.usageLimit || code.usageCount < code.usageLimit)));
     }).catch(() => { if (active) setError("No pudimos cargar tus cupones."); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };

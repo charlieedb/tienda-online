@@ -5,7 +5,7 @@ import { Icon } from "@/components/Icons";
 import { getActiveNotifications, getUserNotifications, sanitizeNotificationHtml, type NotificationCampaign } from "@/lib/notifications";
 import { enablePushNotifications, isInstalledPwa, syncPushNotificationRegistration } from "@/lib/pushNotifications";
 import { useAuth } from "@/auth/AuthProvider";
-import { getDiscountCodes } from "@/lib/discountCodes";
+import { getDiscountCodes, getMyDiscountCodes } from "@/lib/discountCodes";
 
 type Props = {
   onSearch?: (query: string) => void;
@@ -63,6 +63,14 @@ function onlyNotificationsWithActiveCoupons(items: NotificationCampaign[], activ
   return items.filter((item) => item.action !== "coupon" || activeCodes.has(item.target.trim().toLocaleUpperCase("es-AR")));
 }
 
+async function getVisibleDiscountCodes(uid?: string) {
+  const [publicCodes, personalCodes] = await Promise.all([
+    getDiscountCodes().catch(() => []),
+    uid ? getMyDiscountCodes(uid).catch(() => []) : Promise.resolve([]),
+  ]);
+  return [...new Map([...publicCodes, ...personalCodes].map((code) => [code.code, code])).values()];
+}
+
 export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenProduct }: Props) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
@@ -114,7 +122,7 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
   }, []);
 
   useEffect(() => {
-    void Promise.all([getStoredPushNotifications(), user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([]), getDiscountCodes().catch(() => [])]).then(([storedItems, personalItems, codes]) => {
+    void Promise.all([getStoredPushNotifications(), user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([]), getVisibleDiscountCodes(user?.uid)]).then(([storedItems, personalItems, codes]) => {
       const readIds = getReadNotificationIds();
       const isLocalPreview = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
       if (isLocalPreview && !window.sessionStorage.getItem("joma.localPreviewSeededV2")) {
@@ -151,7 +159,8 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
     setLoading(true);
     try {
       let remoteLoaded = true;
-      const [remoteItems, personalItems, storedItems, codes] = await Promise.all([getActiveNotifications().catch(() => { remoteLoaded = false; return []; }), user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([]), getStoredPushNotifications(), getDiscountCodes().catch(() => [])]);
+      if (user) await getMyDiscountCodes(user.uid, true).catch(() => []);
+      const [remoteItems, personalItems, storedItems, codes] = await Promise.all([getActiveNotifications().catch(() => { remoteLoaded = false; return []; }), user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([]), getStoredPushNotifications(), getVisibleDiscountCodes(user?.uid)]);
       const isLocalPreview = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
       const localItems = isLocalPreview ? [LOCAL_PREVIEW_NOTIFICATION] : [];
       const activeCodes = new Set(codes.filter((code) => code.active).map((code) => code.code));

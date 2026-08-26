@@ -5,7 +5,7 @@ import { getFirebaseApp } from "@/lib/firebase";
 const REGISTER_PUSH_URL = "https://us-central1-app-presu.cloudfunctions.net/registerTiendaPushDevice";
 
 export function isInstalledPwa() {
-  return window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  return window.matchMedia("(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
 export async function enablePushNotifications(user: User) {
