@@ -3,6 +3,7 @@ import { getDb } from "@/lib/firebase";
 import { getAuthClient } from "@/lib/firebase";
 
 const PERSONAL_COUPON_NOTIFICATION_URL = "https://us-central1-app-presu.cloudfunctions.net/sendPersonalCouponNotification";
+const PERSONAL_NOTIFICATION_URL = "https://us-central1-app-presu.cloudfunctions.net/sendPersonalTiendaNotification";
 
 export type NotificationAction = "none" | "coupon" | "catalog" | "product" | "cart" | "search";
 export type NotificationAudience = "all" | "business" | "consumer";
@@ -27,6 +28,20 @@ export async function sendPersonalCouponNotification(input: { uid: string; code:
   const user = auth?.currentUser;
   if (!user) throw new Error("La sesión de administrador venció.");
   const response = await fetch(PERSONAL_COUPON_NOTIFICATION_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => ({})) as { error?: string; deliveredCount?: number };
+  if (!response.ok) throw new Error(payload.error || "No se pudo enviar la notificación.");
+  return { deliveredCount: Math.max(0, Number(payload.deliveredCount) || 0) };
+}
+
+export async function sendPersonalNotification(input: { uid: string; title: string; body: string; action: NotificationAction; target: string; expiresAt?: string }) {
+  const auth = getAuthClient();
+  const user = auth?.currentUser;
+  if (!user) throw new Error("La sesión de administrador venció.");
+  const response = await fetch(PERSONAL_NOTIFICATION_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
     body: JSON.stringify(input),
@@ -155,6 +170,6 @@ export async function getUserNotifications(uid: string, maxResults = 30) {
   const snapshot = await getDocs(query(collection(db, "userNotifications", uid, "items"), limit(Math.max(1, Math.min(50, maxResults)))));
   return snapshot.docs.map((entry) => {
     const item = entry.data() as Record<string, unknown>;
-    return { id: `personal-${entry.id}`, title: String(item.title ?? ""), body: String(item.body ?? ""), bodyText: String(item.bodyText ?? ""), audience: "business" as const, action: (item.action === "coupon" ? "coupon" : "none") as NotificationAction, target: String(item.target ?? ""), status: "sent" as const, scheduledAt: "", expiresAt: "", createdAtIso: String(item.createdAtIso ?? "") };
+    return { id: `personal-${entry.id}`, title: String(item.title ?? ""), body: String(item.body ?? ""), bodyText: String(item.bodyText ?? ""), audience: "business" as const, action: (["coupon", "catalog", "product", "cart", "search"].includes(String(item.action)) ? item.action : "none") as NotificationAction, target: String(item.target ?? ""), status: "sent" as const, scheduledAt: "", expiresAt: String(item.expiresAt ?? ""), createdAtIso: String(item.createdAtIso ?? "") };
   }).sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso));
 }
