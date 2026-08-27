@@ -32,7 +32,14 @@ const LOCAL_PREVIEW_NOTIFICATION: NotificationCampaign = {
 function getReadNotificationIds() {
   try {
     const value = JSON.parse(window.localStorage.getItem("joma.readNotifications") || "[]");
-    return new Set<string>(Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []);
+    const storedIds = Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+    const ids = new Set<string>();
+    storedIds.forEach((id) => {
+      ids.add(id);
+      if (id.startsWith("personal-")) ids.add(id.slice("personal-".length));
+      else ids.add(`personal-${id}`);
+    });
+    return ids;
   } catch {
     return new Set<string>();
   }
@@ -53,6 +60,19 @@ async function getStoredPushNotifications(): Promise<NotificationCampaign[]> {
       expiresAt: String(item.expiresAt || ""), createdAtIso: String(item.createdAtIso || ""),
     }));
   } catch { return []; }
+}
+
+async function pruneStoredPushNotifications(validIds: Set<string>) {
+  if (!("caches" in window)) return;
+  try {
+    const cache = await caches.open("joma-notifications");
+    const response = await cache.match("/__joma_notifications__");
+    const items = response ? await response.json() : [];
+    if (!Array.isArray(items)) return;
+    const next = items.filter((item) => validIds.has(String(item?.id || "")));
+    if (next.length === items.length) return;
+    await cache.put("/__joma_notifications__", new Response(JSON.stringify(next), { headers: { "Content-Type": "application/json" } }));
+  } catch { /* la validación en memoria igualmente evita avisos obsoletos */ }
 }
 
 function onlyNotificationsWithActiveCoupons(items: NotificationCampaign[], activeCodes: Set<string>) {
@@ -169,13 +189,11 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
 
   useEffect(() => {
     const storedItemsPromise = getStoredPushNotifications();
-    void storedItemsPromise.then((storedItems) => {
-      if (!storedItems.length) return;
-      const readIds = getReadNotificationIds();
-      setNotifications(storedItems);
-      setUnreadCount(storedItems.filter((item) => !readIds.has(item.id)).length);
-    });
-    void Promise.all([storedItemsPromise, user ? getUserNotifications(user.uid).catch(() => []) : Promise.resolve([]), getVisibleDiscountCodes(user?.uid)]).then(([storedItems, personalItems, codes]) => {
+    let activeNotificationsLoaded = true;
+    let personalNotificationsLoaded = true;
+    const activeItemsPromise = getActiveNotifications().catch(() => { activeNotificationsLoaded = false; return []; });
+    const personalItemsPromise = user ? getUserNotifications(user.uid).catch(() => { personalNotificationsLoaded = false; return []; }) : Promise.resolve([]);
+    void Promise.all([storedItemsPromise, activeItemsPromise, personalItemsPromise, getVisibleDiscountCodes(user?.uid)]).then(([storedItems, activeItems, personalItems, codes]) => {
       const readIds = getReadNotificationIds();
       const isLocalPreview = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
       if (isLocalPreview && !window.sessionStorage.getItem("joma.localPreviewSeededV2")) {
@@ -184,10 +202,24 @@ export function NotificationBell({ onSearch, onOpenCatalog, onOpenCart, onOpenPr
         window.sessionStorage.setItem("joma.localPreviewSeededV2", "1");
       }
       const activeCodes = new Set(codes.filter((code) => code.active).map((code) => code.code));
-      const items = onlyNotificationsWithActiveCoupons([...personalItems, ...storedItems], activeCodes);
+      const activeIds = new Set(activeItems.map((item) => item.id));
+      const personalRawIds = new Set(personalItems.map((item) => item.id.replace(/^personal-/, "")));
+      const visibleStoredItems = storedItems.filter((item) =>
+        (!activeNotificationsLoaded && !personalNotificationsLoaded)
+        || activeIds.has(item.id)
+        || personalRawIds.has(item.id),
+      );
+      const items = onlyNotificationsWithActiveCoupons([
+        ...personalItems,
+        ...visibleStoredItems.filter((item) => !personalRawIds.has(item.id)),
+        ...activeItems.filter((item) => !visibleStoredItems.some((stored) => stored.id === item.id)),
+      ], activeCodes).sort((a, b) => b.createdAtIso.localeCompare(a.createdAtIso));
       const visibleItems = isLocalPreview && !items.some((item) => item.id === LOCAL_PREVIEW_NOTIFICATION.id) ? [LOCAL_PREVIEW_NOTIFICATION, ...items] : items;
       setNotifications(visibleItems);
       setUnreadCount(visibleItems.filter((item) => !readIds.has(item.id)).length);
+      if (activeNotificationsLoaded && personalNotificationsLoaded) {
+        void pruneStoredPushNotifications(new Set([...activeIds, ...personalRawIds]));
+      }
     });
   }, [user]);
 
