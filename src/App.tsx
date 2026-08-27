@@ -13,6 +13,7 @@ import { CartView } from "@/components/CartView";
 import { CartExpiryGuard } from "@/components/CartExpiryGuard";
 import { Icon, WhatsAppIcon } from "@/components/Icons";
 import { ProductCard } from "@/components/ProductCard";
+import { getProductThumbnailUrl, preloadImage } from "@/lib/productImages";
 import { ProfileView } from "@/components/ProfileView";
 import { BusinessPage } from "@/components/BusinessPage";
 import { MyCouponsPage } from "@/components/MyCouponsPage";
@@ -455,13 +456,8 @@ function ProductList({
 }) {
   useEffect(() => {
     products.slice(eagerCount, eagerCount + 3).forEach((product) => {
-      if (
-        !product.imageUrl ||
-        (product.categoryId === "combos" && /^P/i.test(product.id.trim()))
-      )
-        return;
-      const image = new Image();
-      image.src = product.imageUrl;
+      if (product.categoryId === "combos" && /^P/i.test(product.id.trim())) return;
+      void preloadImage(getProductThumbnailUrl(product.id), "low").catch(() => {});
     });
   }, [products, eagerCount]);
   const isOutOfStock = (product: Product) =>

@@ -2,12 +2,7 @@ import { getDownloadURL, getStorage, ref } from "firebase/storage";
 import { getFirebaseApp } from "@/lib/firebase";
 
 const memory = new Map<string, string>();
-const imageSessionVersion = Date.now();
-
-function withImageVersion(url: string) {
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}v=${imageSessionVersion}`;
-}
+const preloadMemory = new Map<string, Promise<string>>();
 
 function variants(code: string) {
   const raw = code.trim();
@@ -27,6 +22,37 @@ export function getProductThumbnailUrl(code: string) {
   return filename ? publicStorageUrl("fotosProductosThumb", `${filename}.jpg`) : "";
 }
 
+export function getProductOriginalUrl(code: string) {
+  const filename = code.trim().replaceAll("/", "_");
+  return filename ? publicStorageUrl("fotosProductos", `${filename}.jpg`) : "";
+}
+
+export function isProductThumbnailUrl(url: string) {
+  return /fotosProductosThumb(?:%2F|\/)/i.test(url);
+}
+
+export function preloadImage(url: string, priority: "high" | "low" = "high") {
+  if (!url || typeof window === "undefined") return Promise.resolve("");
+  const existing = preloadMemory.get(url);
+  if (existing) return existing;
+  const request = new Promise<string>((resolve, reject) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.fetchPriority = priority;
+    image.onload = async () => {
+      try { await image.decode(); } catch { /* onload ya confirmó una imagen utilizable */ }
+      resolve(url);
+    };
+    image.onerror = () => reject(new Error("No se pudo cargar la imagen."));
+    image.src = url;
+  }).catch((error) => {
+    preloadMemory.delete(url);
+    throw error;
+  });
+  preloadMemory.set(url, request);
+  return request;
+}
+
 export async function getProductImageUrl(code: string) {
   const key = code.trim().toUpperCase();
   if (!key) return "";
@@ -42,7 +68,7 @@ export async function getProductImageUrl(code: string) {
   for (const folder of ["fotosProductos"]) {
     for (const name of names) {
       try {
-        const url = withImageVersion(await getDownloadURL(ref(storage, `${folder}/${name}.jpg`)));
+        const url = await getDownloadURL(ref(storage, `${folder}/${name}.jpg`));
         memory.set(key, url);
         return url;
       } catch { /* probar siguiente variante */ }

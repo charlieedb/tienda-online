@@ -5,12 +5,12 @@ import { getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
 import { trackEvent } from "@/lib/analytics";
 import { navigateInStore, productPath } from "@/lib/seo";
-import { getProductImageUrl, getProductThumbnailUrl } from "@/lib/productImages";
+import { getProductImageUrl, getProductOriginalUrl, getProductThumbnailUrl, isProductThumbnailUrl, preloadImage } from "@/lib/productImages";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const stockNumber = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
 
-function ProductImage({ product, eager, linkToDetail, offerExhausted = false }: { product: Product; eager: boolean; linkToDetail: boolean; offerExhausted?: boolean }) {
+function ProductImage({ product, eager, linkToDetail, preferHighQuality, offerExhausted = false }: { product: Product; eager: boolean; linkToDetail: boolean; preferHighQuality: boolean; offerExhausted?: boolean }) {
   const isReusableCombo = product.categoryId === "combos" && /^P/i.test(product.id.trim());
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(eager);
@@ -18,8 +18,10 @@ function ProductImage({ product, eager, linkToDetail, offerExhausted = false }: 
   const [failed, setFailed] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const generatedThumbnailUrl = isReusableCombo ? "" : getProductThumbnailUrl(product.id);
-  const primaryUrl = isReusableCombo ? "" : product.imageUrl || generatedThumbnailUrl;
-  const fallbackUrl = isReusableCombo ? "" : product.imageFallbackUrl ?? "";
+  const catalogThumbnailUrl = product.imageUrl && isProductThumbnailUrl(product.imageUrl) ? product.imageUrl : "";
+  const primaryUrl = isReusableCombo ? "" : catalogThumbnailUrl || generatedThumbnailUrl;
+  const originalUrl = isReusableCombo ? "" : product.imageFallbackUrl || (product.imageUrl && !isProductThumbnailUrl(product.imageUrl) ? product.imageUrl : "") || getProductOriginalUrl(product.id);
+  const fallbackUrl = originalUrl;
   const [resolvedUrl, setResolvedUrl] = useState(primaryUrl);
   const storageAttempted = useRef(false);
 
@@ -34,15 +36,14 @@ function ProductImage({ product, eager, linkToDetail, offerExhausted = false }: 
     return true;
   }, [isReusableCombo, product.id]);
 
-  const improveEagerThumbnail = useCallback(() => {
-    if (!eager || !generatedThumbnailUrl || resolvedUrl !== generatedThumbnailUrl) return;
-    const run = () => { void resolveFromStorage(); };
-    if ("requestIdleCallback" in window) {
-      window.requestIdleCallback(run, { timeout: 1800 });
-    } else {
-      setTimeout(run, 500);
-    }
-  }, [eager, generatedThumbnailUrl, resolveFromStorage, resolvedUrl]);
+  const preloadOriginal = useCallback(() => {
+    if (!originalUrl || originalUrl === resolvedUrl) return;
+    void preloadImage(originalUrl).then((url) => {
+      setFailed(false);
+      setResolvedUrl(url);
+      setLoaded(true);
+    }).catch(() => { /* conservar la miniatura disponible */ });
+  }, [originalUrl, resolvedUrl]);
 
   useEffect(() => {
     storageAttempted.current = false;
@@ -50,6 +51,11 @@ function ProductImage({ product, eager, linkToDetail, offerExhausted = false }: 
     setLoaded(false);
     setFailed(false);
   }, [primaryUrl, product.id]);
+
+  useEffect(() => {
+    if (!visible || !preferHighQuality) return;
+    preloadOriginal();
+  }, [preferHighQuality, preloadOriginal, visible]);
 
   useEffect(() => {
     if (visible || !host.current) return;
@@ -75,7 +81,6 @@ function ProductImage({ product, eager, linkToDetail, offerExhausted = false }: 
     {!isReusableCombo ? <div className="image-skeleton" aria-hidden="true" /> : null}
     {!isReusableCombo && visible && resolvedUrl && !failed ? <img src={resolvedUrl} alt={product.name} width="176" height="176" loading={eager ? "eager" : "lazy"} fetchPriority={eager ? "high" : "auto"} decoding="async" onLoad={() => {
       setLoaded(true);
-      improveEagerThumbnail();
     }} onError={() => {
       if (fallbackUrl && fallbackUrl !== resolvedUrl) {
         setLoaded(false);
@@ -91,7 +96,7 @@ function ProductImage({ product, eager, linkToDetail, offerExhausted = false }: 
     {product.offer && !offerExhausted ? <span className="offer-badge">{product.offerCondition === "pack" ? "Oferta por caja" : product.offerCondition === "quantity" ? `Desde ${product.offerMinQty || 2} unid.` : product.offerDiscount ? `-${Math.round(product.offerDiscount)}%` : "Oferta"}</span> : null}
   </div>;
 
-  if (linkToDetail) return <a className="product-image-link" href={productPath(product)} aria-label={`Ver ficha de ${product.name}`} onClick={(event) => {
+  if (linkToDetail) return <a className="product-image-link" href={productPath(product)} aria-label={`Ver ficha de ${product.name}`} onPointerEnter={preloadOriginal} onTouchStart={preloadOriginal} onClick={(event) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     trackEvent("select_item", { item_id: product.id, item_name: product.name, item_category: product.category });
@@ -101,7 +106,7 @@ function ProductImage({ product, eager, linkToDetail, offerExhausted = false }: 
   return <>
     <button type="button" className="product-image-link product-image-zoom-trigger" aria-label={`Ampliar foto de ${product.name}`} onClick={() => {
       setZoomed(true);
-      void resolveFromStorage();
+      preloadOriginal();
     }}>{imageContent}</button>
     <AnimatePresence>{zoomed ? <motion.div className="product-image-zoom" role="dialog" aria-modal="true" aria-label={`Foto ampliada de ${product.name}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setZoomed(false)}>
       <button type="button" className="product-image-zoom-close" onClick={() => setZoomed(false)} aria-label="Cerrar foto ampliada">Cerrar</button>
@@ -154,7 +159,7 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
 
   return <motion.article className={`product-card ${detailCompact ? "is-detail-compact" : ""} ${!product.active ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
     <div className="product-media">
-      <ProductImage product={product} eager={eager} linkToDetail={linkImageToDetail} offerExhausted={offerExhausted} />
+      <ProductImage product={product} eager={eager} linkToDetail={linkImageToDetail} preferHighQuality={detailCompact} offerExhausted={offerExhausted} />
       {!detailCompact ? remainingStock !== undefined ? <div className={`product-stock ${remainingStock <= 0 ? "is-empty" : ""}`}><span>Stock disponible:</span> <strong>{stockNumber.format(remainingStock)} unidades</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div> : null}
     </div>
     <div className="product-content">
