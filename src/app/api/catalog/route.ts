@@ -11,6 +11,8 @@ type SourceRow = {
   descOferta?: number | null;
   imagenURL?: string | null;
   sinStock?: boolean;
+  stockReal?: number | null;
+  publicarOnline?: boolean;
   Linea?: string | null;
   Nombre?: string | null;
   "Código"?: string | null;
@@ -124,7 +126,9 @@ function mapRowToProduct(row: SourceRow): Product | null {
     ...keywordsBase,
   ]).filter(Boolean);
 
-  const active = row.sinStock === true ? false : true;
+  const stockReal = toNumber(row.stockReal);
+  const tieneStockOnline = stockReal === null ? row.sinStock !== true : stockReal > 0;
+  const active = tieneStockOnline && row.publicarOnline !== false;
 
   const bucket =
     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ||
