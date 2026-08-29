@@ -1215,6 +1215,66 @@ body .admin-shell .admin-login-card {
   white-space: nowrap;
 }
 
+.admin-advertising {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-advertising .admin-sponsored-card {
+  margin-top: 0;
+}
+
+.admin-advertising .admin-sponsored-table col:nth-child(1) { width: 9%; }
+.admin-advertising .admin-sponsored-table col:nth-child(2) { width: 24%; }
+.admin-advertising .admin-sponsored-table col:nth-child(3) { width: 21%; }
+.admin-advertising .admin-sponsored-table col:nth-child(4) { width: 17%; }
+.admin-advertising .admin-sponsored-table col:nth-child(5) { width: 12%; }
+.admin-advertising .admin-sponsored-table col:nth-child(6) { width: 17%; }
+
+.admin-order-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.admin-order-actions button {
+  width: 34px;
+  min-height: 34px;
+  border-radius: 8px;
+  color: #315f7d;
+  background: #e2edf5;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.admin-order-actions button:disabled {
+  color: #8b98a5;
+  background: #edf1f4;
+  cursor: not-allowed;
+}
+
+.admin-slide-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-slide-cell img {
+  width: 72px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  object-fit: cover;
+  background: #e92721;
+}
+
+.admin-slide-cell > div {
+  min-width: 0;
+}
+
+.admin-sponsored-slides {
+  min-width: 1040px;
+}
+
 .admin-sponsored-editor {
   margin-top: 18px;
   border: 1px solid #cad5de;

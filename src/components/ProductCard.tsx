@@ -173,7 +173,7 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
     trackEcommerce("add_to_cart", { value: option.price, items: [{ item_id: product.id, item_name: product.name, item_brand: product.brand, item_category: product.category, item_variant: variant, price: option.price, quantity: 1 }] });
   };
 
-  return <motion.article ref={cardRef} onClickCapture={() => { if (sponsorContext) trackPromotionClick(sponsorContext); }} className={`product-card ${detailCompact ? "is-detail-compact" : ""} ${!product.active ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
+  return <motion.article ref={cardRef} onClickCapture={() => { if (sponsorContext) trackPromotionClick(sponsorContext); }} className={`product-card ${detailCompact ? "is-detail-compact" : ""} ${!product.active ? "is-unavailable" : ""} ${sponsor ? "is-sponsored" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
     <div className="product-media">
       <ProductImage product={product} eager={eager} linkToDetail={linkImageToDetail} preferHighQuality={detailCompact} offerExhausted={offerExhausted} />
       {!detailCompact ? remainingStock !== undefined ? <div className={`product-stock ${remainingStock <= 0 ? "is-empty" : ""}`}><span>Stock disponible:</span> <strong>{stockNumber.format(remainingStock)} unidades</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div> : null}

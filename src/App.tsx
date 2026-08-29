@@ -34,7 +34,7 @@ import { WHATSAPP_URL } from "@/lib/whatsapp";
 import { getDailyOfferUsage } from "@/lib/offerUsage";
 import { useAuth } from "@/auth/AuthProvider";
 import {
-  getStoreCarouselSlides,
+  getFeaturedProductsConfig,
   subscribeToStoreConfig,
   type StoreCarouselSlide,
 } from "@/lib/featuredProducts";
@@ -50,6 +50,17 @@ const money = new Intl.NumberFormat("es-AR", {
   maximumFractionDigits: 0,
 });
 const carouselImageCache = new Map<string, HTMLImageElement>();
+
+function isCampaignActive(start: string, end: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  return Boolean(start && end && start <= today && end >= today);
+}
+
+function prioritizeCarouselSlides(slides: StoreCarouselSlide[]) {
+  const sponsored = slides.filter((slide) => slide.campaignId && isCampaignActive(slide.campaignStart, slide.campaignEnd));
+  const regular = slides.filter((slide) => !sponsored.includes(slide));
+  return [...sponsored, ...regular];
+}
 
 function preloadCarouselImages(slides: StoreCarouselSlide[], desktop: boolean) {
   slides.forEach((slide, index) => {
@@ -151,6 +162,14 @@ function HeroCarousel({
   const reduceMotion = useReducedMotion();
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
   const slideCount = slides.length + 1;
+  const hasActiveSponsoredSlide = slides.some((item) => item.campaignId && isCampaignActive(item.campaignStart, item.campaignEnd));
+  const initializedSponsoredStart = useRef(false);
+
+  useEffect(() => {
+    if (initializedSponsoredStart.current || !hasActiveSponsoredSlide || !slides.length) return;
+    initializedSponsoredStart.current = true;
+    setSlide(1);
+  }, [hasActiveSponsoredSlide, slides.length]);
 
   useEffect(() => {
     if (paused || slideCount < 2) return;
@@ -166,6 +185,7 @@ function HeroCarousel({
   }, [slide, slideCount]);
 
   const current = slide === 0 ? null : (slides[slide - 1] ?? null);
+  const currentIsSponsored = Boolean(current?.campaignId && current && isCampaignActive(current.campaignStart, current.campaignEnd));
   const promotionContext: PromotionContext | null = current?.campaignId && current.campaignName && current.advertiser ? {
     campaignId: current.campaignId,
     campaignName: current.campaignName,
@@ -310,6 +330,7 @@ function HeroCarousel({
             ) : null}
             {current ? (
               <>
+                {currentIsSponsored ? <span className="hero-sponsored-label">Patrocinado</span> : null}
                 {current.buttonLabel && current.targetType !== "none" ? (
                   <div className={`hero-actions align-${current.buttonAlign}`}>
                     <button type="button" onClick={() => { if (promotionContext) trackPromotionClick(promotionContext); onAction(current); }}>
@@ -764,6 +785,7 @@ function StoreApp({
   const showNotificationMenu = isInstalledPwa() && "Notification" in window && Notification.permission !== "granted";
   const [manifest, setManifest] = useState<CatalogManifest | null>(null);
   const [featured, setFeatured] = useState<Product[]>([]);
+  const [sponsoredProducts, setSponsoredProducts] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Product[]>([]);
   const [carouselSlides, setCarouselSlides] = useState<StoreCarouselSlide[]>(
     [],
@@ -781,6 +803,7 @@ function StoreApp({
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const regularFeatured = useMemo(() => featured.filter((product) => !sponsoredProducts.some((sponsored) => sponsored.id === product.id)), [featured, sponsoredProducts]);
 
   useEffect(() => {
     if (!user) {
@@ -844,10 +867,15 @@ function StoreApp({
   }, [cartTotal, items, tab]);
 
   useEffect(() => {
-    if (tab !== "home" || (!featured.length && !offers.length)) return;
-    const products = [...featured, ...offers].filter((product, index, all) => all.findIndex((item) => item.id === product.id) === index).slice(0, 30);
+    if (tab !== "home" || (!regularFeatured.length && !offers.length)) return;
+    const products = [...regularFeatured, ...offers].filter((product, index, all) => all.findIndex((item) => item.id === product.id) === index).slice(0, 30);
     trackEcommerce("view_item_list", { item_list_id: "home", item_list_name: "Inicio", items: products.map((product, index) => ({ item_id: product.id, item_name: product.name, item_brand: product.brand, item_category: product.category, price: product.unit.price, index })) }, products.map((product) => product.id).join("|"));
-  }, [featured, offers, tab]);
+  }, [offers, regularFeatured, tab]);
+
+  useEffect(() => {
+    if (tab !== "home" || !sponsoredProducts.length) return;
+    trackEcommerce("view_item_list", { item_list_id: "sponsored", item_list_name: "Patrocinados", items: sponsoredProducts.map((product, index) => ({ item_id: product.id, item_name: product.name, item_brand: product.brand, item_category: product.category, price: product.unit.price, index })) }, sponsoredProducts.map((product) => product.id).join("|"));
+  }, [sponsoredProducts, tab]);
 
   useEffect(() => {
     const cleanQuery = query.trim().replace(/\s+/g, " ").slice(0, 100);
@@ -864,19 +892,23 @@ function StoreApp({
       catalog.getManifest(controller.signal),
       catalog.getFeaturedProducts(controller.signal),
       catalog.getOfferProducts(controller.signal),
-      getStoreCarouselSlides(),
+      catalog.getAllProducts(controller.signal),
+      getFeaturedProductsConfig(),
     ])
       .then(
         ([
           nextManifest,
           featuredProducts,
           offerProducts,
-          nextCarouselSlides,
+          allProducts,
+          storeConfig,
         ]) => {
           setManifest(nextManifest);
           setFeatured(featuredProducts);
           setOffers(offerProducts);
-          setCarouselSlides(nextCarouselSlides);
+          const activeSponsoredProducts = storeConfig.sponsoredProducts.filter((campaign) => isCampaignActive(campaign.campaignStart, campaign.campaignEnd)).map((campaign) => allProducts.find((product) => product.id === campaign.productId)).filter((product): product is Product => Boolean(product?.active));
+          setSponsoredProducts(activeSponsoredProducts);
+          setCarouselSlides(prioritizeCarouselSlides(storeConfig.carouselSlides));
         },
       )
       .catch((error) => {
@@ -1478,6 +1510,10 @@ function StoreApp({
                   onCombos={openCombos}
                   onAction={openCarouselDestination}
                 />
+                {sponsoredProducts.length ? <section className="home-sponsored-section">
+                  <div className="section-heading"><div><span>Selección publicitaria</span><h2>Patrocinados</h2></div></div>
+                  <ProductList products={sponsoredProducts} eagerCount={Math.min(sponsoredProducts.length, 4)} />
+                </section> : null}
                 <section>
                   <div className="section-heading">
                     <div>
@@ -1494,8 +1530,8 @@ function StoreApp({
                     <ErrorState message={initialError} retry={loadInitial} />
                   ) : (
                     <ProductList
-                      products={featured}
-                      eagerCount={Math.min(featured.length, 4)}
+                      products={regularFeatured}
+                      eagerCount={Math.min(regularFeatured.length, 4)}
                     />
                   )}
                 </section>
