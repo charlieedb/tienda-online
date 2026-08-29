@@ -1,15 +1,16 @@
-const admin = require("firebase-admin");
+const { cert, getApps, initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
 
 const CACHE_MS = 60 * 1000;
 let cached = null;
 
 function getAdminApp() {
-  if (admin.apps.length) return admin.app();
+  if (getApps().length) return getApps()[0];
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = String(process.env.FIREBASE_ADMIN_PRIVATE_KEY || "").replace(/\\n/g, "\n");
   if (!projectId || !clientEmail || !privateKey) throw new Error("Firebase Admin no está configurado.");
-  return admin.initializeApp({ credential: admin.credential.cert({ projectId, clientEmail, privateKey }) });
+  return initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
 }
 
 module.exports = async function handler(req, res) {
@@ -19,7 +20,7 @@ module.exports = async function handler(req, res) {
       res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
       return res.status(200).json(cached.data);
     }
-    const snapshot = await getAdminApp().firestore().doc("config/tiendaOnlineStore").get();
+    const snapshot = await getFirestore(getAdminApp()).doc("config/tiendaOnlineStore").get();
     const source = snapshot.exists ? snapshot.data() || {} : {};
     const data = {
       configured: snapshot.exists,
