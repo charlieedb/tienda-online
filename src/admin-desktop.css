@@ -1071,6 +1071,37 @@ body .admin-shell .admin-login-card {
   font-size: 0.82rem;
 }
 
+.admin-carousel-config .admin-card .admin-card__head p {
+  color: #526579;
+  -webkit-text-fill-color: #526579;
+  opacity: 1;
+}
+
+.admin-sponsored-table {
+  color: #26384d;
+  background: #ffffff;
+}
+
+.admin-sponsored-table thead th {
+  color: #33485f;
+  -webkit-text-fill-color: #33485f;
+  background: #eef3f7;
+  opacity: 1;
+}
+
+.admin-sponsored-table tbody td {
+  color: #344a60;
+  -webkit-text-fill-color: #344a60;
+  background: #ffffff;
+  opacity: 1;
+}
+
+.admin-sponsored-table tbody td strong {
+  color: #17263a;
+  -webkit-text-fill-color: #17263a;
+  opacity: 1;
+}
+
 .admin-sponsored-summary strong {
   color: #17263a;
   font-size: 1.15rem;
@@ -1088,7 +1119,9 @@ body .admin-shell .admin-login-card {
 .admin-sponsored-table td small {
   margin-top: 3px;
   color: #68788a;
+  -webkit-text-fill-color: #68788a;
   font-size: 0.72rem;
+  opacity: 1;
 }
 
 .admin-campaign-status {
