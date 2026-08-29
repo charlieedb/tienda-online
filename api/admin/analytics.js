@@ -1,10 +1,12 @@
 const { BetaAnalyticsDataClient } = require("@google-analytics/data");
+const { createVerify } = require("node:crypto");
 const { cert, getApps, initializeApp } = require("firebase-admin/app");
-const { getAuth } = require("firebase-admin/auth");
 const { getFirestore } = require("firebase-admin/firestore");
 
 const cache = new Map();
 const CACHE_MS = 5 * 60 * 1000;
+const FIREBASE_CERTS_URL = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
+let certificateCache = { expiresAt: 0, values: {} };
 
 function getAdminApp() {
   if (getApps().length) return getApps()[0];
@@ -19,10 +21,52 @@ async function requireAdmin(req) {
   const match = String(req.headers.authorization || "").match(/^Bearer\s+(.+)$/i);
   if (!match) throw Object.assign(new Error("Falta autenticación."), { status: 401 });
   const app = getAdminApp();
-  const decoded = await getAuth(app).verifyIdToken(match[1]);
+  const decoded = await verifyFirebaseIdToken(match[1]);
   const profile = await getFirestore(app).doc(`adminUsers/${decoded.uid}`).get();
   if (!profile.exists || profile.data()?.active !== true) throw Object.assign(new Error("Acceso denegado."), { status: 403 });
   return decoded.uid;
+}
+
+function decodeJwtPart(value) {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  return JSON.parse(Buffer.from(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "="), "base64").toString("utf8"));
+}
+
+async function getFirebaseCertificates() {
+  if (certificateCache.expiresAt > Date.now()) return certificateCache.values;
+  const response = await fetch(FIREBASE_CERTS_URL, { cache: "no-store" });
+  if (!response.ok) throw Object.assign(new Error("No se pudieron validar las credenciales."), { status: 503 });
+  const values = await response.json();
+  const maxAge = Number(response.headers.get("cache-control")?.match(/max-age=(\d+)/)?.[1] || 3600);
+  certificateCache = { expiresAt: Date.now() + maxAge * 1000, values };
+  return values;
+}
+
+async function verifyFirebaseIdToken(token) {
+  const parts = String(token).split(".");
+  if (parts.length !== 3) throw Object.assign(new Error("Token inválido."), { status: 401 });
+  let header;
+  let payload;
+  try {
+    header = decodeJwtPart(parts[0]);
+    payload = decodeJwtPart(parts[1]);
+  } catch {
+    throw Object.assign(new Error("Token inválido."), { status: 401 });
+  }
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const now = Math.floor(Date.now() / 1000);
+  if (header.alg !== "RS256" || !header.kid || payload.aud !== projectId || payload.iss !== `https://securetoken.google.com/${projectId}` || typeof payload.sub !== "string" || !payload.sub || typeof payload.exp !== "number" || typeof payload.iat !== "number" || payload.exp <= now || payload.iat > now) {
+    throw Object.assign(new Error("Token inválido o vencido."), { status: 401 });
+  }
+  const certificates = await getFirebaseCertificates();
+  const certificate = certificates[header.kid];
+  if (!certificate) throw Object.assign(new Error("Token inválido."), { status: 401 });
+  const verifier = createVerify("RSA-SHA256");
+  verifier.update(`${parts[0]}.${parts[1]}`);
+  verifier.end();
+  const signature = Buffer.from(parts[2].replace(/-/g, "+").replace(/_/g, "/"), "base64");
+  if (!verifier.verify(certificate, signature)) throw Object.assign(new Error("Token inválido."), { status: 401 });
+  return { ...payload, uid: payload.sub };
 }
 
 function dateValue(value, fallback) {
