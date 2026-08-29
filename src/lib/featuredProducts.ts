@@ -82,15 +82,26 @@ export type StoreCarouselSlide = {
 let cachedConfig: FeaturedProductsConfig | null = null;
 let pendingConfig: Promise<FeaturedProductsConfig> | null = null;
 
-function configFromSnapshot(snapshot: { exists(): boolean; data(): Record<string, unknown> | undefined }) {
+function configFromData(data: Record<string, unknown>, configured: boolean) {
   return {
-    ids: normalizeIds(snapshot.data()?.featuredProductIds),
-    configured: snapshot.exists(),
-    carouselSlides: normalizeCarouselSlides(snapshot.data()?.carouselSlides),
-    deliverySchedule: normalizeDeliverySchedule(snapshot.data()?.deliverySchedule),
-    checkoutSettings: normalizeCheckoutSettings(snapshot.data()?.checkoutSettings),
-    sponsoredProducts: normalizeSponsoredProducts(snapshot.data()?.sponsoredProducts),
+    ids: normalizeIds(data.featuredProductIds),
+    configured,
+    carouselSlides: normalizeCarouselSlides(data.carouselSlides),
+    deliverySchedule: normalizeDeliverySchedule(data.deliverySchedule),
+    checkoutSettings: normalizeCheckoutSettings(data.checkoutSettings),
+    sponsoredProducts: normalizeSponsoredProducts(data.sponsoredProducts),
   };
+}
+
+function configFromSnapshot(snapshot: { exists(): boolean; data(): Record<string, unknown> | undefined }) {
+  return configFromData(snapshot.data() ?? {}, snapshot.exists());
+}
+
+async function fetchStoreConfigFromApi() {
+  const response = await fetch("/api/store-config", { cache: "no-store" });
+  if (!response.ok) throw new Error("No se pudo cargar la configuración de la tienda.");
+  const data = await response.json() as Record<string, unknown>;
+  return configFromData(data, data.configured === true);
 }
 
 function normalizeCheckoutSettings(value: unknown): CheckoutSettingsConfig {
@@ -223,11 +234,10 @@ export async function getFeaturedProductsConfig(options?: { refresh?: boolean })
   const db = getDb();
   if (!db) return cachedConfig ?? readStoredConfig() ?? emptyConfig();
 
-  pendingConfig = getDoc(doc(db, STORE_CONFIG_PATH))
-    .then((snapshot) => {
-      const result = configFromSnapshot(snapshot);
-      return storeValidConfig(result);
-    })
+  pendingConfig = (options?.refresh
+    ? fetchStoreConfigFromApi().catch(() => getDoc(doc(db, STORE_CONFIG_PATH)).then(configFromSnapshot))
+    : getDoc(doc(db, STORE_CONFIG_PATH)).then(configFromSnapshot))
+    .then(storeValidConfig)
     .catch(() => cachedConfig ?? readStoredConfig() ?? emptyConfig())
     .finally(() => {
       pendingConfig = null;
