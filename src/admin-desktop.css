@@ -1062,6 +1062,113 @@ body .admin-shell .admin-login-card {
   padding-top: 16px;
 }
 
+.admin-sponsored-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #526579;
+  font-size: 0.82rem;
+}
+
+.admin-sponsored-summary strong {
+  color: #17263a;
+  font-size: 1.15rem;
+}
+
+.admin-sponsored-table td {
+  vertical-align: middle;
+}
+
+.admin-sponsored-table td strong,
+.admin-sponsored-table td small {
+  display: block;
+}
+
+.admin-sponsored-table td small {
+  margin-top: 3px;
+  color: #68788a;
+  font-size: 0.72rem;
+}
+
+.admin-campaign-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.admin-campaign-status.is-active {
+  color: #17603c;
+  background: #dff3e8;
+}
+
+.admin-campaign-status.is-scheduled {
+  color: #315f7d;
+  background: #e2edf5;
+}
+
+.admin-campaign-status.is-ended {
+  color: #68788a;
+  background: #e9edf0;
+}
+
+.admin-sponsored-actions {
+  display: flex;
+  gap: 7px;
+}
+
+.admin-sponsored-actions .btn {
+  min-height: 36px;
+  padding: 7px 11px;
+  font-size: 0.75rem;
+}
+
+.admin-sponsored-editor {
+  margin-top: 18px;
+  border: 1px solid #cad5de;
+  border-radius: 12px;
+  padding: 16px;
+  background: #f7f9fa;
+}
+
+.admin-sponsored-editor__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-sponsored-editor__head h3 {
+  margin: 0;
+  color: #17263a;
+  font-size: 1rem;
+}
+
+.admin-sponsored-editor__head p {
+  margin: 4px 0 0;
+  color: #68788a;
+  font-size: 0.78rem;
+}
+
+.admin-sponsored-editor .admin-carousel-fields {
+  padding: 0;
+}
+
+.admin-carousel-empty strong,
+.admin-carousel-empty span {
+  display: block;
+}
+
+.admin-carousel-empty span {
+  margin-top: 4px;
+}
+
 @media (max-width: 760px) {
   .admin-carousel-config .admin-card__head,
   .admin-carousel-item__head {
@@ -1081,6 +1188,17 @@ body .admin-shell .admin-login-card {
 
   .admin-carousel-config .admin-card__head .btn,
   .admin-carousel-save .btn {
+    width: 100%;
+  }
+
+  .admin-sponsored-editor__head,
+  .admin-sponsored-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-sponsored-editor__head .btn,
+  .admin-sponsored-actions .btn {
     width: 100%;
   }
 }

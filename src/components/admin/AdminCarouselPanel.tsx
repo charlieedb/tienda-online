@@ -37,11 +37,30 @@ function createSlide(): StoreCarouselSlide {
   };
 }
 
+function createSponsoredProduct(product?: Product): SponsoredProductCampaign {
+  return {
+    productId: product?.id || "",
+    campaignId: "",
+    campaignName: "",
+    advertiser: product?.brand || "",
+    campaignStart: "",
+    campaignEnd: "",
+  };
+}
+
+function campaignStatus(entry: SponsoredProductCampaign) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (entry.campaignStart && entry.campaignStart > today) return { label: "Programada", className: "is-scheduled" };
+  if (entry.campaignEnd && entry.campaignEnd < today) return { label: "Finalizada", className: "is-ended" };
+  return { label: "Activa", className: "is-active" };
+}
+
 export function AdminCarouselPanel({ user }: { user: User }) {
   const [slides, setSlides] = useState<StoreCarouselSlide[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [sponsoredProducts, setSponsoredProducts] = useState<SponsoredProductCampaign[]>([]);
+  const [sponsoredDraft, setSponsoredDraft] = useState<{ index: number | null; value: SponsoredProductCampaign } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingKey, setUploadingKey] = useState("");
@@ -139,6 +158,44 @@ export function AdminCarouselPanel({ user }: { user: User }) {
       setSaving(false);
     }
   };
+
+  const applySponsoredDraft = () => {
+    if (!sponsoredDraft) return;
+    const entry = sponsoredDraft.value;
+    if (!entry.productId || !entry.campaignId.trim() || !entry.campaignName.trim() || !entry.advertiser.trim() || !entry.campaignStart || !entry.campaignEnd) {
+      setMessage("Completá producto, campaña, anunciante y fechas antes de agregarla al listado.");
+      return;
+    }
+    if (entry.campaignEnd < entry.campaignStart) {
+      setMessage("La fecha de finalización debe ser posterior al inicio de la campaña.");
+      return;
+    }
+    if (sponsoredProducts.some((item, index) => index !== sponsoredDraft.index && item.productId === entry.productId)) {
+      setMessage("Ese producto ya está asociado a otra campaña patrocinada.");
+      return;
+    }
+    setSponsoredProducts((current) => sponsoredDraft.index === null
+      ? [...current, entry]
+      : current.map((item, index) => index === sponsoredDraft.index ? entry : item));
+    setSponsoredDraft(null);
+    setMessage("Campaña preparada. Presioná Guardar campañas para publicarla.");
+  };
+
+  const saveCampaigns = async () => {
+    setSaving(true);
+    setMessage("");
+    try {
+      await saveSponsoredProducts(sponsoredProducts, user.email || user.uid);
+      setSponsoredDraft(null);
+      setMessage(`${sponsoredProducts.length === 1 ? "1 campaña guardada" : `${sponsoredProducts.length} campañas guardadas`}.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No se pudieron guardar las campañas.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const productById = useMemo(() => new Map(products.map((product) => [product.id, product])), [products]);
 
   return <div className="admin-content-box admin-carousel-config">
     <section className="admin-card">
@@ -253,8 +310,41 @@ export function AdminCarouselPanel({ user }: { user: User }) {
           </button>
         </div>
         <section className="admin-card mt-5">
-          <div className="admin-card__head"><div><div className="admin-kicker">Publicidad</div><h2 className="admin-section-title">Productos patrocinados</h2><p>Asociá productos a una campaña para medir impresiones, clics y compras atribuidas.</p></div><button type="button" className="btn primary" onClick={() => { const product = products.find((item) => !sponsoredProducts.some((entry) => entry.productId === item.id)); if (product) setSponsoredProducts((current) => [...current, { productId: product.id, campaignId: "", campaignName: "", advertiser: product.brand || "", campaignStart: "", campaignEnd: "" }]); }} disabled={sponsoredProducts.length >= products.length}>+ Producto patrocinado</button></div>
-          <div className="admin-card__body"><div className="admin-carousel-list">{sponsoredProducts.map((entry, index) => <article className="admin-carousel-item" key={`${entry.productId}-${index}`}><div className="admin-carousel-fields"><label><span>Producto</span><select className="admin-input" value={entry.productId} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, productId: event.target.value } : item))}>{products.map((product) => <option value={product.id} key={product.id}>{product.name} · {product.id}</option>)}</select></label><label><span>ID de campaña</span><input className="admin-input" value={entry.campaignId} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, campaignId: event.target.value.replace(/[^a-zA-Z0-9_-]/g, "") } : item))}/></label><label><span>Nombre de campaña</span><input className="admin-input" value={entry.campaignName} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, campaignName: event.target.value } : item))}/></label><label><span>Marca / anunciante</span><input className="admin-input" value={entry.advertiser} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, advertiser: event.target.value } : item))}/></label><label><span>Inicio</span><input className="admin-input" type="date" value={entry.campaignStart} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, campaignStart: event.target.value } : item))}/></label><label><span>Fin</span><input className="admin-input" type="date" value={entry.campaignEnd} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, campaignEnd: event.target.value } : item))}/></label></div><button type="button" className="btn ofertas-danger" onClick={() => setSponsoredProducts((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Quitar patrocinio</button></article>)}</div>{!sponsoredProducts.length ? <div className="admin-carousel-empty">Todavía no hay productos patrocinados.</div> : null}<div className="admin-carousel-save"><button type="button" className="btn success" onClick={() => void save()} disabled={saving || loading}>{saving ? "Guardando..." : "Guardar campañas"}</button></div></div>
+          <div className="admin-card__head"><div><div className="admin-kicker">Publicidad</div><h2 className="admin-section-title">Productos patrocinados</h2><p>Revisá las campañas configuradas y abrí el formulario solo cuando necesites crear o editar una.</p></div><button type="button" className="btn primary" onClick={() => { const product = products.find((item) => !sponsoredProducts.some((entry) => entry.productId === item.id)); setMessage(""); setSponsoredDraft({ index: null, value: createSponsoredProduct(product) }); }} disabled={Boolean(sponsoredDraft) || sponsoredProducts.length >= products.length}>+ Producto patrocinado</button></div>
+          <div className="admin-card__body">
+            <div className="admin-sponsored-summary"><strong>{sponsoredProducts.length}</strong><span>{sponsoredProducts.length === 1 ? "producto patrocinado configurado" : "productos patrocinados configurados"}</span></div>
+            <div className="ofertas-list-wrap">
+              <table className="productos-table ofertas-table admin-sponsored-table">
+                <thead><tr><th>Producto</th><th>Campaña</th><th>Anunciante</th><th>Vigencia</th><th>Estado</th><th>Acciones</th></tr></thead>
+                <tbody>{sponsoredProducts.map((entry, index) => {
+                  const product = productById.get(entry.productId);
+                  const status = campaignStatus(entry);
+                  return <tr key={`${entry.productId}-${entry.campaignId}-${index}`}>
+                    <td><strong>{product?.name || entry.productId}</strong><small>{entry.productId}</small></td>
+                    <td><strong>{entry.campaignName}</strong><small>{entry.campaignId}</small></td>
+                    <td>{entry.advertiser}</td>
+                    <td>{entry.campaignStart || "Sin inicio"}<small>hasta {entry.campaignEnd || "sin fin"}</small></td>
+                    <td><span className={`admin-campaign-status ${status.className}`}>{status.label}</span></td>
+                    <td><div className="admin-sponsored-actions"><button type="button" className="btn ghost" onClick={() => { setMessage(""); setSponsoredDraft({ index, value: { ...entry } }); }}>Editar</button><button type="button" className="btn ofertas-danger" onClick={() => { setSponsoredProducts((current) => current.filter((_, itemIndex) => itemIndex !== index)); setMessage("Campaña quitada del listado. Guardá los cambios para confirmarlo."); }}>Quitar</button></div></td>
+                  </tr>;
+                })}</tbody>
+              </table>
+              {!sponsoredProducts.length ? <div className="admin-carousel-empty"><strong>Todavía no hay productos patrocinados</strong><span>Agregá el primero para medir impresiones, clics y compras atribuidas.</span></div> : null}
+            </div>
+            {sponsoredDraft ? <section className="admin-sponsored-editor" aria-label={sponsoredDraft.index === null ? "Nuevo producto patrocinado" : "Editar producto patrocinado"}>
+              <div className="admin-sponsored-editor__head"><div><h3>{sponsoredDraft.index === null ? "Nuevo producto patrocinado" : "Editar producto patrocinado"}</h3><p>Todos los campos son obligatorios para poder medir la campaña.</p></div><button type="button" className="btn ghost" onClick={() => setSponsoredDraft(null)}>Cancelar</button></div>
+              <div className="admin-carousel-fields">
+                <label><span>Producto</span><select className="admin-input" value={sponsoredDraft.value.productId} onChange={(event) => { const product = productById.get(event.target.value); setSponsoredDraft((current) => current ? { ...current, value: { ...current.value, productId: event.target.value, advertiser: current.value.advertiser || product?.brand || "" } } : current); }}>{products.map((product) => <option value={product.id} key={product.id}>{product.name} · {product.id}</option>)}</select></label>
+                <label><span>ID de campaña</span><input className="admin-input" value={sponsoredDraft.value.campaignId} onChange={(event) => setSponsoredDraft((current) => current ? { ...current, value: { ...current.value, campaignId: event.target.value.replace(/[^a-zA-Z0-9_-]/g, "") } } : current)}/></label>
+                <label><span>Nombre de campaña</span><input className="admin-input" value={sponsoredDraft.value.campaignName} onChange={(event) => setSponsoredDraft((current) => current ? { ...current, value: { ...current.value, campaignName: event.target.value } } : current)}/></label>
+                <label><span>Marca / anunciante</span><input className="admin-input" value={sponsoredDraft.value.advertiser} onChange={(event) => setSponsoredDraft((current) => current ? { ...current, value: { ...current.value, advertiser: event.target.value } } : current)}/></label>
+                <label><span>Inicio</span><input className="admin-input" type="date" value={sponsoredDraft.value.campaignStart} onChange={(event) => setSponsoredDraft((current) => current ? { ...current, value: { ...current.value, campaignStart: event.target.value } } : current)}/></label>
+                <label><span>Fin</span><input className="admin-input" type="date" min={sponsoredDraft.value.campaignStart} value={sponsoredDraft.value.campaignEnd} onChange={(event) => setSponsoredDraft((current) => current ? { ...current, value: { ...current.value, campaignEnd: event.target.value } } : current)}/></label>
+              </div>
+              <div className="admin-carousel-save"><button type="button" className="btn success" onClick={applySponsoredDraft}>{sponsoredDraft.index === null ? "Agregar al listado" : "Aplicar cambios"}</button></div>
+            </section> : null}
+            <div className="admin-carousel-save"><button type="button" className="btn success" onClick={() => void saveCampaigns()} disabled={saving || loading || Boolean(sponsoredDraft)}>{saving ? "Guardando..." : "Guardar campañas"}</button></div>
+          </div>
         </section>
       </div>
     </section>
