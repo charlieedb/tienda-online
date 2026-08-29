@@ -1457,3 +1457,12 @@ body:has(input:focus, textarea:focus, select:focus) .mini-cart { opacity: 0; poi
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   button:active { transform: none; }
 }
+/* Consent preferences */
+.consent-layer{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-end;justify-content:center;padding:16px;background:rgba(15,23,42,.42);backdrop-filter:blur(7px)}
+.consent-card{width:min(760px,100%);max-height:calc(100dvh - 32px);overflow:auto;border:1px solid rgba(255,255,255,.72);border-radius:28px;background:rgba(255,255,255,.96);padding:22px;box-shadow:0 24px 70px rgba(15,23,42,.24);color:#1d3557}
+.consent-copy>span{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#457b9d}.consent-copy h2{margin:6px 0 8px;font-size:clamp(22px,4vw,30px);line-height:1.08}.consent-copy p{margin:0;color:rgba(29,53,87,.72);line-height:1.5}
+.consent-options{display:grid;gap:8px;margin-top:18px}.consent-options label{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid rgba(29,53,87,.12);border-radius:18px;padding:12px 14px;background:#f6f8fa}.consent-options span{display:grid;gap:2px}.consent-options small{color:rgba(29,53,87,.62)}.consent-options input{width:22px;height:22px;accent-color:#457b9d}
+.consent-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:18px}.consent-card>a{display:inline-block;margin-top:14px;color:#457b9d;font-size:13px;font-weight:700}.privacy-preferences-button{border:0;background:transparent;color:inherit;text-decoration:underline;cursor:pointer;font:inherit}
+@media(max-width:640px){.consent-card{padding:18px;border-radius:24px}.consent-actions{flex-direction:column}.consent-actions .btn{width:100%}}
+.admin-report-filters{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}.admin-report-filters .admin-input{width:auto;min-width:170px}.admin-report-updated{margin-top:12px;color:rgba(29,53,87,.58);font-size:12px}.ofertas-table td small{display:block;color:rgba(29,53,87,.52);margin-top:2px}
+@media(max-width:640px){.admin-report-filters{flex-direction:column}.admin-report-filters .admin-input{width:100%}}

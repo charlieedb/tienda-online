@@ -117,6 +117,15 @@ export type OrderRecord = {
     status?: string;
     message?: string;
   };
+  campaignAttribution?: {
+    campaignId: string;
+    campaignName: string;
+    advertiser: string;
+    creativeName: string;
+    creativeSlot: string;
+    attributionType: "click" | "impression";
+    attributedAt: string;
+  } | null;
 };
 
 export type SearchEvent = {
@@ -253,6 +262,15 @@ function mapOrder(
       subtotal: asNumber(data?.metrics?.subtotal),
       discountTotal: asNumber(data?.metrics?.discountTotal),
     },
+    campaignAttribution: data?.campaignAttribution && typeof data.campaignAttribution === "object" ? {
+      campaignId: asString(data.campaignAttribution.campaignId),
+      campaignName: asString(data.campaignAttribution.campaignName),
+      advertiser: asString(data.campaignAttribution.advertiser),
+      creativeName: asString(data.campaignAttribution.creativeName),
+      creativeSlot: asString(data.campaignAttribution.creativeSlot),
+      attributionType: data.campaignAttribution.attributionType === "click" ? "click" : "impression",
+      attributedAt: asString(data.campaignAttribution.attributedAt),
+    } : null,
     history: Array.isArray(data?.history)
       ? data.history.map((entry: DocumentData) => ({
           status: toStatus(entry?.status),

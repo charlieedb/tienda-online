@@ -19,6 +19,8 @@ export type CartItem = {
   id: string;
   productId: string;
   name: string;
+  brand?: string;
+  category?: string;
   variant: "unit" | "pack";
   label: string;
   price: number;

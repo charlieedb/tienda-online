@@ -3,9 +3,11 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { Product } from "@/catalog/types";
 import { getRemainingStock, useCartStore } from "@/store/cart";
 import { Icon } from "./Icons";
-import { trackEvent } from "@/lib/analytics";
+import { trackEcommerce } from "@/lib/analytics";
 import { navigateInStore, productPath } from "@/lib/seo";
 import { getProductImageUrl, getProductOriginalUrl, getProductThumbnailUrl, isProductThumbnailUrl, preloadImage } from "@/lib/productImages";
+import { getSponsoredProductCampaign } from "@/lib/featuredProducts";
+import { trackPromotionClick, trackPromotionView, type PromotionContext } from "@/lib/analytics";
 
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const stockNumber = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
@@ -99,7 +101,7 @@ function ProductImage({ product, eager, linkToDetail, preferHighQuality, offerEx
   if (linkToDetail) return <a className="product-image-link" href={productPath(product)} aria-label={`Ver ficha de ${product.name}`} onPointerEnter={preloadOriginal} onTouchStart={preloadOriginal} onClick={(event) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    trackEvent("select_item", { item_id: product.id, item_name: product.name, item_category: product.category });
+    trackEcommerce("select_item", { item_list_name: "Catálogo", items: [{ item_id: product.id, item_name: product.name, item_brand: product.brand, item_category: product.category }] });
     navigateInStore(productPath(product));
   }}>{imageContent}</a>;
 
@@ -116,6 +118,7 @@ function ProductImage({ product, eager, linkToDetail, preferHighQuality, offerEx
 }
 
 function ProductCardInner({ product, eager = false, linkImageToDetail = true, detailCompact = false, onPriceChange }: { product: Product; eager?: boolean; linkImageToDetail?: boolean; detailCompact?: boolean; onPriceChange?: (price: number) => void }) {
+  const cardRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
   const [variant, setVariant] = useState<"unit" | "pack">("unit");
   const items = useCartStore((state) => state.items);
@@ -147,24 +150,37 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   const unitsNeeded = variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1;
   const available = product.active && (remainingStock === undefined || remainingStock >= unitsNeeded);
   const exhausted = product.active && remainingStock !== undefined && remainingStock <= 0;
+  const sponsor = getSponsoredProductCampaign(product.id);
+  const sponsorContext: PromotionContext | null = sponsor ? { campaignId: sponsor.campaignId, campaignName: sponsor.campaignName, advertiser: sponsor.advertiser, creativeName: product.name, creativeSlot: "sponsored-product", itemId: product.id, itemName: product.name } : null;
+
+  useEffect(() => {
+    if (!sponsorContext || !cardRef.current) return;
+    let timer = 0;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.intersectionRatio >= .5) timer = window.setTimeout(() => trackPromotionView(sponsorContext), 1000);
+      else window.clearTimeout(timer);
+    }, { threshold: [.5] });
+    observer.observe(cardRef.current);
+    return () => { window.clearTimeout(timer); observer.disconnect(); };
+  }, [sponsorContext?.campaignId, product.id]);
 
   useEffect(() => {
     onPriceChange?.(option.price);
   }, [onPriceChange, option.price]);
 
   const add = () => {
-    addItem({ id: itemId, productId: product.id, name: product.name, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.stockReal, promoPackQty: product.pack?.qty, promoPackUnitPrice: product.packPromoUnitPrice, offerMinQty: product.offerMinQty, offerUnitPrice: product.offerUnitPrice, offerAllowCoupons: product.offerAllowCoupons, offerMaxUnits: product.offerMaxUnits }, 1);
-    trackEvent("add_to_cart", { item_id: product.id, item_name: product.name, item_category: product.category, price: option.price, currency: "ARS", variant });
+    addItem({ id: itemId, productId: product.id, name: product.name, brand: product.brand, category: product.category, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.stockReal, promoPackQty: product.pack?.qty, promoPackUnitPrice: product.packPromoUnitPrice, offerMinQty: product.offerMinQty, offerUnitPrice: product.offerUnitPrice, offerAllowCoupons: product.offerAllowCoupons, offerMaxUnits: product.offerMaxUnits }, 1);
+    trackEcommerce("add_to_cart", { value: option.price, items: [{ item_id: product.id, item_name: product.name, item_brand: product.brand, item_category: product.category, item_variant: variant, price: option.price, quantity: 1 }] });
   };
 
-  return <motion.article className={`product-card ${detailCompact ? "is-detail-compact" : ""} ${!product.active ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
+  return <motion.article ref={cardRef} onClickCapture={() => { if (sponsorContext) trackPromotionClick(sponsorContext); }} className={`product-card ${detailCompact ? "is-detail-compact" : ""} ${!product.active ? "is-unavailable" : ""}`} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }}>
     <div className="product-media">
       <ProductImage product={product} eager={eager} linkToDetail={linkImageToDetail} preferHighQuality={detailCompact} offerExhausted={offerExhausted} />
       {!detailCompact ? remainingStock !== undefined ? <div className={`product-stock ${remainingStock <= 0 ? "is-empty" : ""}`}><span>Stock disponible:</span> <strong>{stockNumber.format(remainingStock)} unidades</strong></div> : <div className="product-stock is-unknown">Stock sin informar</div> : null}
     </div>
     <div className="product-content">
       {!detailCompact ? <><div className="product-copy">
-        <div className="eyebrow-row"><span>{product.brand}</span>{!product.active || exhausted ? <strong>Sin stock</strong> : null}</div>
+        <div className="eyebrow-row"><span>{product.brand}</span>{sponsor ? <strong>Patrocinado</strong> : !product.active || exhausted ? <strong>Sin stock</strong> : null}</div>
         <h3>{product.name}</h3>
         <p>{option.label}</p>
       </div>

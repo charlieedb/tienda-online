@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CatalogProvider, Category, Product } from "@/catalog/types";
 import { ProductCard } from "@/components/ProductCard";
+import { trackEcommerce, trackPageView } from "@/lib/analytics";
 import { Icon, WhatsAppIcon } from "@/components/Icons";
 import { NotificationBell } from "@/components/NotificationBell";
 import {
@@ -140,6 +141,8 @@ const staticPages: Record<
           pedidos, coordinar entregas y responder consultas. No vendemos
           información personal a terceros.
         </p>
+        <p>Con tu consentimiento usamos Google Analytics 4 para medir visitas, búsquedas, productos consultados y el embudo de compra. La categoría de publicidad mide impresiones, clics y compras atribuidas a campañas durante siete días. Nunca enviamos a Google tu nombre, correo, teléfono, dirección ni coordenadas.</p>
+        <p>Podés modificar o revocar tu elección desde “Preferencias de privacidad” al pie de la tienda.</p>
         <p>
           Podés solicitar la actualización o eliminación de tus datos
           contactando a Joma Group.
@@ -529,6 +532,17 @@ export function PublicRoutePage({
     () => state.categories.find((item) => item.id === categoryId),
     [categoryId, state.categories],
   );
+
+  useEffect(() => {
+    if (state.loading) return;
+    trackPageView(path);
+    if (state.product) {
+      const product = state.product;
+      trackEcommerce("view_item", { value: product.unit.price, items: [{ item_id: product.id, item_name: product.name, item_brand: product.brand, item_category: product.category, price: product.unit.price }] }, product.id);
+    } else if (state.products.length) {
+      trackEcommerce("view_item_list", { item_list_id: categoryId || "catalog", item_list_name: category?.name || "Catálogo", items: state.products.slice(0, 50).map((product, index) => ({ item_id: product.id, item_name: product.name, item_brand: product.brand, item_category: product.category, price: product.unit.price, index })) }, `${categoryId}:${state.products.map((product) => product.id).join("|")}`);
+    }
+  }, [category?.name, categoryId, path, state.loading, state.product, state.products]);
   useEffect(() => {
     if (knownStaticPage || state.loading) return;
     if (state.product)

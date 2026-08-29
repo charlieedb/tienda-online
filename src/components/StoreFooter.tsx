@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 import { navigateInStore } from "@/lib/seo";
+import { PrivacyPreferencesButton } from "@/components/ConsentPreferences";
 
 export type StoreInfoPageKey = "envios" | "locales" | "nosotros" | "contacto" | "privacidad";
 
@@ -22,6 +23,7 @@ export function StoreInfoFooter({ onSelect }: { onSelect?: (page: StoreInfoPageK
         if (onSelect) onSelect(page);
         else navigateInStore(`/?info=${page}`);
       }} key={page}>{label}</a>)}
+      <PrivacyPreferencesButton />
     </nav>
   </footer>;
 }

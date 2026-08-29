@@ -12,7 +12,7 @@ import { Icon } from "./Icons";
 import { CartPriceBreakdown } from "./CartPriceBreakdown";
 import { MapPickerModal } from "./MapPickerModal";
 import { CartExpiryCountdown } from "./CartExpiryGuard";
-import { trackEvent } from "@/lib/analytics";
+import { getCampaignAttribution, trackEcommerce } from "@/lib/analytics";
 import { getActiveCatalog, type Product } from "@/lib/products";
 import { calculateDiscount, validateDiscountCode } from "@/lib/discountCodes";
 
@@ -306,6 +306,11 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
         paymentMethod,
         checkoutSettings,
       });
+      const analyticsItems = items.map((item) => ({ item_id: item.productId, item_name: item.name, item_brand: item.brand, item_category: item.category, item_variant: item.variant, price: item.price, quantity: item.qty, discount: Math.max(0, Number(item.listPrice || item.price) - item.price) }));
+      trackEcommerce("add_shipping_info", { value: checkoutTotal, shipping_tier: `${selectedDeliveryDate.value}:${deliveryTimeRange}`, items: analyticsItems }, result.id);
+      trackEcommerce("add_payment_info", { value: checkoutTotal, payment_type: paymentMethod, items: analyticsItems }, result.id);
+      const attribution = getCampaignAttribution();
+      trackEcommerce("purchase", { transaction_id: result.id, value: checkoutTotal, coupon: verifiedCode?.code, shipping: checkoutSettings.freeShipping ? 0 : checkoutSettings.shippingCost, campaign_id: attribution?.campaignId, campaign_name: attribution?.campaignName, advertiser: attribution?.advertiser, attribution_type: attribution?.attributionType, items: analyticsItems.map((item) => attribution ? { ...item, promotion_id: attribution.campaignId, promotion_name: attribution.campaignName } : item) }, result.id);
       submitCompleteRef.current = true;
       setSubmitProgress(100);
       await new Promise((resolve) => window.setTimeout(resolve, 360));
@@ -332,10 +337,10 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
 
   return <>
     {sent ? <section className="order-success"><div className="success-check"><Icon name="check"/></div><h2>Pedido confirmado :)</h2><p>Nos comunicaremos con vos en breve, para coordinar la entrega y la forma de pago.<br/>Muchas gracias</p>{sentWarning ? <div className="checkout-error" role="status">{sentWarning}</div> : null}<button type="button" className="primary-action" onClick={() => window.location.reload()}>Volver al inicio</button></section> : <section className="cart-page">
-      <div className="section-heading cart-heading"><div><span>Tu compra</span><h2>Carrito</h2><CartExpiryCountdown /></div><button type="button" className="clear-button" onClick={clear}><Icon name="trash" /> Vaciar</button></div>
+      <div className="section-heading cart-heading"><div><span>Tu compra</span><h2>Carrito</h2><CartExpiryCountdown /></div><button type="button" className="clear-button" onClick={() => { items.forEach((item) => trackEcommerce("remove_from_cart", { value: item.price * item.qty, items: [{ item_id: item.productId, item_name: item.name, item_brand: item.brand, item_category: item.category, item_variant: item.variant, price: item.price, quantity: item.qty }] })); clear(); }}><Icon name="trash" /> Vaciar</button></div>
       <div className="cart-list"><AnimatePresence initial={false}>{items.map((item) => { const remaining = getRemainingStock(items, item.productId, item.stockLimit); const canAdd = remaining === undefined || remaining >= getCartItemUnits({ ...item, qty: 1 }); const pricing = pricingByItem.get(item.id)!; const couponEligibleSubtotal = Number(appliedCode?.eligibleSubtotalByItem?.[item.id] || 0); const couponApplies = couponEligibleSubtotal > 0; return <motion.article layout exit={{ opacity: 0, x: 24 }} key={item.id} className={`cart-item ${couponApplies ? "has-coupon-discount" : ""}`}>
         <div className="cart-item-copy"><strong>{item.name}</strong><span>{item.label}</span><CartPriceBreakdown item={item} pricing={pricing} couponPercentage={appliedCode?.percentage} couponEligibleSubtotal={couponEligibleSubtotal} formatMoney={(value) => money.format(value)} /></div>
-        <div className="cart-item-actions"><div className="stepper compact"><button type="button" onClick={() => decItem(item.id)} aria-label={`Disminuir ${item.name}`}><Icon name="minus" /></button><output>{item.qty}</output><button type="button" onClick={() => addItem({ id: item.id, productId: item.productId, name: item.name, variant: item.variant, label: item.label, price: item.price, listPrice: item.listPrice, discountPct: item.discountPct, unitPriceFinal: item.unitPriceFinal, unitsPerPack: item.unitsPerPack, stockLimit: item.stockLimit, promoPackQty: item.promoPackQty, promoPackUnitPrice: item.promoPackUnitPrice, offerMinQty: item.offerMinQty, offerUnitPrice: item.offerUnitPrice, offerAllowCoupons: item.offerAllowCoupons, offerMaxUnits: item.offerMaxUnits, offerUsedUnits: item.offerUsedUnits }, 1)} aria-label={`Aumentar ${item.name}`} disabled={!canAdd}><Icon name="plus" /></button></div><button className="remove-button" type="button" onClick={() => removeItem(item.id)}>Quitar</button></div>
+        <div className="cart-item-actions"><div className="stepper compact"><button type="button" onClick={() => { trackEcommerce("remove_from_cart", { value: item.price, items: [{ item_id: item.productId, item_name: item.name, item_brand: item.brand, item_category: item.category, item_variant: item.variant, price: item.price, quantity: 1 }] }); decItem(item.id); }} aria-label={`Disminuir ${item.name}`}><Icon name="minus" /></button><output>{item.qty}</output><button type="button" onClick={() => { addItem({ id: item.id, productId: item.productId, name: item.name, brand: item.brand, category: item.category, variant: item.variant, label: item.label, price: item.price, listPrice: item.listPrice, discountPct: item.discountPct, unitPriceFinal: item.unitPriceFinal, unitsPerPack: item.unitsPerPack, stockLimit: item.stockLimit, promoPackQty: item.promoPackQty, promoPackUnitPrice: item.promoPackUnitPrice, offerMinQty: item.offerMinQty, offerUnitPrice: item.offerUnitPrice, offerAllowCoupons: item.offerAllowCoupons, offerMaxUnits: item.offerMaxUnits, offerUsedUnits: item.offerUsedUnits }, 1); trackEcommerce("add_to_cart", { value: item.price, items: [{ item_id: item.productId, item_name: item.name, item_brand: item.brand, item_category: item.category, item_variant: item.variant, price: item.price, quantity: 1 }] }); }} aria-label={`Aumentar ${item.name}`} disabled={!canAdd}><Icon name="plus" /></button></div><button className="remove-button" type="button" onClick={() => { trackEcommerce("remove_from_cart", { value: item.price * item.qty, items: [{ item_id: item.productId, item_name: item.name, item_brand: item.brand, item_category: item.category, item_variant: item.variant, price: item.price, quantity: item.qty }] }); removeItem(item.id); }}>Quitar</button></div>
       </motion.article>; })}</AnimatePresence></div>
       <div className="cart-checkout-footer">
       <div className="cart-discount-area">
@@ -356,7 +361,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
         </div>
         <button type="button" className={`checkout-button ${user ? "" : "is-login"}`} disabled={!minimumCompleted} onClick={() => {
         if (!user && onRequireAuth) { onRequireAuth(); return; }
-        trackEvent("begin_checkout", { value: checkoutTotal, currency: "ARS", item_count: items.length });
+        trackEcommerce("begin_checkout", { value: checkoutTotal, coupon: appliedCode?.code, items: items.map((item) => ({ item_id: item.productId, item_name: item.name, item_brand: item.brand, item_category: item.category, item_variant: item.variant, price: item.price, quantity: item.qty })) }, `${items.map((item) => `${item.id}:${item.qty}`).join("|")}:${checkoutTotal}`);
         setError(""); setCheckoutOpen(true);
       }}>{minimumCompleted ? (user ? "Confirmar compra" : "Iniciar sesión para confirmar") : `Faltan ${money.format(minimumRemaining)}`}</button>
       </div>

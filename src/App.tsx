@@ -40,6 +40,7 @@ import {
 } from "@/lib/featuredProducts";
 import { calculateDiscount, validateDiscountCode } from "@/lib/discountCodes";
 import { getActiveCatalog, type Product as DiscountProduct } from "@/lib/products";
+import { trackEcommerce, trackEvent, trackPageView, trackPromotionClick, trackPromotionView, type PromotionContext } from "@/lib/analytics";
 
 type Tab = "home" | "categories" | "search" | "cart" | "profile" | "business" | "coupons" | "info";
 type InfoPage = StoreInfoPageKey;
@@ -165,6 +166,20 @@ function HeroCarousel({
   }, [slide, slideCount]);
 
   const current = slide === 0 ? null : (slides[slide - 1] ?? null);
+  const promotionContext: PromotionContext | null = current?.campaignId && current.campaignName && current.advertiser ? {
+    campaignId: current.campaignId,
+    campaignName: current.campaignName,
+    advertiser: current.advertiser,
+    creativeName: current.title || current.imageAlt || `Placa ${slide}`,
+    creativeSlot: `hero-carousel-${slide}`,
+  } : null;
+  useEffect(() => {
+    if (!current || !promotionContext) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if ((current.campaignStart && today < current.campaignStart) || (current.campaignEnd && today > current.campaignEnd)) return;
+    const timer = window.setTimeout(() => trackPromotionView(promotionContext), 1000);
+    return () => window.clearTimeout(timer);
+  }, [current, promotionContext?.campaignId, promotionContext?.creativeSlot]);
   const selectSlide = (nextSlide: number) => {
     setSlide((nextSlide + slideCount) % slideCount);
     setManualChange((value) => value + 1);
@@ -297,7 +312,7 @@ function HeroCarousel({
               <>
                 {current.buttonLabel && current.targetType !== "none" ? (
                   <div className={`hero-actions align-${current.buttonAlign}`}>
-                    <button type="button" onClick={() => onAction(current)}>
+                    <button type="button" onClick={() => { if (promotionContext) trackPromotionClick(promotionContext); onAction(current); }}>
                       {current.buttonLabel} <Icon name="arrow" />
                     </button>
                   </div>
@@ -428,6 +443,8 @@ function StoreInfoPage({
             pedidos, coordinar entregas y responder consultas. No vendemos
             información personal a terceros.
           </p>
+          <p>Con tu consentimiento usamos Google Analytics 4 para medir visitas, búsquedas, productos consultados y el embudo de compra. Si aceptás publicidad, también medimos impresiones, clics y compras atribuidas a campañas durante siete días. No enviamos a Google tu nombre, correo, teléfono, dirección ni coordenadas.</p>
+          <p>Podés aceptar, rechazar o modificar estas categorías en cualquier momento desde “Preferencias de privacidad” al pie de la tienda.</p>
           <p>
             Podés solicitar la actualización o eliminación de tus datos
             contactando a Joma Group.
@@ -817,6 +834,27 @@ function StoreApp({
       tab === "cart" || tab === "profile" || tab === "search",
     );
   }, [tab]);
+
+  useEffect(() => {
+    const path = tab === "home" ? "/" : `/?view=${tab}`;
+    trackPageView(path);
+    if (tab === "cart" && items.length) {
+      trackEcommerce("view_cart", { value: cartTotal, items: items.map((item) => ({ item_id: item.productId, item_name: item.name, item_brand: item.brand, item_category: item.category, item_variant: item.variant, price: item.price, quantity: item.qty })) }, `${items.map((item) => `${item.id}:${item.qty}`).join("|")}:${cartTotal}`);
+    }
+  }, [cartTotal, items, tab]);
+
+  useEffect(() => {
+    if (tab !== "home" || (!featured.length && !offers.length)) return;
+    const products = [...featured, ...offers].filter((product, index, all) => all.findIndex((item) => item.id === product.id) === index).slice(0, 30);
+    trackEcommerce("view_item_list", { item_list_id: "home", item_list_name: "Inicio", items: products.map((product, index) => ({ item_id: product.id, item_name: product.name, item_brand: product.brand, item_category: product.category, price: product.unit.price, index })) }, products.map((product) => product.id).join("|"));
+  }, [featured, offers, tab]);
+
+  useEffect(() => {
+    const cleanQuery = query.trim().replace(/\s+/g, " ").slice(0, 100);
+    if (tab !== "search" || cleanQuery.length < 2) return;
+    const timer = window.setTimeout(() => trackEvent("search", { search_term: cleanQuery }, { dedupeKey: cleanQuery.toLocaleLowerCase("es-AR") }), 800);
+    return () => window.clearTimeout(timer);
+  }, [query, tab]);
 
   const loadInitial = () => {
     const controller = new AbortController();

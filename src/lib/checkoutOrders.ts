@@ -8,6 +8,7 @@ import type { DeliverySelection } from "@/lib/deliverySchedule";
 import { calculateDiscount, type AppliedDiscountCode } from "@/lib/discountCodes";
 import { clearDailyOfferUsageCache, getDailyOfferUsage } from "@/lib/offerUsage";
 import type { CheckoutSettingsConfig } from "@/lib/featuredProducts";
+import { getCampaignAttribution } from "@/lib/analytics";
 
 type CheckoutCustomer = {
   nombre: string;
@@ -208,6 +209,7 @@ export async function submitCheckoutOrder(params: {
       free: freeShipping,
     },
     items,
+    campaignAttribution: getCampaignAttribution(),
     totals: {
       distinct: items.length,
       totalQty: metrics.totalUnits + metrics.totalBoxes,

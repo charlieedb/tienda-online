@@ -4,14 +4,16 @@ import { App } from "./App";
 import { AuthProvider } from "./auth/AuthProvider";
 import { AdminPedidosPage } from "./components/admin/AdminPedidosPage";
 import "./styles.css";
-import { initAnalytics, trackEvent } from "./lib/analytics";
+import { initAnalytics, trackPageView } from "./lib/analytics";
+import { ConsentPreferences } from "./components/ConsentPreferences";
 
 const isAdminPedidosRoute =
   window.location.pathname.replace(/\/+$/, "") === "/admin/pedidos";
 
 if (!isAdminPedidosRoute) {
   initAnalytics();
-  trackEvent("page_view", { page_path: window.location.pathname, page_title: document.title });
+  trackPageView(`${window.location.pathname}${window.location.search}`);
+  window.addEventListener("joma:consent-updated", () => trackPageView(`${window.location.pathname}${window.location.search}`), { once: true });
 }
 
 if (isAdminPedidosRoute) {
@@ -27,6 +29,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AuthProvider>
       {isAdminPedidosRoute ? <AdminPedidosPage /> : <App />}
+      {!isAdminPedidosRoute ? <ConsentPreferences /> : null}
     </AuthProvider>
   </StrictMode>,
 );

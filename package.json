@@ -10,7 +10,9 @@
     "lint": "eslint src/main.tsx src/App.tsx src/catalog src/auth/AuthProvider.tsx src/components/Icons.tsx src/components/ProductCard.tsx src/components/CartView.tsx src/components/ProfileView.tsx src/components/BusinessPage.tsx src/components/AuthWelcome.tsx src/store/cart.ts src/lib/appVersion.ts src/lib/firebase.ts src/lib/env.ts src/lib/userProfile.ts src/lib/productImages.ts src/lib/checkoutOrders.ts src/lib/telegramOrders.ts --max-warnings=0"
   },
   "dependencies": {
+    "@google-analytics/data": "^7.0.0",
     "firebase": "^12.13.0",
+    "firebase-admin": "^14.3.0",
     "framer-motion": "^12.40.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",

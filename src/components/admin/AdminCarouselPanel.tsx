@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { User } from "firebase/auth";
 import { createRemoteCatalog } from "@/catalog/remoteCatalog";
-import type { Category } from "@/catalog/types";
+import type { Category, Product } from "@/catalog/types";
 import { deleteCarouselPng, uploadCarouselPng } from "@/lib/carouselImages";
 import {
   getStoreCarouselSlides,
+  getFeaturedProductsConfig,
+  saveSponsoredProducts,
   saveStoreCarouselSlides,
   type CarouselTargetType,
   type CarouselButtonAlign,
   type StoreCarouselSlide,
+  type SponsoredProductCampaign,
 } from "@/lib/featuredProducts";
 
 function createSlide(): StoreCarouselSlide {
@@ -26,12 +29,19 @@ function createSlide(): StoreCarouselSlide {
     textPosition: "top-left",
     titleSize: "large",
     buttonAlign: "left",
+    campaignId: "",
+    campaignName: "",
+    advertiser: "",
+    campaignStart: "",
+    campaignEnd: "",
   };
 }
 
 export function AdminCarouselPanel({ user }: { user: User }) {
   const [slides, setSlides] = useState<StoreCarouselSlide[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [sponsoredProducts, setSponsoredProducts] = useState<SponsoredProductCampaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingKey, setUploadingKey] = useState("");
@@ -40,13 +50,18 @@ export function AdminCarouselPanel({ user }: { user: User }) {
 
   useEffect(() => {
     let active = true;
+    const catalog = createRemoteCatalog();
     Promise.all([
       getStoreCarouselSlides({ refresh: true }),
-      createRemoteCatalog().getManifest(),
-    ]).then(([storedSlides, manifest]) => {
+      catalog.getManifest(),
+      catalog.getAllProducts(),
+      getFeaturedProductsConfig(),
+    ]).then(([storedSlides, manifest, allProducts, config]) => {
       if (!active) return;
       setSlides(storedSlides);
       setCategories(manifest.categories);
+      setProducts(allProducts);
+      setSponsoredProducts(config.sponsoredProducts);
     }).catch((error) => {
       if (active) setMessage(error instanceof Error ? error.message : "No se pudo cargar el carrusel.");
     }).finally(() => {
@@ -116,6 +131,7 @@ export function AdminCarouselPanel({ user }: { user: User }) {
     setMessage("");
     try {
       await saveStoreCarouselSlides(slides, user.email || user.uid);
+      await saveSponsoredProducts(sponsoredProducts, user.email || user.uid);
       setMessage("Carrusel guardado. La tienda mostrará las placas en este orden.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No se pudo guardar el carrusel.");
@@ -204,6 +220,11 @@ export function AdminCarouselPanel({ user }: { user: User }) {
             </div>
 
             <div className="admin-carousel-fields">
+              <label><span>ID de campaña <em>Opcional</em></span><input className="admin-input" value={slide.campaignId} onChange={(event) => updateSlide(slide.id, { campaignId: event.target.value.replace(/[^a-zA-Z0-9_-]/g, "") })} placeholder="Ej: coca-verano-2026"/></label>
+              <label><span>Nombre de campaña</span><input className="admin-input" value={slide.campaignName} onChange={(event) => updateSlide(slide.id, { campaignName: event.target.value })} placeholder="Ej: Verano Coca-Cola"/></label>
+              <label><span>Marca / anunciante</span><input className="admin-input" value={slide.advertiser} onChange={(event) => updateSlide(slide.id, { advertiser: event.target.value })} placeholder="Ej: Coca-Cola"/></label>
+              <label><span>Inicio de campaña</span><input className="admin-input" type="date" value={slide.campaignStart} onChange={(event) => updateSlide(slide.id, { campaignStart: event.target.value })}/></label>
+              <label><span>Fin de campaña</span><input className="admin-input" type="date" value={slide.campaignEnd} onChange={(event) => updateSlide(slide.id, { campaignEnd: event.target.value })}/></label>
               <label><span>Texto del botón <em>Opcional</em></span><input className="admin-input" value={slide.buttonLabel} onChange={(event) => updateSlide(slide.id, { buttonLabel: event.target.value })} placeholder="Ej: Ver vinos"/></label>
               <label><span>Alineación del botón</span><select className="admin-input" value={slide.buttonAlign} onChange={(event) => updateSlide(slide.id, { buttonAlign: event.target.value as CarouselButtonAlign })}>
                 <option value="left">Izquierda</option>
@@ -231,6 +252,10 @@ export function AdminCarouselPanel({ user }: { user: User }) {
             {saving ? "Guardando..." : "Guardar carrusel"}
           </button>
         </div>
+        <section className="admin-card mt-5">
+          <div className="admin-card__head"><div><div className="admin-kicker">Publicidad</div><h2 className="admin-section-title">Productos patrocinados</h2><p>Asociá productos a una campaña para medir impresiones, clics y compras atribuidas.</p></div><button type="button" className="btn primary" onClick={() => { const product = products.find((item) => !sponsoredProducts.some((entry) => entry.productId === item.id)); if (product) setSponsoredProducts((current) => [...current, { productId: product.id, campaignId: "", campaignName: "", advertiser: product.brand || "", campaignStart: "", campaignEnd: "" }]); }} disabled={sponsoredProducts.length >= products.length}>+ Producto patrocinado</button></div>
+          <div className="admin-card__body"><div className="admin-carousel-list">{sponsoredProducts.map((entry, index) => <article className="admin-carousel-item" key={`${entry.productId}-${index}`}><div className="admin-carousel-fields"><label><span>Producto</span><select className="admin-input" value={entry.productId} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, productId: event.target.value } : item))}>{products.map((product) => <option value={product.id} key={product.id}>{product.name} · {product.id}</option>)}</select></label><label><span>ID de campaña</span><input className="admin-input" value={entry.campaignId} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, campaignId: event.target.value.replace(/[^a-zA-Z0-9_-]/g, "") } : item))}/></label><label><span>Nombre de campaña</span><input className="admin-input" value={entry.campaignName} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, campaignName: event.target.value } : item))}/></label><label><span>Marca / anunciante</span><input className="admin-input" value={entry.advertiser} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, advertiser: event.target.value } : item))}/></label><label><span>Inicio</span><input className="admin-input" type="date" value={entry.campaignStart} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, campaignStart: event.target.value } : item))}/></label><label><span>Fin</span><input className="admin-input" type="date" value={entry.campaignEnd} onChange={(event) => setSponsoredProducts((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, campaignEnd: event.target.value } : item))}/></label></div><button type="button" className="btn ofertas-danger" onClick={() => setSponsoredProducts((current) => current.filter((_, itemIndex) => itemIndex !== index))}>Quitar patrocinio</button></article>)}</div>{!sponsoredProducts.length ? <div className="admin-carousel-empty">Todavía no hay productos patrocinados.</div> : null}<div className="admin-carousel-save"><button type="button" className="btn success" onClick={() => void save()} disabled={saving || loading}>{saving ? "Guardando..." : "Guardar campañas"}</button></div></div>
+        </section>
       </div>
     </section>
   </div>;

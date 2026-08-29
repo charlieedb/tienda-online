@@ -22,6 +22,7 @@ import {
 } from "firebase/auth";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getAuthClient } from "@/lib/firebase";
+import { trackEvent } from "@/lib/analytics";
 import { preloadUserProfile } from "@/lib/userProfile";
 
 type AuthContextValue = {
@@ -81,7 +82,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInEmail: async (email, password) => {
         if (!auth) throw new Error("Firebase no está configurado.");
         await setPersistence(auth, browserLocalPersistence);
-        return signInWithEmailAndPassword(auth, email, password);
+        const credential = await signInWithEmailAndPassword(auth, email, password);
+        trackEvent("login", { method: "email" });
+        return credential;
       },
       signInEmailSession: async (email, password) => {
         if (!auth) throw new Error("Firebase no está configurado.");
@@ -138,7 +141,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signUpEmail: async (email, password) => {
         if (!auth) throw new Error("Firebase no está configurado.");
         await setPersistence(auth, browserLocalPersistence);
-        return createUserWithEmailAndPassword(auth, email, password);
+        const credential = await createUserWithEmailAndPassword(auth, email, password);
+        trackEvent("sign_up", { method: "email" });
+        return credential;
       },
       sendVerificationEmail: async (targetUser) => {
         await sendEmailVerification(targetUser);
@@ -149,6 +154,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const provider = new GoogleAuthProvider();
         try {
           await signInWithPopup(auth, provider);
+          trackEvent("login", { method: "google" });
         } catch {
           await signInWithRedirect(auth, provider);
         }

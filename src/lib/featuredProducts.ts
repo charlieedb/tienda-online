@@ -10,6 +10,16 @@ export type FeaturedProductsConfig = {
   carouselSlides: StoreCarouselSlide[];
   deliverySchedule: DeliveryScheduleConfig;
   checkoutSettings: CheckoutSettingsConfig;
+  sponsoredProducts: SponsoredProductCampaign[];
+};
+
+export type SponsoredProductCampaign = {
+  productId: string;
+  campaignId: string;
+  campaignName: string;
+  advertiser: string;
+  campaignStart: string;
+  campaignEnd: string;
 };
 
 export type CheckoutSettingsConfig = {
@@ -62,6 +72,11 @@ export type StoreCarouselSlide = {
   textPosition: CarouselTextPosition;
   titleSize: CarouselTitleSize;
   buttonAlign: CarouselButtonAlign;
+  campaignId: string;
+  campaignName: string;
+  advertiser: string;
+  campaignStart: string;
+  campaignEnd: string;
 };
 
 let cachedConfig: FeaturedProductsConfig | null = null;
@@ -74,6 +89,7 @@ function configFromSnapshot(snapshot: { exists(): boolean; data(): Record<string
     carouselSlides: normalizeCarouselSlides(snapshot.data()?.carouselSlides),
     deliverySchedule: normalizeDeliverySchedule(snapshot.data()?.deliverySchedule),
     checkoutSettings: normalizeCheckoutSettings(snapshot.data()?.checkoutSettings),
+    sponsoredProducts: normalizeSponsoredProducts(snapshot.data()?.sponsoredProducts),
   };
 }
 
@@ -91,6 +107,17 @@ function normalizeCheckoutSettings(value: unknown): CheckoutSettingsConfig {
 function normalizeIds(value: unknown) {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.map((item) => String(item ?? "").trim()).filter(Boolean))];
+}
+
+function normalizeSponsoredProducts(value: unknown): SponsoredProductCampaign[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 100).flatMap((entry) => {
+    const item = entry && typeof entry === "object" ? entry as Record<string, unknown> : {};
+    const productId = String(item.productId ?? "").trim();
+    const campaignId = String(item.campaignId ?? "").trim();
+    if (!productId || !campaignId) return [];
+    return [{ productId, campaignId, campaignName: String(item.campaignName ?? "").trim(), advertiser: String(item.advertiser ?? "").trim(), campaignStart: String(item.campaignStart ?? "").trim(), campaignEnd: String(item.campaignEnd ?? "").trim() }];
+  });
 }
 
 function normalizeDeliveryTime(value: unknown, fallback: string) {
@@ -143,6 +170,11 @@ function normalizeCarouselSlides(value: unknown): StoreCarouselSlide[] {
       ].includes(textPosition) ? textPosition : "top-left",
       titleSize: ["small", "medium", "large"].includes(titleSize) ? titleSize : "large",
       buttonAlign: ["left", "center", "right"].includes(buttonAlign) ? buttonAlign : "left",
+      campaignId: String(item.campaignId ?? "").trim(),
+      campaignName: String(item.campaignName ?? "").trim(),
+      advertiser: String(item.advertiser ?? "").trim(),
+      campaignStart: String(item.campaignStart ?? "").trim(),
+      campaignEnd: String(item.campaignEnd ?? "").trim(),
     };
   });
 }
@@ -157,6 +189,7 @@ function normalizeStoredConfig(value: unknown): FeaturedProductsConfig | null {
     carouselSlides: normalizeCarouselSlides(item.carouselSlides),
     deliverySchedule: normalizeDeliverySchedule(item.deliverySchedule),
     checkoutSettings: normalizeCheckoutSettings(item.checkoutSettings),
+    sponsoredProducts: normalizeSponsoredProducts(item.sponsoredProducts),
   };
 }
 
@@ -175,13 +208,13 @@ function storeValidConfig(config: FeaturedProductsConfig) {
   try {
     window.localStorage.setItem(STORE_CONFIG_CACHE_KEY, JSON.stringify(config));
   } catch {
-    // La configuraciÃ³n en memoria sigue disponible si el navegador bloquea localStorage.
+    // La configuración en memoria sigue disponible si el navegador bloquea localStorage.
   }
   return config;
 }
 
 function emptyConfig(): FeaturedProductsConfig {
-  return { ids: [], configured: false, carouselSlides: [], deliverySchedule: DEFAULT_DELIVERY_SCHEDULE, checkoutSettings: DEFAULT_CHECKOUT_SETTINGS };
+  return { ids: [], configured: false, carouselSlides: [], deliverySchedule: DEFAULT_DELIVERY_SCHEDULE, checkoutSettings: DEFAULT_CHECKOUT_SETTINGS, sponsoredProducts: [] };
 }
 
 export async function getFeaturedProductsConfig(options?: { refresh?: boolean }) {
@@ -231,6 +264,7 @@ export async function saveFeaturedProductIds(ids: string[], actor: string) {
     carouselSlides: cachedConfig?.carouselSlides ?? [],
     deliverySchedule: cachedConfig?.deliverySchedule ?? DEFAULT_DELIVERY_SCHEDULE,
     checkoutSettings: cachedConfig?.checkoutSettings ?? DEFAULT_CHECKOUT_SETTINGS,
+    sponsoredProducts: cachedConfig?.sponsoredProducts ?? [],
   };
   storeValidConfig(cachedConfig);
   return cachedConfig;
@@ -254,6 +288,7 @@ export async function saveCheckoutSettingsConfig(settings: CheckoutSettingsConfi
   const normalized = normalizeCheckoutSettings(settings);
   await setDoc(doc(db, STORE_CONFIG_PATH), {
     checkoutSettings: normalized,
+    sponsoredProducts: cachedConfig?.sponsoredProducts ?? [],
     checkoutSettingsUpdatedAt: serverTimestamp(),
     checkoutSettingsUpdatedBy: actor,
   }, { merge: true });
@@ -263,8 +298,9 @@ export async function saveCheckoutSettingsConfig(settings: CheckoutSettingsConfi
     carouselSlides: cachedConfig?.carouselSlides ?? [],
     deliverySchedule: cachedConfig?.deliverySchedule ?? DEFAULT_DELIVERY_SCHEDULE,
     checkoutSettings: normalized,
+    sponsoredProducts: cachedConfig?.sponsoredProducts ?? [],
   };
-  storeValidConfig(cachedConfig);
+  storeValidConfig(cachedConfig!);
   return normalized;
 }
 
@@ -275,6 +311,7 @@ export async function saveDeliveryScheduleConfig(schedule: DeliveryScheduleConfi
   await setDoc(doc(db, STORE_CONFIG_PATH), {
     deliverySchedule: normalized,
     checkoutSettings: cachedConfig?.checkoutSettings ?? DEFAULT_CHECKOUT_SETTINGS,
+    sponsoredProducts: cachedConfig?.sponsoredProducts ?? [],
     deliveryScheduleUpdatedAt: serverTimestamp(),
     deliveryScheduleUpdatedBy: actor,
   }, { merge: true });
@@ -284,7 +321,26 @@ export async function saveDeliveryScheduleConfig(schedule: DeliveryScheduleConfi
     carouselSlides: cachedConfig?.carouselSlides ?? [],
     deliverySchedule: normalized,
     checkoutSettings: cachedConfig?.checkoutSettings ?? DEFAULT_CHECKOUT_SETTINGS,
+    sponsoredProducts: cachedConfig?.sponsoredProducts ?? [],
   };
+  storeValidConfig(cachedConfig!);
+  return normalized;
+}
+
+export function getSponsoredProductCampaign(productId: string) {
+  const campaign = cachedConfig?.sponsoredProducts.find((item) => item.productId === productId);
+  if (!campaign) return null;
+  const today = new Date().toISOString().slice(0, 10);
+  if ((campaign.campaignStart && today < campaign.campaignStart) || (campaign.campaignEnd && today > campaign.campaignEnd)) return null;
+  return campaign;
+}
+
+export async function saveSponsoredProducts(items: SponsoredProductCampaign[], actor: string) {
+  const db = getDb();
+  if (!db) throw new Error("Firebase no está configurado.");
+  const normalized = normalizeSponsoredProducts(items);
+  await setDoc(doc(db, STORE_CONFIG_PATH), { sponsoredProducts: normalized, sponsoredProductsUpdatedAt: serverTimestamp(), sponsoredProductsUpdatedBy: actor }, { merge: true });
+  cachedConfig = { ...(cachedConfig ?? emptyConfig()), configured: true, sponsoredProducts: normalized };
   storeValidConfig(cachedConfig);
   return normalized;
 }
@@ -304,7 +360,8 @@ export async function saveStoreCarouselSlides(slides: StoreCarouselSlide[], acto
     carouselSlides: normalized,
     deliverySchedule: cachedConfig?.deliverySchedule ?? DEFAULT_DELIVERY_SCHEDULE,
     checkoutSettings: cachedConfig?.checkoutSettings ?? DEFAULT_CHECKOUT_SETTINGS,
+    sponsoredProducts: cachedConfig?.sponsoredProducts ?? [],
   };
-  storeValidConfig(cachedConfig);
+  storeValidConfig(cachedConfig!);
   return normalized;
 }
