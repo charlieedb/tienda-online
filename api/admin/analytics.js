@@ -42,7 +42,12 @@ async function fetchAnalytics(startDate, endDate) {
   const [[overview], [events], [campaigns]] = await Promise.all([
     client.runReport({ property, dateRanges, metrics: ["activeUsers", "sessions", "screenPageViews", "newUsers", "engagedSessions", "purchaseRevenue"].map((name) => ({ name })) }),
     client.runReport({ property, dateRanges, dimensions: [{ name: "eventName" }], metrics: [{ name: "eventCount" }] }),
-    client.runReport({ property, dateRanges, dimensions: [{ name: "itemPromotionId" }, { name: "eventName" }, { name: "itemPromotionName" }, { name: "itemBrand" }], metrics: [{ name: "eventCount" }, { name: "purchaseRevenue" }] }),
+    client.runReport({
+      property,
+      dateRanges,
+      dimensions: [{ name: "itemPromotionId" }, { name: "itemPromotionName" }, { name: "itemBrand" }],
+      metrics: ["itemsViewedInPromotion", "itemsClickedInPromotion", "itemsPurchased", "itemRevenue"].map((name) => ({ name })),
+    }),
   ]);
   const metricValues = overview.rows?.[0]?.metricValues || [];
   const eventCounts = Object.fromEntries((events.rows || []).map((row) => [dimension(row, 0), number(row.metricValues?.[0])]));
@@ -50,12 +55,11 @@ async function fetchAnalytics(startDate, endDate) {
   for (const row of campaigns.rows || []) {
     const id = dimension(row, 0);
     if (!id || id === "(not set)") continue;
-    const current = campaignMap.get(id) || { id, name: dimension(row, 2), advertiser: dimension(row, 3), impressions: 0, clicks: 0, purchases: 0, revenue: 0 };
-    const event = dimension(row, 1);
-    const count = number(row.metricValues?.[0]);
-    if (event === "view_promotion") current.impressions += count;
-    if (event === "select_promotion") current.clicks += count;
-    if (event === "purchase") { current.purchases += count; current.revenue += number(row.metricValues?.[1]); }
+    const current = campaignMap.get(id) || { id, name: dimension(row, 1), advertiser: dimension(row, 2), impressions: 0, clicks: 0, purchases: 0, revenue: 0 };
+    current.impressions += number(row.metricValues?.[0]);
+    current.clicks += number(row.metricValues?.[1]);
+    current.purchases += number(row.metricValues?.[2]);
+    current.revenue += number(row.metricValues?.[3]);
     campaignMap.set(id, current);
   }
   const campaignsResult = Array.from(campaignMap.values()).map((item) => ({ ...item, ctr: item.impressions ? item.clicks / item.impressions : 0, conversion: item.clicks ? item.purchases / item.clicks : 0 })).sort((a, b) => b.impressions - a.impressions);
