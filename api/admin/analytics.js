@@ -1,24 +1,26 @@
 const { BetaAnalyticsDataClient } = require("@google-analytics/data");
-const admin = require("firebase-admin");
+const { cert, getApps, initializeApp } = require("firebase-admin/app");
+const { getAuth } = require("firebase-admin/auth");
+const { getFirestore } = require("firebase-admin/firestore");
 
 const cache = new Map();
 const CACHE_MS = 5 * 60 * 1000;
 
 function getAdminApp() {
-  if (admin.apps.length) return admin.app();
+  if (getApps().length) return getApps()[0];
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = String(process.env.FIREBASE_ADMIN_PRIVATE_KEY || "").replace(/\\n/g, "\n");
   if (!projectId || !clientEmail || !privateKey) throw new Error("Firebase Admin no está configurado.");
-  return admin.initializeApp({ credential: admin.credential.cert({ projectId, clientEmail, privateKey }) });
+  return initializeApp({ credential: cert({ projectId, clientEmail, privateKey }) });
 }
 
 async function requireAdmin(req) {
   const match = String(req.headers.authorization || "").match(/^Bearer\s+(.+)$/i);
   if (!match) throw Object.assign(new Error("Falta autenticación."), { status: 401 });
   const app = getAdminApp();
-  const decoded = await app.auth().verifyIdToken(match[1]);
-  const profile = await app.firestore().doc(`adminUsers/${decoded.uid}`).get();
+  const decoded = await getAuth(app).verifyIdToken(match[1]);
+  const profile = await getFirestore(app).doc(`adminUsers/${decoded.uid}`).get();
   if (!profile.exists || profile.data()?.active !== true) throw Object.assign(new Error("Acceso denegado."), { status: 403 });
   return decoded.uid;
 }
