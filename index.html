@@ -10,6 +10,21 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="description" content="Mayorista y tienda online de alimentos, bebidas, limpieza y productos de consumo diario en Corrientes Capital." />
     <meta name="robots" content="index,follow,max-image-preview:large" />
+    <script>
+      (function(w,d,l,id){
+        w[l]=w[l]||[];
+        var saved=null;
+        try { saved=JSON.parse(w.localStorage.getItem("joma.analyticsConsent.v1")||"null"); } catch (_) {}
+        function gtag(){w[l].push(arguments);}
+        var analytics=saved&&saved.analytics===true?"granted":"denied";
+        var advertising=saved&&saved.advertising===true?"granted":"denied";
+        gtag("consent","default",{analytics_storage:analytics,ad_storage:advertising,ad_user_data:advertising,ad_personalization:advertising,functionality_storage:"granted",security_storage:"granted",wait_for_update:500});
+        if(!/^GTM-[A-Z0-9]+$/i.test(id))return;
+        w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});
+        var first=d.getElementsByTagName("script")[0],script=d.createElement("script");
+        script.async=true;script.src="https://www.googletagmanager.com/gtm.js?id="+encodeURIComponent(id);script.setAttribute("data-joma-gtm",id);first.parentNode.insertBefore(script,first);
+      })(window,document,"dataLayer","%VITE_GTM_ID%");
+    </script>
     <meta property="og:locale" content="es_AR" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Joma Group | Mayorista y tienda online en Corrientes" />

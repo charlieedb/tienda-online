@@ -38,6 +38,8 @@ export function initAnalytics() {
   applyConsent(getConsentPreferences(), "default");
   const containerId = String(import.meta.env.VITE_GTM_ID ?? "").trim();
   if (gtmLoaded || !/^GTM-[A-Z0-9]+$/i.test(containerId)) return;
+  const existingScript = document.querySelector<HTMLScriptElement>(`script[data-joma-gtm="${containerId}"],script[src*="googletagmanager.com/gtm.js?id=${containerId}"]`);
+  if (existingScript) { gtmLoaded = true; return; }
   gtmLoaded = true;
   window.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
   const script = document.createElement("script");
