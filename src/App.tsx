@@ -36,6 +36,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import {
   getFeaturedProductsConfig,
   subscribeToStoreConfig,
+  type FeaturedProductsConfig,
   type StoreCarouselSlide,
 } from "@/lib/featuredProducts";
 import { calculateDiscount, validateDiscountCode } from "@/lib/discountCodes";
@@ -790,6 +791,8 @@ function StoreApp({
   const [carouselSlides, setCarouselSlides] = useState<StoreCarouselSlide[]>(
     [],
   );
+  const allProductsRef = useRef<Product[]>([]);
+  const latestStoreConfigRef = useRef<FeaturedProductsConfig | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialError, setInitialError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
@@ -906,9 +909,11 @@ function StoreApp({
           setManifest(nextManifest);
           setFeatured(featuredProducts);
           setOffers(offerProducts);
-          const activeSponsoredProducts = storeConfig.sponsoredProducts.filter((campaign) => isCampaignActive(campaign.campaignStart, campaign.campaignEnd)).map((campaign) => allProducts.find((product) => product.id === campaign.productId)).filter((product): product is Product => Boolean(product?.active));
+          allProductsRef.current = allProducts;
+          const effectiveStoreConfig = latestStoreConfigRef.current ?? storeConfig;
+          const activeSponsoredProducts = effectiveStoreConfig.sponsoredProducts.filter((campaign) => isCampaignActive(campaign.campaignStart, campaign.campaignEnd)).map((campaign) => allProducts.find((product) => product.id === campaign.productId)).filter((product): product is Product => Boolean(product?.active));
           setSponsoredProducts(activeSponsoredProducts);
-          setCarouselSlides(prioritizeCarouselSlides(storeConfig.carouselSlides));
+          setCarouselSlides(prioritizeCarouselSlides(effectiveStoreConfig.carouselSlides));
         },
       )
       .catch((error) => {
@@ -940,8 +945,15 @@ function StoreApp({
 
   useEffect(
     () =>
-      subscribeToStoreConfig(() => {
-        pendingStoreRefresh.current = true;
+      subscribeToStoreConfig((storeConfig, initial) => {
+        latestStoreConfigRef.current = storeConfig;
+        const allProducts = allProductsRef.current;
+        if (allProducts.length) {
+          const activeSponsoredProducts = storeConfig.sponsoredProducts.filter((campaign) => isCampaignActive(campaign.campaignStart, campaign.campaignEnd)).map((campaign) => allProducts.find((product) => product.id === campaign.productId)).filter((product): product is Product => Boolean(product?.active));
+          setSponsoredProducts(activeSponsoredProducts);
+          setCarouselSlides(prioritizeCarouselSlides(storeConfig.carouselSlides));
+        }
+        if (!initial) pendingStoreRefresh.current = true;
       }),
     [],
   );
