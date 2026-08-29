@@ -1,4 +1,4 @@
-import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 
 const STORE_CONFIG_PATH = "config/tiendaOnlineStore";
@@ -234,19 +234,6 @@ export async function getFeaturedProductsConfig(options?: { refresh?: boolean })
     });
 
   return pendingConfig;
-}
-
-export function subscribeToStoreConfig(onChange: (config: FeaturedProductsConfig, initial: boolean) => void) {
-  const db = getDb();
-  if (!db) return () => {};
-  let receivedInitialSnapshot = false;
-  return onSnapshot(doc(db, STORE_CONFIG_PATH), (snapshot) => {
-    const config = storeValidConfig(configFromSnapshot(snapshot));
-    onChange(config, !receivedInitialSnapshot);
-    receivedInitialSnapshot = true;
-  }, () => {
-    // Keep the last valid configuration when the realtime connection is unavailable.
-  });
 }
 
 export async function saveFeaturedProductIds(ids: string[], actor: string) {

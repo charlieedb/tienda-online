@@ -35,8 +35,6 @@ import { getDailyOfferUsage } from "@/lib/offerUsage";
 import { useAuth } from "@/auth/AuthProvider";
 import {
   getFeaturedProductsConfig,
-  subscribeToStoreConfig,
-  type FeaturedProductsConfig,
   type StoreCarouselSlide,
 } from "@/lib/featuredProducts";
 import { calculateDiscount, validateDiscountCode } from "@/lib/discountCodes";
@@ -791,8 +789,6 @@ function StoreApp({
   const [carouselSlides, setCarouselSlides] = useState<StoreCarouselSlide[]>(
     [],
   );
-  const allProductsRef = useRef<Product[]>([]);
-  const latestStoreConfigRef = useRef<FeaturedProductsConfig | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialError, setInitialError] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
@@ -896,7 +892,7 @@ function StoreApp({
       catalog.getFeaturedProducts(controller.signal),
       catalog.getOfferProducts(controller.signal),
       catalog.getAllProducts(controller.signal),
-      getFeaturedProductsConfig(),
+      getFeaturedProductsConfig({ refresh: true }),
     ])
       .then(
         ([
@@ -909,11 +905,9 @@ function StoreApp({
           setManifest(nextManifest);
           setFeatured(featuredProducts);
           setOffers(offerProducts);
-          allProductsRef.current = allProducts;
-          const effectiveStoreConfig = latestStoreConfigRef.current ?? storeConfig;
-          const activeSponsoredProducts = effectiveStoreConfig.sponsoredProducts.filter((campaign) => isCampaignActive(campaign.campaignStart, campaign.campaignEnd)).map((campaign) => allProducts.find((product) => product.id === campaign.productId)).filter((product): product is Product => Boolean(product?.active));
+          const activeSponsoredProducts = storeConfig.sponsoredProducts.filter((campaign) => isCampaignActive(campaign.campaignStart, campaign.campaignEnd)).map((campaign) => allProducts.find((product) => product.id === campaign.productId)).filter((product): product is Product => Boolean(product?.active));
           setSponsoredProducts(activeSponsoredProducts);
-          setCarouselSlides(prioritizeCarouselSlides(effectiveStoreConfig.carouselSlides));
+          setCarouselSlides(prioritizeCarouselSlides(storeConfig.carouselSlides));
         },
       )
       .catch((error) => {
@@ -942,21 +936,6 @@ function StoreApp({
     setTab("categories");
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [initialCategoryId, manifest]);
-
-  useEffect(
-    () =>
-      subscribeToStoreConfig((storeConfig, initial) => {
-        latestStoreConfigRef.current = storeConfig;
-        const allProducts = allProductsRef.current;
-        if (allProducts.length) {
-          const activeSponsoredProducts = storeConfig.sponsoredProducts.filter((campaign) => isCampaignActive(campaign.campaignStart, campaign.campaignEnd)).map((campaign) => allProducts.find((product) => product.id === campaign.productId)).filter((product): product is Product => Boolean(product?.active));
-          setSponsoredProducts(activeSponsoredProducts);
-          setCarouselSlides(prioritizeCarouselSlides(storeConfig.carouselSlides));
-        }
-        if (!initial) pendingStoreRefresh.current = true;
-      }),
-    [],
-  );
 
   useEffect(() => {
     const checkForUpdates = catalog.checkForUpdates;
