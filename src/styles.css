@@ -517,8 +517,7 @@ main.has-mini-cart { padding-bottom: 72px; }
 .product-list { display: grid; gap: 11px; }
 .product-stock-divider { width: 100%; padding: 5px 10px; border-radius: 8px; background: #e2e2e2; color: #f00000; text-align: center; font-size: 12px; font-weight: 900; letter-spacing: .045em; text-transform: uppercase; }
 .product-card { min-height: 184px; display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 13px; padding: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 23px; box-shadow: 0 8px 26px rgba(71, 56, 42, .055); overflow: hidden; }
-.home-sponsored-section { margin-bottom: 8px; }
-.home-sponsored-section .section-heading > div > span { color: #327696; }
+.home-sponsored-section { margin-bottom: 18px; }
 .product-card.is-sponsored { border-color: #79b8d4; background: #f8fcfe; box-shadow: 0 3px 8px rgba(40, 116, 151, .12); }
 .product-card.is-sponsored .eyebrow-row strong { min-height: 20px; display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 8px; color: #155f7d; -webkit-text-fill-color: #155f7d; background: #dff2fa; font-size: 9px; letter-spacing: .035em; }
 .hero-sponsored-label { position: absolute; z-index: 4; top: 0; right: 0; min-height: 24px; display: inline-flex; align-items: center; border: 1px solid rgba(255,255,255,.72); border-radius: 999px; padding: 4px 9px; color: #124e68; background: rgba(236,248,253,.94); font-size: 9px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; }

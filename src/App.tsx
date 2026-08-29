@@ -1510,8 +1510,7 @@ function StoreApp({
                   onCombos={openCombos}
                   onAction={openCarouselDestination}
                 />
-                {sponsoredProducts.length ? <section className="home-sponsored-section">
-                  <div className="section-heading"><div><span>Selección publicitaria</span><h2>Patrocinados</h2></div></div>
+                {sponsoredProducts.length ? <section className="home-sponsored-section" aria-label="Productos patrocinados">
                   <ProductList products={sponsoredProducts} eagerCount={Math.min(sponsoredProducts.length, 4)} />
                 </section> : null}
                 <section>
