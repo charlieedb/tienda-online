@@ -23,7 +23,7 @@ export function MyCouponsPage({ onLogin, onUse }: { onLogin: () => void; onUse: 
     {!user ? <div className="empty-state"><Icon name="ticket"/><h2>Ingresá para ver tus cupones</h2><p>Los beneficios están asociados a tu cuenta.</p><button className="primary-action" onClick={onLogin}>Iniciar sesión</button></div>
       : loading ? <div className="coupons-loading"><span/><p>Cargando tus beneficios…</p></div>
       : error ? <div className="empty-state"><h2>No pudimos cargarlos</h2><p>{error}</p></div>
-      : items.length ? <div className="coupon-list">{items.map((coupon) => <article className="coupon-card" key={coupon.code}><div className="coupon-card__value"><strong>{coupon.percentage}%</strong><span>OFF</span></div><div className="coupon-card__copy"><span>Cupón personal</span><h2>{coupon.code}</h2><p>Un solo uso · Sin vencimiento</p></div><button type="button" onClick={() => onUse(coupon.code)}>Usar cupón <Icon name="arrow"/></button></article>)}</div>
+      : items.length ? <div className="coupon-list">{items.map((coupon) => <article className="coupon-card" key={coupon.code}><div className="coupon-card__value"><strong>{coupon.percentage}%</strong><span>OFF</span></div><div className="coupon-card__copy"><span>Cupón personal</span><h2>{coupon.code}</h2><p>Un solo uso · {coupon.validUntil ? `Válido hasta el ${coupon.validUntil.split("-").reverse().join("/")}` : "Sin vencimiento"}</p></div><button type="button" onClick={() => onUse(coupon.code)}>Usar cupón <Icon name="arrow"/></button></article>)}</div>
       : <div className="empty-state"><div className="coupon-empty-icon" aria-hidden="true"><Icon name="ticket"/></div><h2>No tenés cupones vigentes</h2><p>Cuando recibas un beneficio personal, va a aparecer acá.</p></div>}
   </section>;
 }

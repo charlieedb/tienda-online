@@ -21,7 +21,7 @@ export type DiscountCode = {
   usageCount: number;
   audience?: "all" | "business";
   perUserLimit?: number;
-  source?: "manual" | "notification" | "business_welcome";
+  source?: "manual" | "notification" | "business_welcome" | "customer_welcome";
   campaignId?: string;
   ownerUid?: string;
   ownerUsername?: string;
@@ -101,7 +101,7 @@ function normalizeCodes(value: unknown): DiscountCode[] {
       usageCount: Math.max(0, Math.trunc(Number(item.usageCount) || 0)),
       audience: item.audience === "business" ? "business" : "all",
       perUserLimit: Math.max(0, Math.trunc(Number(item.perUserLimit) || 0)),
-      source: item.source === "notification" ? "notification" : item.source === "business_welcome" ? "business_welcome" : "manual",
+      source: item.source === "notification" ? "notification" : item.source === "business_welcome" ? "business_welcome" : item.source === "customer_welcome" ? "customer_welcome" : "manual",
       campaignId: String(item.campaignId ?? "").trim(),
       ownerUid: String(item.ownerUid ?? "").trim(),
       ownerUsername: String(item.ownerUsername ?? "").trim(),
