@@ -463,7 +463,7 @@ function StoreInfoPage({
             pedidos, coordinar entregas y responder consultas. No vendemos
             información personal a terceros.
           </p>
-          <p>Con tu consentimiento usamos Google Analytics 4 para medir visitas, búsquedas, productos consultados y el embudo de compra. Si aceptás publicidad, también medimos impresiones, clics y compras atribuidas a campañas durante siete días. No enviamos a Google tu nombre, correo, teléfono, dirección ni coordenadas.</p>
+          <p>Con tu consentimiento usamos Google Analytics 4 para medir visitas, búsquedas, productos consultados y el embudo de compra. Si aceptás la medición de campañas, también medimos impresiones, clics y compras atribuidas a promociones durante siete días. No enviamos a Google tu nombre, correo, teléfono, dirección ni coordenadas.</p>
           <p>Podés aceptar, rechazar o modificar estas categorías en cualquier momento desde “Preferencias de privacidad” al pie de la tienda.</p>
           <p>
             Podés solicitar la actualización o eliminación de tus datos

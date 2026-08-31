@@ -141,7 +141,7 @@ const staticPages: Record<
           pedidos, coordinar entregas y responder consultas. No vendemos
           información personal a terceros.
         </p>
-        <p>Con tu consentimiento usamos Google Analytics 4 para medir visitas, búsquedas, productos consultados y el embudo de compra. La categoría de publicidad mide impresiones, clics y compras atribuidas a campañas durante siete días. Nunca enviamos a Google tu nombre, correo, teléfono, dirección ni coordenadas.</p>
+        <p>Con tu consentimiento usamos Google Analytics 4 para medir visitas, búsquedas, productos consultados y el embudo de compra. La medición de campañas registra impresiones, clics y compras atribuidas a promociones durante siete días. Nunca enviamos a Google tu nombre, correo, teléfono, dirección ni coordenadas.</p>
         <p>Podés modificar o revocar tu elección desde “Preferencias de privacidad” al pie de la tienda.</p>
         <p>
           Podés solicitar la actualización o eliminación de tus datos
