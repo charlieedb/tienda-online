@@ -13,6 +13,7 @@ type SourceRow = {
   sinStock?: boolean;
   stockReal?: number | null;
   publicarOnline?: boolean;
+  publicarOnlineManual?: boolean | null;
   Linea?: string | null;
   Nombre?: string | null;
   "Código"?: string | null;
@@ -127,8 +128,9 @@ function mapRowToProduct(row: SourceRow): Product | null {
   ]).filter(Boolean);
 
   const stockReal = toNumber(row.stockReal);
+  const manual = typeof row.publicarOnlineManual === "boolean" ? row.publicarOnlineManual : null;
   const tieneStockOnline = stockReal === null ? row.sinStock !== true : stockReal > 0;
-  const active = tieneStockOnline && row.publicarOnline !== false;
+  const active = manual ?? (row.publicarOnline !== false && tieneStockOnline);
 
   const bucket =
     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ||
