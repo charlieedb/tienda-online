@@ -95,7 +95,7 @@ function rememberAttribution(context: PromotionContext, attributionType: Campaig
 
 export function trackPromotionView(context: PromotionContext) {
   window.dataLayer?.push({ ecommerce: null });
-  const sent = trackEvent("view_promotion", { ecommerce: { campaign_id: context.campaignId, campaign_name: context.campaignName, advertiser: context.advertiser, creative_slot: context.creativeSlot, items: promotionItems(context) } }, { advertising: true, dedupeKey: `${context.campaignId}:${context.creativeSlot}` });
+  const sent = trackEvent("view_promotion", { ecommerce: { campaign_id: context.campaignId, campaign_name: context.campaignName, advertiser: context.advertiser, creative_slot: context.creativeSlot, items: promotionItems(context) } }, { advertising: true, dedupeKey: `${context.campaignId}:${context.creativeSlot}:${context.itemId || context.creativeName}` });
   if (sent) rememberAttribution(context, "impression");
 }
 

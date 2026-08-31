@@ -91,24 +91,57 @@ async function fetchAnalytics(startDate, endDate) {
     client.runReport({
       property,
       dateRanges,
-      dimensions: [{ name: "itemPromotionId" }, { name: "itemPromotionName" }, { name: "itemBrand" }],
+      dimensions: [
+        { name: "itemPromotionId" },
+        { name: "itemPromotionName" },
+        { name: "itemPromotionCreativeName" },
+        { name: "itemPromotionCreativeSlot" },
+        { name: "itemId" },
+        { name: "itemName" },
+        { name: "itemBrand" },
+      ],
       metrics: ["itemsViewedInPromotion", "itemsClickedInPromotion", "itemsPurchased", "itemRevenue"].map((name) => ({ name })),
     }),
   ]);
   const metricValues = overview.rows?.[0]?.metricValues || [];
   const eventCounts = Object.fromEntries((events.rows || []).map((row) => [dimension(row, 0), number(row.metricValues?.[0])]));
-  const campaignMap = new Map();
+  const promotionMap = new Map();
   for (const row of campaigns.rows || []) {
-    const id = dimension(row, 0);
-    if (!id || id === "(not set)") continue;
-    const current = campaignMap.get(id) || { id, name: dimension(row, 1), advertiser: dimension(row, 2), impressions: 0, clicks: 0, purchases: 0, revenue: 0 };
-    current.impressions += number(row.metricValues?.[0]);
-    current.clicks += number(row.metricValues?.[1]);
+    const campaignId = dimension(row, 0);
+    if (!campaignId || campaignId === "(not set)") continue;
+    const creativeName = dimension(row, 2);
+    const creativeSlot = dimension(row, 3);
+    const itemId = dimension(row, 4);
+    const itemName = dimension(row, 5);
+    const key = [campaignId, creativeSlot, creativeName || itemId].join(":");
+    const current = promotionMap.get(key) || {
+      key,
+      campaignId,
+      campaignName: dimension(row, 1),
+      creativeName: creativeName === "(not set)" ? "" : creativeName,
+      creativeSlot: creativeSlot === "(not set)" ? "" : creativeSlot,
+      itemId: itemId === "(not set)" ? "" : itemId,
+      itemName: itemName === "(not set)" ? "" : itemName,
+      advertiser: dimension(row, 6),
+      type: creativeSlot.startsWith("hero-carousel-") ? "banner" : "product",
+      impressions: 0,
+      clicks: 0,
+      purchases: 0,
+      revenue: 0,
+    };
+    const rowImpressions = number(row.metricValues?.[0]);
+    const rowClicks = number(row.metricValues?.[1]);
+    if ((rowImpressions || rowClicks) && itemId && itemId !== "(not set)") {
+      current.itemId = itemId;
+      current.itemName = itemName === "(not set)" ? current.itemName : itemName;
+    }
+    current.impressions += rowImpressions;
+    current.clicks += rowClicks;
     current.purchases += number(row.metricValues?.[2]);
     current.revenue += number(row.metricValues?.[3]);
-    campaignMap.set(id, current);
+    promotionMap.set(key, current);
   }
-  const campaignsResult = Array.from(campaignMap.values()).map((item) => ({ ...item, ctr: item.impressions ? item.clicks / item.impressions : 0, conversion: item.clicks ? item.purchases / item.clicks : 0 })).sort((a, b) => b.impressions - a.impressions);
+  const promotionsResult = Array.from(promotionMap.values()).map((item) => ({ ...item, ctr: item.impressions ? item.clicks / item.impressions : 0, conversion: item.clicks ? item.purchases / item.clicks : 0 })).sort((a, b) => b.impressions - a.impressions);
   const users = number(metricValues[0]);
   const purchases = Number(eventCounts.purchase || 0);
   const revenue = number(metricValues[5]);
@@ -116,7 +149,7 @@ async function fetchAnalytics(startDate, endDate) {
     range: { startDate, endDate },
     updatedAt: new Date().toISOString(),
     overview: { users, sessions: number(metricValues[1]), views: number(metricValues[2]), newUsers: number(metricValues[3]), engagedSessions: number(metricValues[4]), addToCarts: Number(eventCounts.add_to_cart || 0), checkouts: Number(eventCounts.begin_checkout || 0), purchases, revenue, conversion: users ? purchases / users : 0, averageOrderValue: purchases ? revenue / purchases : 0 },
-    campaigns: campaignsResult,
+    promotions: promotionsResult,
   };
 }
 
