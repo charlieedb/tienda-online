@@ -77,6 +77,44 @@ function dateValue(value, fallback) {
 function number(cell) { return Number(cell?.value || 0); }
 function dimension(row, index) { return String(row.dimensionValues?.[index]?.value || ""); }
 
+function emptyPromotion(values) {
+  return { ...values, impressions: 0, clicks: 0, purchases: 0, revenue: 0 };
+}
+
+function addConfiguredPromotions(promotionMap, storeConfig) {
+  const sponsoredProducts = Array.isArray(storeConfig?.sponsoredProducts) ? storeConfig.sponsoredProducts : [];
+  for (const entry of sponsoredProducts) {
+    const productId = String(entry?.productId || "").trim();
+    const campaignId = String(entry?.campaignId || "").trim();
+    if (!productId || !campaignId) continue;
+    const existing = Array.from(promotionMap.values()).find((item) => item.type === "product" && item.campaignId === campaignId && item.itemId === productId);
+    if (existing) {
+      existing.campaignName ||= String(entry?.campaignName || "").trim();
+      existing.advertiser ||= String(entry?.advertiser || "").trim();
+      continue;
+    }
+    const key = `configured:product:${campaignId}:${productId}`;
+    promotionMap.set(key, emptyPromotion({ key, campaignId, campaignName: String(entry?.campaignName || "").trim(), creativeName: "", creativeSlot: "sponsored-product", itemId: productId, itemName: "", advertiser: String(entry?.advertiser || "").trim(), type: "product" }));
+  }
+
+  const carouselSlides = Array.isArray(storeConfig?.carouselSlides) ? storeConfig.carouselSlides : [];
+  carouselSlides.forEach((entry, index) => {
+    const campaignId = String(entry?.campaignId || "").trim();
+    if (!campaignId) return;
+    const creativeName = String(entry?.title || entry?.imageAlt || `Placa ${index + 1}`).trim();
+    const creativeSlot = `hero-carousel-${index + 1}`;
+    const existing = Array.from(promotionMap.values()).find((item) => item.type === "banner" && item.campaignId === campaignId && (item.creativeSlot === creativeSlot || item.creativeName === creativeName));
+    if (existing) {
+      existing.campaignName ||= String(entry?.campaignName || "").trim();
+      existing.advertiser ||= String(entry?.advertiser || "").trim();
+      existing.creativeName ||= creativeName;
+      return;
+    }
+    const key = `configured:banner:${campaignId}:${String(entry?.id || index + 1)}`;
+    promotionMap.set(key, emptyPromotion({ key, campaignId, campaignName: String(entry?.campaignName || "").trim(), creativeName, creativeSlot, itemId: "", itemName: "", advertiser: String(entry?.advertiser || "").trim(), type: "banner" }));
+  });
+}
+
 async function fetchAnalytics(startDate, endDate) {
   const propertyId = String(process.env.GA4_PROPERTY_ID || "").replace(/^properties\//, "");
   const clientEmail = process.env.GA4_CLIENT_EMAIL || process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
@@ -85,7 +123,7 @@ async function fetchAnalytics(startDate, endDate) {
   const client = new BetaAnalyticsDataClient({ credentials: { client_email: clientEmail, private_key: privateKey } });
   const property = `properties/${propertyId}`;
   const dateRanges = [{ startDate, endDate }];
-  const [[overview], [events], [campaigns]] = await Promise.all([
+  const [[overview], [events], [campaigns], storeConfigSnapshot] = await Promise.all([
     client.runReport({ property, dateRanges, metrics: ["activeUsers", "sessions", "screenPageViews", "newUsers", "engagedSessions", "purchaseRevenue"].map((name) => ({ name })) }),
     client.runReport({ property, dateRanges, dimensions: [{ name: "eventName" }], metrics: [{ name: "eventCount" }] }),
     client.runReport({
@@ -102,6 +140,7 @@ async function fetchAnalytics(startDate, endDate) {
       ],
       metrics: ["itemsViewedInPromotion", "itemsClickedInPromotion", "itemsPurchased", "itemRevenue"].map((name) => ({ name })),
     }),
+    getFirestore(getAdminApp()).doc("config/tiendaOnlineStore").get(),
   ]);
   const metricValues = overview.rows?.[0]?.metricValues || [];
   const eventCounts = Object.fromEntries((events.rows || []).map((row) => [dimension(row, 0), number(row.metricValues?.[0])]));
@@ -141,6 +180,7 @@ async function fetchAnalytics(startDate, endDate) {
     current.revenue += number(row.metricValues?.[3]);
     promotionMap.set(key, current);
   }
+  addConfiguredPromotions(promotionMap, storeConfigSnapshot.data() || {});
   const promotionsResult = Array.from(promotionMap.values()).map((item) => ({ ...item, ctr: item.impressions ? item.clicks / item.impressions : 0, conversion: item.clicks ? item.purchases / item.clicks : 0 })).sort((a, b) => b.impressions - a.impressions);
   const users = number(metricValues[0]);
   const purchases = Number(eventCounts.purchase || 0);
