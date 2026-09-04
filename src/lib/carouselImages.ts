@@ -12,7 +12,7 @@ export async function uploadCarouselPng(file: File, slideId: string, viewport: "
   const imageRef = ref(getStorage(app), `tiendaOnline/carousel/${safeId}-${viewport}.png`);
   await uploadBytes(imageRef, file, {
     contentType: "image/png",
-    cacheControl: "public,max-age=300",
+    cacheControl: "public,max-age=86400",
   });
   return getDownloadURL(imageRef);
 }
