@@ -138,30 +138,39 @@ type CartState = {
   setItemQty: (id: string, qty: number) => void;
   decItem: (id: string) => void;
   removeItem: (id: string) => void;
-  setAppliedDiscountCode: (discountCode: CartDiscountCode | null) => void;
+  setAppliedDiscountCode: (discountCode: CartDiscountCode | null, cartActivity?: boolean) => void;
   clear: () => void;
   extendExpiry: () => void;
   resetSession: () => void;
   setDailyOfferUsage: (usage: Record<string, number>) => void;
 };
 
-function nextExpiry(previousItems: CartItem[], nextItems: CartItem[], currentExpiry: number | null) {
+function nextExpiry(nextItems: CartItem[], currentExpiry: number | null, cartActivity = false) {
   if (!nextItems.length) return null;
-  if (!previousItems.length || !currentExpiry) return Date.now() + CART_DURATION_MS;
+  if (cartActivity || !currentExpiry) return Date.now() + CART_DURATION_MS;
   return currentExpiry;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       open: false,
       items: [],
       appliedDiscountCode: null,
       expiresAt: null,
       dailyOfferUsage: {},
-      openCart: () => set({ open: true }),
-      closeCart: () => set({ open: false }),
-      toggleCart: () => set({ open: !get().open }),
+      openCart: () => set((state) => ({
+        open: true,
+        expiresAt: nextExpiry(state.items, state.expiresAt, true),
+      })),
+      closeCart: () => set((state) => ({
+        open: false,
+        expiresAt: nextExpiry(state.items, state.expiresAt, true),
+      })),
+      toggleCart: () => set((state) => ({
+        open: !state.open,
+        expiresAt: nextExpiry(state.items, state.expiresAt, true),
+      })),
       addItem: (item, qty = 1) =>
         set((state) => {
           item = {
@@ -181,14 +190,14 @@ export const useCartStore = create<CartState>()(
             );
             return {
               items,
-              expiresAt: nextExpiry(state.items, items, state.expiresAt),
+              expiresAt: nextExpiry(items, state.expiresAt, true),
               appliedDiscountCode: state.appliedDiscountCode,
             };
           }
           const items = [...state.items, { ...item, qty: allowedQty }];
           return {
             items,
-            expiresAt: nextExpiry(state.items, items, state.expiresAt),
+            expiresAt: nextExpiry(items, state.expiresAt, true),
           };
         }),
       setItemQty: (id, qty) =>
@@ -199,7 +208,7 @@ export const useCartStore = create<CartState>()(
             if (!items.length) clearPendingCoupon();
             return {
               items,
-              expiresAt: nextExpiry(state.items, items, state.expiresAt),
+              expiresAt: nextExpiry(items, state.expiresAt, true),
               appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
             };
           }
@@ -216,7 +225,7 @@ export const useCartStore = create<CartState>()(
           const items = state.items.map((i) => (i.id === id ? { ...i, qty: boundedQty } : i));
           return {
             items,
-            expiresAt: nextExpiry(state.items, items, state.expiresAt),
+            expiresAt: nextExpiry(items, state.expiresAt, true),
           };
         }),
       decItem: (id) =>
@@ -228,7 +237,7 @@ export const useCartStore = create<CartState>()(
             if (!items.length) clearPendingCoupon();
             return {
               items,
-              expiresAt: nextExpiry(state.items, items, state.expiresAt),
+              expiresAt: nextExpiry(items, state.expiresAt, true),
               appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
             };
           }
@@ -237,7 +246,7 @@ export const useCartStore = create<CartState>()(
           );
           return {
             items,
-            expiresAt: nextExpiry(state.items, items, state.expiresAt),
+            expiresAt: nextExpiry(items, state.expiresAt, true),
           };
         }),
       removeItem: (id) =>
@@ -246,11 +255,15 @@ export const useCartStore = create<CartState>()(
           if (!items.length) clearPendingCoupon();
           return {
             items,
-            expiresAt: nextExpiry(state.items, items, state.expiresAt),
+            expiresAt: nextExpiry(items, state.expiresAt, true),
             appliedDiscountCode: items.length ? state.appliedDiscountCode : null,
           };
         }),
-      setAppliedDiscountCode: (appliedDiscountCode) => set({ appliedDiscountCode }),
+      setAppliedDiscountCode: (appliedDiscountCode, cartActivity = true) =>
+        set((state) => ({
+          appliedDiscountCode,
+          expiresAt: nextExpiry(state.items, state.expiresAt, cartActivity),
+        })),
       clear: () => {
         clearPendingCoupon();
         set({ items: [], expiresAt: null, appliedDiscountCode: null });
@@ -304,6 +317,6 @@ export function clearPersistedCart() {
 if (typeof window !== "undefined") {
   window.addEventListener("pagehide", () => {
     clearPendingCoupon();
-    useCartStore.getState().setAppliedDiscountCode(null);
+    useCartStore.getState().setAppliedDiscountCode(null, false);
   });
 }
