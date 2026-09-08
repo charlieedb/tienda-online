@@ -6,6 +6,16 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+const NOTIFICATION_CACHE = "joma-notifications";
+const PENDING_NOTIFICATION_OPEN = "/__joma_notification_open__";
+
+async function rememberNotificationTarget(url) {
+  const cache = await caches.open(NOTIFICATION_CACHE);
+  await cache.put(PENDING_NOTIFICATION_OPEN, new Response(JSON.stringify({ url, createdAt: Date.now() }), {
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+  }));
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try { payload = event.data?.json() || {}; } catch { payload = { notification: { body: event.data?.text() || "" } }; }
@@ -65,7 +75,9 @@ self.addEventListener("notificationclick", (event) => {
   target.searchParams.set("jomaPush", `${Date.now()}`);
   const targetUrl = target.href;
   event.waitUntil((async () => {
-    // La URL única fuerza una navegación completa sin sumar una descarga previa.
+    // iOS puede reactivar una PWA suspendida sin completar client.navigate().
+    // Persistimos el destino y también lo enviamos por mensaje para cubrir ambos estados.
+    await rememberNotificationTarget(targetUrl);
     const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     const existing = clients.find((client) => new URL(client.url).origin === self.location.origin);
     if (!existing) {
@@ -73,9 +85,8 @@ self.addEventListener("notificationclick", (event) => {
       return;
     }
     try {
-      const navigated = await existing.navigate(targetUrl);
-      if (navigated) await navigated.focus();
-      else await self.clients.openWindow(targetUrl);
+      await existing.focus();
+      existing.postMessage({ type: "JOMA_NOTIFICATION_OPEN", url: targetUrl });
     } catch {
       await self.clients.openWindow(targetUrl);
     }

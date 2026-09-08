@@ -1819,15 +1819,47 @@ export function App() {
   }, []);
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    const openNotificationTarget = (event: MessageEvent) => {
-      if (event.data?.type !== "JOMA_NOTIFICATION_OPEN" || typeof event.data.url !== "string") return;
-      const target = new URL(event.data.url, window.location.origin);
+    let active = true;
+    const pendingTargetKey = "/__joma_notification_open__";
+    const openNotificationUrl = async (url: string) => {
+      const target = new URL(url, window.location.origin);
       if (target.origin !== window.location.origin) return;
       target.searchParams.set("jomaPush", `${Date.now()}`);
-      window.location.replace(target.href);
+      try {
+        const cache = await caches.open("joma-notifications");
+        await cache.delete(pendingTargetKey);
+      } catch { /* El mensaje directo sigue siendo suficiente. */ }
+      if (active) window.location.replace(target.href);
     };
+    const consumePendingNotification = async () => {
+      if (!("caches" in window) || document.visibilityState === "hidden") return;
+      try {
+        const cache = await caches.open("joma-notifications");
+        const response = await cache.match(pendingTargetKey);
+        if (!response) return;
+        const pending = await response.json() as { url?: unknown; createdAt?: unknown };
+        await cache.delete(pendingTargetKey);
+        const createdAt = Number(pending.createdAt || 0);
+        if (typeof pending.url === "string" && (!createdAt || Date.now() - createdAt < 5 * 60_000)) {
+          await openNotificationUrl(pending.url);
+        }
+      } catch { /* iOS puede limitar Cache Storage mientras reactiva la PWA. */ }
+    };
+    const openNotificationTarget = (event: MessageEvent) => {
+      if (event.data?.type !== "JOMA_NOTIFICATION_OPEN" || typeof event.data.url !== "string") return;
+      void openNotificationUrl(event.data.url);
+    };
+    const resumeNotificationTarget = () => void consumePendingNotification();
     navigator.serviceWorker.addEventListener("message", openNotificationTarget);
-    return () => navigator.serviceWorker.removeEventListener("message", openNotificationTarget);
+    window.addEventListener("pageshow", resumeNotificationTarget);
+    document.addEventListener("visibilitychange", resumeNotificationTarget);
+    void consumePendingNotification();
+    return () => {
+      active = false;
+      navigator.serviceWorker.removeEventListener("message", openNotificationTarget);
+      window.removeEventListener("pageshow", resumeNotificationTarget);
+      document.removeEventListener("visibilitychange", resumeNotificationTarget);
+    };
   }, []);
   const currentUrl = new URL(location, window.location.origin);
   const path = currentUrl.pathname.replace(/\/+$/, "") || "/";

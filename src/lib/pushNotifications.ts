@@ -1,6 +1,7 @@
 import type { User } from "firebase/auth";
 import { getMessaging, getToken, isSupported } from "firebase/messaging";
 import { getFirebaseApp } from "@/lib/firebase";
+import { APP_VERSION } from "@/lib/appVersion";
 
 const REGISTER_PUSH_URL = "https://us-central1-app-presu.cloudfunctions.net/registerTiendaPushDevice";
 
@@ -27,7 +28,11 @@ async function registerPushDevice(user: User) {
   const app = getFirebaseApp();
   const vapidKey = String(import.meta.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "").trim();
   if (!app || !vapidKey) throw new Error("Las notificaciones todavía no están configuradas.");
-  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" });
+  const registration = await navigator.serviceWorker.register(`/firebase-messaging-sw.js?v=${APP_VERSION}`, {
+    scope: "/",
+    updateViaCache: "none",
+  });
+  await registration.update().catch(() => undefined);
   const token = await getToken(getMessaging(app), { vapidKey, serviceWorkerRegistration: registration });
   if (!token) throw new Error("No se pudo registrar este dispositivo.");
   const idToken = await user.getIdToken();
