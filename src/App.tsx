@@ -1822,8 +1822,8 @@ export function App() {
     let active = true;
     const pendingTargetKey = "/__joma_notification_open__";
     const openNotificationUrl = async (url: string) => {
-      const target = new URL(url, window.location.origin);
-      if (target.origin !== window.location.origin) return;
+      const incoming = new URL(url, window.location.origin);
+      const target = new URL(`${incoming.pathname}${incoming.search}${incoming.hash}`, window.location.origin);
       target.searchParams.set("jomaPush", `${Date.now()}`);
       try {
         const cache = await caches.open("joma-notifications");

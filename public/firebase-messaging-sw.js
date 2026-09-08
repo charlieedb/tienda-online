@@ -16,6 +16,11 @@ async function rememberNotificationTarget(url) {
   }));
 }
 
+function notificationUrlForCurrentOrigin(value) {
+  const incoming = new URL(value || "/", self.location.origin);
+  return new URL(`${incoming.pathname}${incoming.search}${incoming.hash}`, self.location.origin);
+}
+
 self.addEventListener("push", (event) => {
   let payload = {};
   try { payload = event.data?.json() || {}; } catch { payload = { notification: { body: event.data?.text() || "" } }; }
@@ -71,7 +76,7 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const target = new URL(event.notification.data?.url || "/", self.location.origin);
+  const target = notificationUrlForCurrentOrigin(event.notification.data?.url);
   target.searchParams.set("jomaPush", `${Date.now()}`);
   const targetUrl = target.href;
   event.waitUntil((async () => {
