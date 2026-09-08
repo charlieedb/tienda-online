@@ -355,9 +355,9 @@ main.has-mini-cart { padding-bottom: 72px; }
 .hero-card.has-custom-image::before { display: none; }
 .hero-card.has-custom-image .hero-custom-picture { position: relative; inset: auto; }
 .hero-card.has-custom-image .hero-custom-picture img { width: 100%; height: auto; display: block; object-fit: initial; }
-.hero-card.has-custom-image .hero-custom-picture.is-actionable { cursor: pointer; }
+.hero-card.has-custom-image .hero-custom-picture.is-actionable { pointer-events: auto; cursor: pointer; }
 .hero-card.has-custom-image .hero-custom-picture.is-actionable:focus-visible { outline: 3px solid #fff; outline-offset: -5px; }
-.hero-card.has-custom-image .hero-carousel-stage { position: absolute; inset: 24px 24px 52px; height: auto; min-height: 0; }
+.hero-card.has-custom-image .hero-carousel-stage { position: absolute; inset: 24px 24px 52px; height: auto; min-height: 0; pointer-events: none; }
 .hero-card.has-custom-image .hero-carousel-slide { height: 100%; min-height: 0; }
 .hero-card.has-custom-image .hero-carousel-controls { position: absolute; right: 0; bottom: 18px; left: 0; padding-inline: 24px; }
 .hero-card.has-custom-image > .hero-carousel-dots { position: absolute; right: 0; bottom: 18px; left: 0; padding-inline: 24px; }
