@@ -229,7 +229,7 @@ function HeroCarousel({
 
   return (
     <section
-      className={`hero-card ${current ? "has-custom-slide" : "hero-slide-default"}`}
+      className={`hero-card ${current ? "has-custom-slide" : "hero-slide-default"} ${current && (current.mobileImageUrl || current.desktopImageUrl) ? "has-custom-image" : ""}`}
       aria-roledescription="carrusel"
       aria-label="Novedades de JOMA Express"
       onMouseEnter={() => setPaused(true)}
@@ -268,7 +268,7 @@ function HeroCarousel({
           setPaused(false);
       }}
     >
-      <AnimatePresence initial={false}>
+      <AnimatePresence initial={false} mode="popLayout">
         {current && (current.mobileImageUrl || current.desktopImageUrl) ? (
           <motion.picture
             className="hero-custom-picture"

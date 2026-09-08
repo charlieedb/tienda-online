@@ -159,7 +159,7 @@ export function AdminCarouselPanel({ user }: { user: User }) {
             <div className="admin-carousel-upload-grid">
               <div className="admin-carousel-upload">
                 <span>PNG para móvil</span>
-                <small>Medida exacta: 720 × 420 px, máximo 4 MB. No se recorta.</small>
+                <small>Base de diseño: 720 × 420 px, máximo 4 MB. La altura se adapta al PNG.</small>
                 {slide.mobileImageUrl ? <img src={slide.mobileImageUrl} alt="" /> : <i>Vista móvil</i>}
                 <input id={`carousel-mobile-${slide.id}`} type="file" accept="image/png" disabled={Boolean(uploadingKey)} onChange={(event) => {
                   const file = event.target.files?.[0];
@@ -171,7 +171,7 @@ export function AdminCarouselPanel({ user }: { user: User }) {
               </div>
               <div className="admin-carousel-upload">
                 <span>PNG para PC</span>
-                <small>Medida exacta: 1440 × 420 px, máximo 4 MB. No se recorta.</small>
+                <small>Base de diseño: 1440 × 420 px, máximo 4 MB. La altura se adapta al PNG.</small>
                 {slide.desktopImageUrl ? <img src={slide.desktopImageUrl} alt="" /> : <i>Vista PC</i>}
                 <input id={`carousel-desktop-${slide.id}`} type="file" accept="image/png" disabled={Boolean(uploadingKey)} onChange={(event) => {
                   const file = event.target.files?.[0];
@@ -191,7 +191,7 @@ export function AdminCarouselPanel({ user }: { user: User }) {
                   <button type="button" className={previewModes[slide.id] === "desktop" ? "is-active" : ""} onClick={() => setPreviewModes((current) => ({ ...current, [slide.id]: "desktop" }))}>PC</button>
                 </div>
               </div>
-              <div className={`hero-card has-custom-slide admin-carousel-live-preview is-${previewModes[slide.id] ?? "mobile"}`}>
+              <div className={`hero-card has-custom-slide ${(slide.mobileImageUrl || slide.desktopImageUrl) ? "has-custom-image" : ""} admin-carousel-live-preview is-${previewModes[slide.id] ?? "mobile"}`}>
                 {slide.mobileImageUrl || slide.desktopImageUrl ? <picture className="hero-custom-picture">
                   <img
                     src={(previewModes[slide.id] ?? "mobile") === "desktop"

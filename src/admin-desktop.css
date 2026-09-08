@@ -927,6 +927,12 @@ body .admin-shell .admin-login-card {
   background: #d9231e;
 }
 
+.admin-carousel-upload img {
+  height: auto;
+  display: block;
+  background: transparent;
+}
+
 .admin-carousel-upload > i {
   display: grid;
   place-items: center;
@@ -1026,12 +1032,10 @@ body .admin-shell .admin-login-card {
 
 .admin-carousel-live-preview.is-mobile {
   max-width: 390px;
-  aspect-ratio: 12 / 7;
 }
 
 .admin-carousel-live-preview.is-desktop {
   max-width: 900px;
-  aspect-ratio: 24 / 7;
 }
 
 .admin-carousel-fields label {

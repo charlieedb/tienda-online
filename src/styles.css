@@ -350,11 +350,14 @@ main.has-mini-cart { padding-bottom: 72px; }
 .hero-promo-copy p { max-width: 30ch; margin: -3px 0 0; color: rgba(255,255,255,.88); font-size: 12px; line-height: 1.35; }
 .hero-custom-picture { position: absolute; z-index: 1; inset: -3px; display: block; pointer-events: none; }
 .hero-custom-picture img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
-.hero-card.has-custom-slide { height: auto; min-height: 0; aspect-ratio: 12 / 7; grid-template-rows: minmax(0, 1fr) 18px; }
-.hero-card.has-custom-slide .hero-custom-picture { inset: 0; }
-.hero-card.has-custom-slide .hero-custom-picture img { object-fit: contain; }
-.hero-card.has-custom-slide .hero-carousel-stage,
-.hero-card.has-custom-slide .hero-carousel-slide { height: auto; min-height: 0; }
+.hero-card.has-custom-image { height: auto; min-height: 0; display: block; padding: 0; background: transparent; }
+.hero-card.has-custom-image::before { display: none; }
+.hero-card.has-custom-image .hero-custom-picture { position: relative; inset: auto; }
+.hero-card.has-custom-image .hero-custom-picture img { width: 100%; height: auto; display: block; object-fit: initial; }
+.hero-card.has-custom-image .hero-carousel-stage { position: absolute; inset: 24px 24px 52px; height: auto; min-height: 0; }
+.hero-card.has-custom-image .hero-carousel-slide { height: 100%; min-height: 0; }
+.hero-card.has-custom-image .hero-carousel-controls { position: absolute; right: 24px; bottom: 14px; left: 24px; }
+.hero-card.has-custom-image > .hero-carousel-dots { position: absolute; right: 24px; bottom: 14px; left: 24px; }
 .hero-custom-copy { position: absolute; z-index: 2; width: max-content; max-width: 72%; margin: 0; }
 .hero-custom-copy h1 { white-space: pre-line; }
 .hero-custom-copy.title-small h1 { font-size: 24px; letter-spacing: -.035em; }
@@ -389,9 +392,6 @@ main.has-mini-cart { padding-bottom: 72px; }
   .hero-card .hero-carousel-arrow.is-previous svg { transform: rotate(180deg); }
 }
 
-@media (min-width: 700px) {
-  .hero-card.has-custom-slide { aspect-ratio: 24 / 7; }
-}
 .store-credit-shell { width: 100%; min-height: 44px; margin-top: 32px; margin-bottom: calc(-24px - env(safe-area-inset-bottom)); overflow: hidden; }
 .store-info-footer { width: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin: 34px 0 0; padding: 26px max(var(--gutter), calc((100vw - 1180px) / 2)); color: white; background: #c81b16; }
 .store-info-footer > div { max-width: 430px; }
