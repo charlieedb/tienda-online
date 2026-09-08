@@ -146,12 +146,10 @@ function LiveDateTime() {
 function HeroCarousel({
   slides,
   onCategories,
-  onCombos,
   onAction,
 }: {
   slides: StoreCarouselSlide[];
   onCategories: () => void;
-  onCombos: () => void;
   onAction: (slide: StoreCarouselSlide) => void;
 }) {
   const [slide, setSlide] = useState(0);
@@ -266,7 +264,7 @@ function HeroCarousel({
       onTouchStart={(event) => {
         if (
           (event.target as HTMLElement).closest(
-            "button, a, input, select, textarea",
+            ".hero-carousel-controls button, a, input, select, textarea",
           )
         )
           return;
@@ -356,18 +354,6 @@ function HeroCarousel({
                   <br />
                   <em>sin vueltas.</em>
                 </h1>
-                <div className="hero-actions">
-                  <button type="button" onClick={onCategories}>
-                    Ver categorías <Icon name="arrow" />
-                  </button>
-                  <button
-                    type="button"
-                    className="is-secondary"
-                    onClick={onCombos}
-                  >
-                    Ver combos <Icon name="arrow" />
-                  </button>
-                </div>
                 <LiveDateTime />
               </>
             ) : null}
@@ -379,6 +365,17 @@ function HeroCarousel({
           </motion.div>
         </AnimatePresence>
       </div>
+      {!current ? (
+        <button
+          type="button"
+          className="hero-system-action"
+          aria-label="Ver todas las categorías"
+          onClick={() => {
+            if (Date.now() < ignoreCarouselClickUntil.current) return;
+            onCategories();
+          }}
+        />
+      ) : null}
       <div className="hero-carousel-controls">
         {slideCount > 1 && showDesktopArrows ? (
           <button
@@ -1546,7 +1543,6 @@ function StoreApp({
                 <HeroCarousel
                   slides={carouselSlides}
                   onCategories={() => goTo("categories")}
-                  onCombos={openCombos}
                   onAction={openCarouselDestination}
                 />
                 {sponsoredProducts.length ? <section className="home-sponsored-section" aria-label="Productos patrocinados">
