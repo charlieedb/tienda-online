@@ -52,7 +52,7 @@ const carouselImageCache = new Map<string, HTMLImageElement>();
 
 function isCampaignActive(start: string, end: string) {
   const today = new Date().toISOString().slice(0, 10);
-  return Boolean(start && end && start <= today && end >= today);
+  return (!start || start <= today) && (!end || end >= today);
 }
 
 function prioritizeCarouselSlides(slides: StoreCarouselSlide[]) {
@@ -825,6 +825,8 @@ function StoreApp({
   );
   const [initialLoading, setInitialLoading] = useState(true);
   const [initialError, setInitialError] = useState("");
+  const [pullDistance, setPullDistance] = useState(0);
+  const [pullRefreshing, setPullRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
   );
@@ -876,6 +878,7 @@ function StoreApp({
   const pendingCategoryScroll = useRef<number | null>(null);
   const initialCategoryApplied = useRef(false);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const pullStart = useRef<{ x: number; y: number } | null>(null);
   const items = useCartStore((state) => state.items);
   const itemCount = useMemo(
     () => items.reduce((sum, item) => sum + item.qty, 0),
@@ -921,7 +924,7 @@ function StoreApp({
     return () => window.clearTimeout(timer);
   }, [query, tab]);
 
-  const loadInitial = () => {
+  const loadInitial = (onSettled?: () => void) => {
     const controller = new AbortController();
     setInitialLoading(true);
     setInitialError("");
@@ -956,9 +959,61 @@ function StoreApp({
       })
       .finally(() => {
         if (!controller.signal.aborted) setInitialLoading(false);
+        onSettled?.();
       });
     return controller;
   };
+
+  const refreshHomeFromServer = async () => {
+    if (pullRefreshing) return;
+    setPullRefreshing(true);
+    setPullDistance(72);
+    try {
+      await catalog.checkForUpdates?.();
+    } catch {
+      /* loadInitial conserva la caché disponible si falla la verificación. */
+    }
+    loadInitial(() => {
+      setPullRefreshing(false);
+      setPullDistance(0);
+    });
+  };
+
+  useEffect(() => {
+    if (tab !== "home") return;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (pullRefreshing || window.scrollY > 1 || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      pullStart.current = { x: touch.clientX, y: touch.clientY };
+    };
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!pullStart.current || event.touches.length !== 1 || window.scrollY > 1) return;
+      const touch = event.touches[0];
+      const deltaY = touch.clientY - pullStart.current.y;
+      const deltaX = Math.abs(touch.clientX - pullStart.current.x);
+      if (deltaY <= 0 || deltaX > deltaY) return;
+      const resistedDistance = Math.min(92, Math.round(deltaY * .46));
+      setPullDistance(resistedDistance);
+      if (resistedDistance > 8) event.preventDefault();
+    };
+    const handleTouchEnd = () => {
+      pullStart.current = null;
+      if (pullDistance >= 64) void refreshHomeFromServer();
+      else setPullDistance(0);
+    };
+
+    window.addEventListener("touchstart", handleTouchStart, { passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", handleTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", handleTouchStart);
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [catalog, pullDistance, pullRefreshing, tab]);
 
   useEffect(() => {
     const controller = loadInitial();
@@ -1522,7 +1577,17 @@ function StoreApp({
         </AnimatePresence>
       </div>
 
-      <div className={`desktop-layout ${tab === "cart" ? "is-cart-view" : ""} ${tab === "business" ? "is-business-view" : ""}`}>
+      <div
+        className={`store-pull-refresh ${pullRefreshing ? "is-refreshing" : ""} ${pullDistance >= 64 ? "is-ready" : ""}`}
+        style={{ "--pull-distance": `${pullDistance}px` } as React.CSSProperties}
+        role="status"
+        aria-live="polite"
+      >
+        <span className="store-pull-refresh__icon" aria-hidden="true">↻</span>
+        <span>{pullRefreshing ? "Actualizando tienda…" : pullDistance >= 64 ? "Soltá para actualizar" : "Arrastrá para actualizar"}</span>
+      </div>
+
+      <div className={`desktop-layout ${tab === "cart" ? "is-cart-view" : ""} ${tab === "business" ? "is-business-view" : ""}`} style={tab === "home" && pullDistance ? { transform: `translateY(${pullDistance}px)` } : undefined}>
         <DesktopCategoryRail
           categories={manifest?.categories ?? []}
           selectedCategory={selectedCategory}
