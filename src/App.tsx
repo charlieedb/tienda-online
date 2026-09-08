@@ -158,6 +158,7 @@ function HeroCarousel({
   const [paused, setPaused] = useState(false);
   const [manualChange, setManualChange] = useState(0);
   const [showDesktopArrows, setShowDesktopArrows] = useState(false);
+  const [referenceAspectRatio, setReferenceAspectRatio] = useState(12 / 7);
   const reduceMotion = useReducedMotion();
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
   const slideCount = slides.length + 1;
@@ -216,6 +217,32 @@ function HeroCarousel({
   }, [slides]);
 
   useEffect(() => {
+    let active = true;
+    const desktopMedia = window.matchMedia("(min-width: 700px)");
+    const updateReferenceRatio = () => {
+      const desktop = desktopMedia.matches;
+      const referenceUrl = slides
+        .map((item) => desktop ? item.desktopImageUrl || item.mobileImageUrl : item.mobileImageUrl || item.desktopImageUrl)
+        .find(Boolean);
+      setReferenceAspectRatio(desktop ? 24 / 7 : 12 / 7);
+      if (!referenceUrl) return;
+      const image = new Image();
+      image.onload = () => {
+        if (active && image.naturalWidth && image.naturalHeight) {
+          setReferenceAspectRatio(image.naturalWidth / image.naturalHeight);
+        }
+      };
+      image.src = referenceUrl;
+    };
+    updateReferenceRatio();
+    desktopMedia.addEventListener("change", updateReferenceRatio);
+    return () => {
+      active = false;
+      desktopMedia.removeEventListener("change", updateReferenceRatio);
+    };
+  }, [slides]);
+
+  useEffect(() => {
     const controlsMedia = window.matchMedia(
       "(min-width: 700px) and (hover: hover) and (pointer: fine)",
     );
@@ -229,7 +256,8 @@ function HeroCarousel({
 
   return (
     <section
-      className={`hero-card ${current ? "has-custom-slide" : "hero-slide-default"} ${current && (current.mobileImageUrl || current.desktopImageUrl) ? "has-custom-image" : ""}`}
+      className={`hero-card has-reference-ratio ${current ? "has-custom-slide" : "hero-slide-default"} ${current && (current.mobileImageUrl || current.desktopImageUrl) ? "has-custom-image" : ""}`}
+      style={{ aspectRatio: referenceAspectRatio }}
       aria-roledescription="carrusel"
       aria-label="Novedades de JOMA Express"
       onMouseEnter={() => setPaused(true)}
