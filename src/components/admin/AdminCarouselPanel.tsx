@@ -7,7 +7,6 @@ import {
   getStoreCarouselSlides,
   saveStoreCarouselSlides,
   type CarouselTargetType,
-  type CarouselButtonAlign,
   type StoreCarouselSlide,
 } from "@/lib/featuredProducts";
 
@@ -185,7 +184,7 @@ export function AdminCarouselPanel({ user }: { user: User }) {
 
             <div className="admin-carousel-preview-block">
               <div className="admin-carousel-preview-toolbar">
-                <div><strong>Vista previa en tiempo real</strong><span>Usa el mismo tamaño y recorte de la tienda.</span></div>
+                <div><strong>Vista previa en tiempo real</strong><span>La placa completa ejecutará la acción configurada al tocarla.</span></div>
                 <div>
                   <button type="button" className={(previewModes[slide.id] ?? "mobile") === "mobile" ? "is-active" : ""} onClick={() => setPreviewModes((current) => ({ ...current, [slide.id]: "mobile" }))}>Móvil</button>
                   <button type="button" className={previewModes[slide.id] === "desktop" ? "is-active" : ""} onClick={() => setPreviewModes((current) => ({ ...current, [slide.id]: "desktop" }))}>PC</button>
@@ -201,23 +200,16 @@ export function AdminCarouselPanel({ user }: { user: User }) {
                   />
                 </picture> : null}
                 <div className="hero-carousel-stage">
-                  <div className="hero-carousel-slide">
-                    {slide.buttonLabel && slide.targetType !== "none" ? <div className={`hero-actions align-${slide.buttonAlign}`}><button type="button">{slide.buttonLabel} →</button></div> : null}
-                  </div>
+                  <div className="hero-carousel-slide" />
                 </div>
                 <div className="hero-carousel-dots" aria-hidden="true"/>
               </div>
             </div>
 
             <div className="admin-carousel-fields">
-              <label><span>Texto del botón <em>Opcional</em></span><input className="admin-input" value={slide.buttonLabel} onChange={(event) => updateSlide(slide.id, { buttonLabel: event.target.value })} placeholder="Ej: Ver vinos"/></label>
-              <label><span>Alineación del botón</span><select className="admin-input" value={slide.buttonAlign} onChange={(event) => updateSlide(slide.id, { buttonAlign: event.target.value as CarouselButtonAlign })}>
-                <option value="left">Izquierda</option>
-                <option value="center">Centro</option>
-                <option value="right">Derecha</option>
-              </select></label>
-              <label><span>Destino del botón</span><select className="admin-input" value={slide.targetType} onChange={(event) => updateSlide(slide.id, { targetType: event.target.value as CarouselTargetType, targetValue: "" })}>
-                <option value="none">Sin botón / sin destino</option>
+              <label><span>Descripción de la acción <em>Opcional</em></span><input className="admin-input" value={slide.buttonLabel} onChange={(event) => updateSlide(slide.id, { buttonLabel: event.target.value })} placeholder="Ej: Ver vinos"/></label>
+              <label><span>Acción al tocar la imagen</span><select className="admin-input" value={slide.targetType} onChange={(event) => updateSlide(slide.id, { targetType: event.target.value as CarouselTargetType, targetValue: "" })}>
+                <option value="none">Sin acción</option>
                 <option value="categories">Todas las categorías</option>
                 <option value="category">Una categoría específica</option>
                 <option value="search">Una búsqueda</option>

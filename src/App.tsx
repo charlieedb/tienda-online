@@ -161,6 +161,7 @@ function HeroCarousel({
   const [referenceAspectRatio, setReferenceAspectRatio] = useState(12 / 7);
   const reduceMotion = useReducedMotion();
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
+  const ignoreCarouselClickUntil = useRef(0);
   const slideCount = slides.length + 1;
   const hasActiveSponsoredSlide = slides.some((item) => item.campaignId && isCampaignActive(item.campaignStart, item.campaignEnd));
   const initializedSponsoredStart = useRef(false);
@@ -284,6 +285,7 @@ function HeroCarousel({
           Math.abs(deltaX) <= Math.abs(deltaY) * 1.15
         )
           return;
+        ignoreCarouselClickUntil.current = Date.now() + 400;
         if (deltaX < 0) nextSlide();
         else previousSlide();
       }}
@@ -299,8 +301,22 @@ function HeroCarousel({
       <AnimatePresence initial={false} mode="popLayout">
         {current && (current.mobileImageUrl || current.desktopImageUrl) ? (
           <motion.picture
-            className="hero-custom-picture"
+            className={`hero-custom-picture ${current.targetType !== "none" ? "is-actionable" : ""}`}
             key={`hero-image-${slide}`}
+            role={current.targetType !== "none" ? "link" : undefined}
+            tabIndex={current.targetType !== "none" ? 0 : undefined}
+            aria-label={current.targetType !== "none" ? current.buttonLabel || current.imageAlt || "Abrir contenido de la placa" : undefined}
+            onClick={() => {
+              if (current.targetType === "none" || Date.now() < ignoreCarouselClickUntil.current) return;
+              if (promotionContext) trackPromotionClick(promotionContext);
+              onAction(current);
+            }}
+            onKeyDown={(event) => {
+              if (current.targetType === "none" || (event.key !== "Enter" && event.key !== " ")) return;
+              event.preventDefault();
+              if (promotionContext) trackPromotionClick(promotionContext);
+              onAction(current);
+            }}
             initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -358,13 +374,6 @@ function HeroCarousel({
             {current ? (
               <>
                 {currentIsSponsored ? <span className="hero-sponsored-label">Patrocinado</span> : null}
-                {current.buttonLabel && current.targetType !== "none" ? (
-                  <div className={`hero-actions align-${current.buttonAlign}`}>
-                    <button type="button" onClick={() => { if (promotionContext) trackPromotionClick(promotionContext); onAction(current); }}>
-                      {current.buttonLabel} <Icon name="arrow" />
-                    </button>
-                  </div>
-                ) : null}
               </>
             ) : null}
           </motion.div>
