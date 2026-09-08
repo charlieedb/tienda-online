@@ -72,10 +72,10 @@ function DashboardMetric({
   hint: string;
 }) {
   return (
-    <div className="rounded-[28px] border border-white/60 bg-white/78 px-4 py-4 shadow-[0_14px_30px_rgba(30,41,59,0.10)]">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-black/45">{label}</div>
-      <div className="mt-2 text-2xl font-semibold text-[#1d2538]">{value}</div>
-      <div className="mt-1 text-sm text-black/55">{hint}</div>
+    <div className="admin-metric">
+      <div className="admin-metric__label">{label}</div>
+      <div className="admin-metric__value">{value}</div>
+      <div className="admin-metric__hint">{hint}</div>
     </div>
   );
 }
@@ -109,6 +109,31 @@ function ButtonSpinner() {
   );
 }
 
+function AdminLoadingScreen({ label }: { label: string }) {
+  return (
+    <main className="admin-shell admin-shell--loading" aria-busy="true" aria-live="polite">
+      <section className="admin-loading-card">
+        <img src="/joma-express.png" alt="JOMA Express" width="776" height="329" />
+        <div className="admin-loading-card__pulse" aria-hidden="true"><span /><span /><span /></div>
+        <strong>{label}</strong>
+        <span>Esto puede tardar unos segundos.</span>
+      </section>
+    </main>
+  );
+}
+
+function OrdersSkeleton() {
+  return (
+    <div className="admin-orders-skeleton" aria-label="Cargando pedidos">
+      {Array.from({ length: 7 }, (_, index) => (
+        <div className="admin-orders-skeleton__row" key={index}>
+          <span /><span /><span /><span />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function AdminPedidosPage() {
   const { user, loading, signInUsernameSession, resetAdminPassword, signOut } = useAuth();
   const [adminSessionActive, setAdminSessionActive] = useState(false);
@@ -121,6 +146,7 @@ export function AdminPedidosPage() {
   const [savingStatus, setSavingStatus] = useState<OrderStatus | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [authError, setAuthError] = useState("");
+  const [authAction, setAuthAction] = useState<"login" | "reset" | null>(null);
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [adminView, setAdminView] = useState<"orders" | "customers" | "users" | "notifications" | "configuration" | "coupons" | "carousel" | "advertising" | "reports">("orders");
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
@@ -296,7 +322,9 @@ export function AdminPedidosPage() {
   }
 
   async function handleLogin() {
+    if (authAction) return;
     setAuthError("");
+    setAuthAction("login");
     try {
       await signInUsernameSession(loginForm.username.trim(), loginForm.password);
       if (typeof window !== "undefined") {
@@ -304,21 +332,27 @@ export function AdminPedidosPage() {
       }
       setAdminSessionActive(true);
     } catch (error) {
-      setAuthError(String((error as Error)?.message || error || "No se pudo iniciar sesion."));
+      setAuthError(String((error as Error)?.message || error || "No se pudo iniciar sesión."));
+    } finally {
+      setAuthAction(null);
     }
   }
 
   async function handlePasswordReset() {
+    if (authAction) return;
     setAuthError("");
     if (!loginForm.username.trim()) {
       setAuthError("Ingresá tu usuario para recuperar la contraseña.");
       return;
     }
+    setAuthAction("reset");
     try {
       await resetAdminPassword(loginForm.username.trim());
       setAuthError("Te enviamos un correo para restablecer la contraseña.");
     } catch (error) {
       setAuthError(String((error as Error)?.message || "No se pudo enviar el correo."));
+    } finally {
+      setAuthAction(null);
     }
   }
 
@@ -421,11 +455,7 @@ export function AdminPedidosPage() {
   }
 
   if (loading || checkingAdmin) {
-    return (
-      <main className="admin-shell">
-        <div className="admin-card p-6 text-sm font-medium text-black/65">Verificando acceso...</div>
-      </main>
-    );
+    return <AdminLoadingScreen label="Verificando acceso seguro" />;
   }
 
   if (!user || !adminSessionActive) {
@@ -455,7 +485,7 @@ export function AdminPedidosPage() {
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-sm font-semibold text-black/65">Contrasena</span>
+                <span className="text-sm font-semibold text-black/65">Contraseña</span>
                 <input
                   className="admin-input"
                   type="password"
@@ -471,11 +501,11 @@ export function AdminPedidosPage() {
             {authError ? <div className="admin-error">{authError}</div> : null}
             <div className="flex justify-end">
               <div className="admin-login-actions">
-                <button type="button" className="admin-forgot-password" onClick={() => void handlePasswordReset()}>
-                  Olvidé mi contraseña
+                <button type="button" className="admin-forgot-password" onClick={() => void handlePasswordReset()} disabled={Boolean(authAction)}>
+                  {authAction === "reset" ? <><ButtonSpinner /> Enviando enlace...</> : "Olvidé mi contraseña"}
                 </button>
-                <button type="button" className="btn primary min-w-40" onClick={() => void handleLogin()}>
-                  Ingresar
+                <button type="button" className="btn primary min-w-40" onClick={() => void handleLogin()} disabled={Boolean(authAction)}>
+                  {authAction === "login" ? <><ButtonSpinner /> Verificando...</> : "Ingresar al panel"}
                 </button>
               </div>
             </div>
@@ -492,7 +522,7 @@ export function AdminPedidosPage() {
           <div className="admin-card__head">
             <div>
               <div className="admin-kicker">Acceso denegado</div>
-              <h1 className="admin-title">Tu usuario no esta habilitado</h1>
+              <h1 className="admin-title">Tu usuario no está habilitado</h1>
               <p className="admin-subtitle">
                 Este panel solo admite admins cargados manualmente en la allowlist `adminUsers`.
               </p>
@@ -500,7 +530,7 @@ export function AdminPedidosPage() {
           </div>
           <div className="admin-card__body flex justify-end">
             <button type="button" className="btn ghost" onClick={() => void handleAdminSignOut()}>
-              Cerrar sesion
+              Cerrar sesión
             </button>
           </div>
         </section>
@@ -509,7 +539,11 @@ export function AdminPedidosPage() {
   }
 
   return (
-    <main className="admin-shell">
+    <main className={`admin-shell ${loadingData || savingOrderId ? "is-busy" : ""}`} aria-busy={loadingData || Boolean(savingOrderId)}>
+      <div className="admin-progress" aria-hidden="true"><span /></div>
+      <div className="admin-operation-status" role="status" aria-live="polite">
+        {savingOrderId ? `Procesando pedido: ${savingStatus ? statusLabel(savingStatus) : "actualizando"}` : loadingData ? "Sincronizando pedidos" : "Panel actualizado"}
+      </div>
       <div className="admin-topbar">
         <div className="admin-topbar-menu" ref={topMenuRef}>
           <button
@@ -554,8 +588,8 @@ export function AdminPedidosPage() {
 
       <aside className="admin-sidebar" aria-label="Navegación del administrador">
         <button type="button" className="admin-sidebar__brand" onClick={() => setAdminView("orders")}>
-          <span>JOMA</span>
-          <small>Panel de tienda</small>
+          <img src="/joma-express-white.png" alt="JOMA Express" width="776" height="329" />
+          <small>Centro de operaciones</small>
         </button>
         <nav className="admin-sidebar__nav">
           <button type="button" className={adminView === "customers" ? "is-active" : ""} onClick={() => setAdminView("customers")}><span aria-hidden="true">●</span><div><strong>Clientes</strong><small>Consumidores y comercios</small></div></button>
@@ -581,7 +615,7 @@ export function AdminPedidosPage() {
           <div className="admin-headline">
             <h1 className="admin-title">Todos los pedidos</h1>
           </div>
-          <div className="text-sm font-semibold text-white/65">{loadingData ? "Sincronizando..." : "En vivo"}</div>
+          <div className={`admin-live-status ${loadingData ? "is-loading" : ""}`}><span aria-hidden="true" />{loadingData ? "Sincronizando" : "Datos en vivo"}</div>
         </div>
         <div className="admin-card__body">
           <div className="grid gap-3 md:grid-cols-3">
@@ -614,7 +648,7 @@ export function AdminPedidosPage() {
               className="admin-input md:min-w-64"
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
-              placeholder="Buscar cliente, codigo o producto"
+              placeholder="Buscar cliente, código o producto"
             />
             <select
               className="admin-input"
@@ -634,7 +668,7 @@ export function AdminPedidosPage() {
               onChange={(event) => setDateFilter(event.target.value as "all" | "today" | "week")}
             >
               <option value="today">Hoy</option>
-              <option value="week">Ultimos 7 dias</option>
+              <option value="week">Últimos 7 días</option>
               <option value="all">Todo el historial</option>
             </select>
           </div>
@@ -644,7 +678,7 @@ export function AdminPedidosPage() {
           <div className={`admin-orders-layout ${selectedOrder ? "has-open-detail" : ""}`}>
             <div className="admin-list-column">
             <div className="admin-table-wrap">
-              <table className="admin-table">
+              {loadingData && !orders.length ? <OrdersSkeleton /> : <table className="admin-table">
                 <thead>
                   <tr>
                     <th>Fecha</th>
@@ -671,10 +705,12 @@ export function AdminPedidosPage() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
-              {!filteredOrders.length ? (
-                <div className="rounded-[24px] border border-dashed border-black/10 bg-white/60 p-5 text-sm text-black/55">
-                  No hay pedidos para los filtros actuales.
+              </table>}
+              {!loadingData && !filteredOrders.length ? (
+                <div className="admin-empty-state">
+                  <strong>No encontramos pedidos</strong>
+                  <span>Probá cambiando el período, el estado o el texto de búsqueda.</span>
+                  <button type="button" className="btn ghost" onClick={() => { setSearchText(""); setStatusFilter("all"); setDateFilter("today"); }}>Limpiar filtros</button>
                 </div>
               ) : null}
             </div>
@@ -729,12 +765,12 @@ export function AdminPedidosPage() {
                   <div>
                     <div className="admin-detail-label">Detalle del pedido</div>
                     <h3 className="text-xl font-semibold text-[#1d2538]">
-                      {selectedOrder ? selectedOrder.cliente.nombre || "Pedido sin nombre" : "Selecciona un pedido"}
+                      {selectedOrder ? selectedOrder.cliente.nombre || "Pedido sin nombre" : "Seleccioná un pedido"}
                     </h3>
                     <p className="mt-1 text-sm text-black/55">
                       {selectedOrder
                         ? `${selectedOrder.cliente.telefono || "Sin teléfono"} · ${selectedOrder.cliente.direccion || "Sin dirección"}`
-                        : "El panel lateral muestra articulos, remito y acciones."}
+                        : "El panel lateral muestra artículos, remito y acciones."}
                     </p>
                     <p className="mt-2 text-sm font-semibold text-[#394761]">
                       {selectedOrder.cliente.preventistaReferido
@@ -803,7 +839,7 @@ export function AdminPedidosPage() {
 
                     <div className="mt-5 grid gap-3 md:grid-cols-2">
                       <label className="space-y-2">
-                        <span className="text-sm font-semibold text-black/65">Numero de remito</span>
+                        <span className="text-sm font-semibold text-black/65">Número de remito</span>
                         <input
                           className="admin-input"
                           value={draft?.remito || ""}
@@ -999,7 +1035,7 @@ export function AdminPedidosPage() {
               hint="Promedio sobre todos los pedidos cargados."
             />
             <DashboardMetric
-              label="Facturacion"
+              label="Facturación"
               value={formatMoney(metrics.totalRevenue)}
               hint="Total acumulado del lote visible."
             />
@@ -1017,7 +1053,7 @@ export function AdminPedidosPage() {
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div className="rounded-[28px] border border-white/60 bg-white/78 p-5 shadow-[0_14px_30px_rgba(30,41,59,0.10)]">
-              <div className="admin-kicker">Mas vendidos</div>
+              <div className="admin-kicker">Más vendidos</div>
               <div className="mt-3 space-y-3">
                 {metrics.topProducts.map((product) => (
                   <div key={product.codigo} className="flex items-center justify-between gap-3 text-sm">
@@ -1031,13 +1067,13 @@ export function AdminPedidosPage() {
                   </div>
                 ))}
                 {!metrics.topProducts.length ? (
-                  <div className="text-sm text-black/48">Todavia no hay ventas suficientes.</div>
+                  <div className="text-sm text-black/48">Todavía no hay ventas suficientes.</div>
                 ) : null}
               </div>
             </div>
 
             <div className="rounded-[28px] border border-white/60 bg-white/78 p-5 shadow-[0_14px_30px_rgba(30,41,59,0.10)]">
-              <div className="admin-kicker">Mas buscados</div>
+              <div className="admin-kicker">Más buscados</div>
               <div className="mt-3 space-y-3">
                 {metrics.topSearches.map((entry) => (
                   <div key={entry.query} className="flex items-center justify-between gap-3 text-sm">
