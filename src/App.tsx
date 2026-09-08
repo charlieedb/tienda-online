@@ -838,7 +838,11 @@ function StoreApp({
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [settledSearchQuery, setSettledSearchQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+  const normalizedSearchQuery = query.trim().replace(/\s+/g, " ");
+  const searchPending = normalizedSearchQuery.length >= 2
+    && (searchLoading || settledSearchQuery !== normalizedSearchQuery);
   const regularFeatured = useMemo(() => featured.filter((product) => !sponsoredProducts.some((sponsored) => sponsored.id === product.id)), [featured, sponsoredProducts]);
 
   useEffect(() => {
@@ -1058,6 +1062,7 @@ function StoreApp({
     setSearchResults([]);
     setSearchLoading(false);
     setSearchError("");
+    setSettledSearchQuery("");
   }, [tab]);
 
   useEffect(() => {
@@ -1070,25 +1075,31 @@ function StoreApp({
   }, [menuOpen]);
 
   useEffect(() => {
-    const value = query.trim();
+    const value = normalizedSearchQuery;
     if (value.length < 2) {
       setSearchResults([]);
       setSearchLoading(false);
       setSearchError("");
+      setSettledSearchQuery("");
       return;
     }
     const controller = new AbortController();
+    setSearchLoading(true);
+    setSearchError("");
     const timer = window.setTimeout(() => {
-      setSearchLoading(true);
-      setSearchError("");
       catalog
         .searchProducts(value, controller.signal)
-        .then(setSearchResults)
+        .then((results) => {
+          setSearchResults(results);
+          setSettledSearchQuery(value);
+        })
         .catch((error) => {
-          if (!controller.signal.aborted)
+          if (!controller.signal.aborted) {
+            setSettledSearchQuery(value);
             setSearchError(
               error instanceof Error ? error.message : "Error inesperado.",
             );
+          }
         })
         .finally(() => {
           if (!controller.signal.aborted) setSearchLoading(false);
@@ -1675,6 +1686,12 @@ function StoreApp({
                           ),
                         )}
                       </div>
+                    </div>
+                  ) : searchPending ? (
+                    <div className="empty-state compact-empty search-pending-state" aria-live="polite">
+                      <span className="search-state-spinner" aria-hidden="true" />
+                      <h2>Buscando…</h2>
+                      <p>Estamos revisando los productos disponibles.</p>
                     </div>
                   ) : searchError ? (
                     <ErrorState

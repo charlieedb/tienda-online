@@ -1217,6 +1217,8 @@ main.has-mini-cart { padding-bottom: 72px; }
 .empty-state p { max-width: 32ch; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .empty-state .primary-action { width: auto; min-width: 180px; min-height: 48px; margin-top: 22px; padding: 0 18px; }
 .empty-inline { padding: 40px 20px; text-align: center; color: var(--muted); font-size: 13px; }
+.search-pending-state { min-height: 42dvh; }
+.search-state-spinner { width: 34px; height: 34px; border: 3px solid #eadbd5; border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; }
 .error-state { min-height: 260px; display: grid; place-content: center; justify-items: center; padding: 24px; text-align: center; }
 .error-state > svg { width: 32px; color: var(--brand); }
 .error-state h3 { margin: 13px 0 4px; font-size: 18px; }
