@@ -159,7 +159,7 @@ export function AdminCarouselPanel({ user }: { user: User }) {
             <div className="admin-carousel-upload-grid">
               <div className="admin-carousel-upload">
                 <span>PNG para móvil</span>
-                <small>Recomendado: 720 × 420 px, máximo 4 MB.</small>
+                <small>Medida exacta: 720 × 420 px, máximo 4 MB. No se recorta.</small>
                 {slide.mobileImageUrl ? <img src={slide.mobileImageUrl} alt="" /> : <i>Vista móvil</i>}
                 <input id={`carousel-mobile-${slide.id}`} type="file" accept="image/png" disabled={Boolean(uploadingKey)} onChange={(event) => {
                   const file = event.target.files?.[0];
@@ -171,7 +171,7 @@ export function AdminCarouselPanel({ user }: { user: User }) {
               </div>
               <div className="admin-carousel-upload">
                 <span>PNG para PC</span>
-                <small>Recomendado: 1440 × 420 px, máximo 4 MB.</small>
+                <small>Medida exacta: 1440 × 420 px, máximo 4 MB. No se recorta.</small>
                 {slide.desktopImageUrl ? <img src={slide.desktopImageUrl} alt="" /> : <i>Vista PC</i>}
                 <input id={`carousel-desktop-${slide.id}`} type="file" accept="image/png" disabled={Boolean(uploadingKey)} onChange={(event) => {
                   const file = event.target.files?.[0];
