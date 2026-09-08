@@ -1578,7 +1578,7 @@ function StoreApp({
       </div>
 
       <div
-        className={`store-pull-refresh ${pullRefreshing ? "is-refreshing" : ""} ${pullDistance >= 64 ? "is-ready" : ""}`}
+        className={`store-pull-refresh ${pullDistance > 8 ? "is-pulling" : ""} ${pullRefreshing ? "is-refreshing" : ""} ${pullDistance >= 64 ? "is-ready" : ""}`}
         style={{ "--pull-distance": `${pullDistance}px` } as React.CSSProperties}
         role="status"
         aria-live="polite"
