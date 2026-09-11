@@ -20,6 +20,7 @@ import {
   subscribeOrdersRealtime,
   rejectOrderAndRestoreStock,
   updateOrderWorkflow,
+  requestOrderDispatchEmail,
   type OrderStatus,
   type OrderRecord,
   type SearchEvent,
@@ -144,6 +145,7 @@ export function AdminPedidosPage() {
   const [loadingData, setLoadingData] = useState(false);
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
   const [savingStatus, setSavingStatus] = useState<OrderStatus | null>(null);
+  const [emailingOrderId, setEmailingOrderId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [authError, setAuthError] = useState("");
   const [authAction, setAuthAction] = useState<"login" | "reset" | null>(null);
@@ -432,6 +434,20 @@ export function AdminPedidosPage() {
       actor: user,
       remitoNumber: order.dispatch.remitoNumber || undefined,
     });
+  }
+
+  async function handleSendDispatchEmail(order: OrderRecord) {
+    if (!user || emailingOrderId) return;
+    const actorName = adminProfile?.name || user.email || user.uid.replace(/^adminop_/, "");
+    setActionError("");
+    setEmailingOrderId(order.id);
+    try {
+      await requestOrderDispatchEmail({ orderId: order.id, actor: actorName });
+    } catch (error) {
+      setActionError(String((error as Error)?.message || "No se pudo solicitar el envío del correo."));
+    } finally {
+      setEmailingOrderId(null);
+    }
   }
 
   async function handleRejectOrder(order: OrderRecord) {
@@ -882,6 +898,26 @@ export function AdminPedidosPage() {
                       </div>
                     ) : null}
 
+                    {selectedOrder.dispatchEmail ? (
+                      <div
+                        className={`admin-rejection-note ${selectedOrder.dispatchEmail.status === "sent" ? "border-emerald-200 bg-emerald-50" : ""}`}
+                        role="status"
+                      >
+                        <strong>
+                          {selectedOrder.dispatchEmail.status === "sent"
+                            ? "Correo de preparación enviado"
+                            : selectedOrder.dispatchEmail.status === "skipped"
+                              ? "Correo de preparación omitido"
+                              : "No se pudo enviar el correo de preparación"}
+                        </strong>
+                        <span>
+                          {selectedOrder.dispatchEmail.status === "sent"
+                            ? `Enviado a ${selectedOrder.dispatchEmail.recipient}.`
+                            : selectedOrder.dispatchEmail.reason || selectedOrder.dispatchEmail.error || "Revisá la configuración del servicio de correo."}
+                        </span>
+                      </div>
+                    ) : null}
+
                     <div className="admin-primary-actions">
                       {selectedOrder.status === "rejected" ? (
                         <div className="admin-actions-closed">Pedido rechazado</div>
@@ -923,6 +959,20 @@ export function AdminPedidosPage() {
                           disabled={savingOrderId === selectedOrder.id}
                         >
                           Rechazar
+                        </button>
+                      ) : null}
+                      {selectedOrder.status === "dispatched" || selectedOrder.status === "delivered" ? (
+                        <button
+                          type="button"
+                          className="btn ghost"
+                          onClick={() => void handleSendDispatchEmail(selectedOrder)}
+                          disabled={emailingOrderId === selectedOrder.id || savingOrderId === selectedOrder.id}
+                        >
+                          {emailingOrderId === selectedOrder.id
+                            ? "Solicitando envío..."
+                            : selectedOrder.dispatchEmail?.status === "sent"
+                              ? "Reenviar aviso por email"
+                              : "Enviar aviso por email"}
                         </button>
                       ) : null}
                       {selectedOrder.status !== "rejected" && selectedOrder.status !== "delivered" ? (

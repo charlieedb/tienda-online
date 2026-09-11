@@ -83,6 +83,13 @@ export type OrderRecord = {
     remitidoAtIso: string | null;
     observaciones: string;
   };
+  dispatchEmail?: {
+    status: "sent" | "failed" | "skipped" | "";
+    recipient: string;
+    sentAtIso: string;
+    error: string;
+    reason: string;
+  };
   metrics: {
     totalItems: number;
     totalUnits: number;
@@ -255,6 +262,17 @@ function mapOrder(
       remitidoAtIso: asString(data?.dispatch?.remitidoAtIso) || null,
       observaciones: asString(data?.dispatch?.observaciones),
     },
+    dispatchEmail: data?.dispatchEmail
+      ? {
+          status: (["sent", "failed", "skipped"].includes(asString(data.dispatchEmail.status))
+            ? asString(data.dispatchEmail.status)
+            : "") as "sent" | "failed" | "skipped" | "",
+          recipient: asString(data.dispatchEmail.recipient),
+          sentAtIso: asString(data.dispatchEmail.sentAtIso),
+          error: asString(data.dispatchEmail.error),
+          reason: asString(data.dispatchEmail.reason),
+        }
+      : undefined,
     metrics: {
       totalItems: asNumber(data?.metrics?.totalItems),
       totalUnits: asNumber(data?.metrics?.totalUnits),
@@ -446,6 +464,25 @@ export async function updateOrderWorkflow(params: {
       actor: params.actor,
       note: noteParts.join(" · ") || `Estado cambiado a ${statusHistoryLabel(params.status)}.`,
     }),
+  });
+}
+
+export async function requestOrderDispatchEmail(params: {
+  orderId: string;
+  actor: string;
+}) {
+  const db = getDb();
+  if (!db) throw new Error("Firebase no está configurado.");
+
+  const nowIso = new Date().toISOString();
+  const requestId = `${Date.now()}-${crypto.randomUUID()}`;
+  await updateDoc(doc(db, "orders", params.orderId), {
+    dispatchEmailRequest: {
+      requestId,
+      requestedAtIso: nowIso,
+      requestedAt: Timestamp.now(),
+      requestedBy: params.actor,
+    },
   });
 }
 
