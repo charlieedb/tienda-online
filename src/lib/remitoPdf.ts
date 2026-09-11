@@ -370,8 +370,6 @@ export async function generateOrderRemitoPdf(params: {
   };
 
   drawPage("ORIGINAL");
-  docPdf.addPage();
-  drawPage("DUPLICADO");
   docPdf.save(`remito-${remitoNumber}.pdf`);
 
   return remitoNumber;
