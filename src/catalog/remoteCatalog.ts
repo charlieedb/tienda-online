@@ -8,8 +8,9 @@ import {
 
 const VERSION_URL = "/api/catalog-version";
 const PRODUCTS_URL = "/api/catalog-products";
-const CACHE_VERSION_KEY = "joma.catalog.version";
-const CACHE_PRODUCTS_KEY = "joma.catalog.products";
+// v2 invalida cachés antiguos que podían conservar un catálogo parcial con una versión vigente.
+const CACHE_VERSION_KEY = "joma.catalog.version.v2";
+const CACHE_PRODUCTS_KEY = "joma.catalog.products.v2";
 
 type RawProduct = Record<string, unknown>;
 type PriceOverlay = Record<string, { precioUnidad?: number; precioCaja?: number; precioUnitarioPromoCaja?: number }>;
@@ -119,7 +120,10 @@ export function createRemoteCatalog(): CatalogProvider {
       try {
         cachedVersion = Number(localStorage.getItem(CACHE_VERSION_KEY) || 0);
         const value = localStorage.getItem(CACHE_PRODUCTS_KEY);
-        cachedRows = value ? JSON.parse(value) as RawProduct[] : [];
+        const parsed = value ? JSON.parse(value) as unknown : [];
+        cachedRows = Array.isArray(parsed) && parsed.length > 100 && parsed.every((row) => row && typeof row === "object")
+          ? parsed as RawProduct[]
+          : [];
       } catch { /* caché no disponible */ }
 
       try {

@@ -17,7 +17,7 @@ module.exports = async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Método no permitido." });
   try {
     if (cached && Date.now() - cached.at < CACHE_MS) {
-      res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       return res.status(200).json(cached.data);
     }
     const snapshot = await getFirestore(getAdminApp()).doc("config/tiendaOnlineStore").get();
@@ -31,7 +31,7 @@ module.exports = async function handler(req, res) {
       sponsoredProducts: source.sponsoredProducts || [],
     };
     cached = { at: Date.now(), data };
-    res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     return res.status(200).json(data);
   } catch (error) {
     return res.status(503).json({ error: error instanceof Error ? error.message : "No se pudo cargar la configuración." });

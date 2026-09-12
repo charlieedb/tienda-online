@@ -6,7 +6,7 @@ export default async function handler(_request, response) {
     if (!upstream.ok) return response.status(upstream.status).json({ error: "No se pudo descargar el catálogo" });
     const body = Buffer.from(await upstream.arrayBuffer());
     response.setHeader("Content-Type", "application/json; charset=utf-8");
-    response.setHeader("Cache-Control", "public, s-maxage=31536000, immutable");
+    response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     return response.status(200).send(body);
   } catch {
     return response.status(502).json({ error: "Storage no disponible" });
