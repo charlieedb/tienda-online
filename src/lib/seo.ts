@@ -1,4 +1,4 @@
-export const SITE_URL = "https://jomagroup.com.ar";
+export const SITE_URL = "https://www.jomagroup.com.ar";
 
 export const BUSINESS = {
   name: "Joma Group",

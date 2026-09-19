@@ -621,8 +621,10 @@ export function PublicRoutePage({
       "@type": "Product",
       name: product.name,
       sku: product.id,
+      gtin13: product.gtin && /^\d{13}$/.test(product.gtin) ? product.gtin : undefined,
       image: product.imageUrl ? [product.imageUrl] : undefined,
       brand: { "@type": "Brand", name: product.brand || BUSINESS.name },
+      description: `${product.name}${product.pack ? `, disponible por unidad o ${product.pack.label.toLowerCase()}` : ""} en Joma Group, Corrientes Capital.`,
       offers: {
         "@type": "Offer",
         url: `${SITE_URL}${productPath(product)}`,
@@ -666,11 +668,17 @@ export function PublicRoutePage({
               {product.category || product.brand}
             </a>
             <h1>{product.name}</h1>
-            <p>
-              Disponible por unidad
-              {product.pack ? ` y por ${product.pack.label.toLowerCase()}` : ""}
-              .
-            </p>
+            {product.active ? (
+              <p>
+                Disponible por unidad
+                {product.pack ? ` y por ${product.pack.label.toLowerCase()}` : ""}.
+              </p>
+            ) : (
+              <div className="public-product-unavailable" role="status">
+                <strong>Temporalmente sin stock</strong>
+                <span>Este producto no aparece en el catálogo mientras está agotado. Podés seguir recorriendo la tienda para ver alternativas disponibles.</span>
+              </div>
+            )}
             <strong className="public-product-price">
               Desde {money.format(detailPrice ?? product.unit.price)}
             </strong>

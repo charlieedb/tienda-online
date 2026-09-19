@@ -62,7 +62,10 @@ export const localCatalog: CatalogProvider = {
   },
   getProduct: async (productId, signal) => {
     const products = await localCatalog.getAllProducts(signal);
-    return products.find((product) => product.id === productId || normalize(product.id).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") === productId) ?? null;
+    const slug = (value: string) => normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    return products.find((product) => product.id === productId || slug(product.id) === productId)
+      ?? products.find((product) => slug(product.name) === productId)
+      ?? null;
   },
   getCatalogVersion: async (signal) => (await localCatalog.getManifest(signal)).version,
 };

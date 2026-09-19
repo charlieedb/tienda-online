@@ -465,6 +465,9 @@ main.has-mini-cart { padding-bottom: 72px; }
 .public-product-category:hover { text-decoration: underline; text-underline-offset: 3px; }
 .public-product-category:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; border-radius: 3px; }
 .public-product-price { display: block; margin-top: 22px; color: #a81713; font-size: 25px; }
+.public-product-unavailable { display: grid; gap: 4px; max-width: 560px; margin-top: 18px; padding: 13px 15px; border: 1px solid rgba(168,23,19,.2); border-radius: 12px; background: rgba(200,27,22,.08); }
+.public-product-unavailable strong { color: #a81713; font-size: 15px; }
+.public-product-unavailable span { color: #625d56; font-size: 13px; line-height: 1.45; }
 .public-product-purchase { min-width: 0; display: grid; gap: 12px; }
 .public-product-purchase > .product-card { min-height: 0; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px; border-radius: 16px; box-shadow: none; }
 .public-product-purchase > .product-card .product-image-link, .public-product-purchase > .product-card .product-image { border-radius: 14px; }

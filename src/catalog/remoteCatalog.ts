@@ -74,6 +74,7 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     id: code || `${slug(name)}-${index}`,
     name,
     brand: category.toUpperCase() === "AA" ? "Exclusivos" : category,
+    gtin: text(raw.codigoBarra ?? raw.ean ?? raw.EAN) || undefined,
     category,
     categoryId: isCombo ? "combos" : slug(category),
     imageUrl: stableImageUrl(
@@ -190,7 +191,12 @@ export function createRemoteCatalog(): CatalogProvider {
       );
       return prioritizeSpeedProducts(products.sort(sortProducts), query).slice(0, 80);
     },
-    getProduct: async (productId) => (await loadProducts()).find((item) => item.id === productId || slug(item.id) === productId) ?? null,
+    getProduct: async (productId) => {
+      const products = await loadProducts();
+      return products.find((item) => item.id === productId || slug(item.id) === productId)
+        ?? products.find((item) => slug(item.name) === productId)
+        ?? null;
+    },
     getAllProducts: async () => (await loadProducts()).filter((item) => !/^R/i.test(item.id)).sort(sortProducts),
     getCatalogVersion: async () => (await manifest()).version,
     checkForUpdates: async () => {
