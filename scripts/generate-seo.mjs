@@ -4,6 +4,7 @@ import path from "node:path";
 const dist = path.join(process.cwd(), "dist");
 const siteUrl = "https://www.jomagroup.com.ar";
 const catalogUrl = "https://firebasestorage.googleapis.com/v0/b/app-presu.firebasestorage.app/o/catalogo%2Fproductos.json?alt=media";
+const storageObjectsUrl = "https://firebasestorage.googleapis.com/v0/b/app-presu.firebasestorage.app/o";
 const baseHtml = await readFile(path.join(dist, "index.html"), "utf8");
 const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const text = (value) => String(value ?? "").trim();
@@ -14,6 +15,28 @@ const bool = (value) => value === true || ["1", "true", "si", "sí"].includes(te
 const productPath = (product) => `/productos/${slugify(product.name)}--${slugify(product.id)}`;
 const legacyProductPath = (product) => `/productos/${slugify(product.name)}`;
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+let storageImages = new Map();
+
+async function listStorageImages(prefix) {
+  let pageToken = "";
+  const images = new Map();
+  do {
+    const url = new URL(storageObjectsUrl);
+    url.searchParams.set("prefix", prefix);
+    url.searchParams.set("maxResults", "1000");
+    if (pageToken) url.searchParams.set("pageToken", pageToken);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    for (const item of data.items ?? []) {
+      const filename = text(item.name).split("/").at(-1) || "";
+      const code = filename.replace(/\.jpg$/i, "").toLowerCase();
+      if (code) images.set(code, `${storageObjectsUrl}/${encodeURIComponent(item.name)}?alt=media`);
+    }
+    pageToken = text(data.nextPageToken);
+  } while (pageToken);
+  return images;
+}
 
 function normalizeProduct(raw, index) {
   const id = text(raw["Código"] ?? raw.Codigo ?? raw.codigo) || `producto-${index}`;
@@ -35,7 +58,9 @@ function normalizeProduct(raw, index) {
     publishable,
     active: publishable && (Number.isFinite(stockReal) ? stockReal > 0 : !bool(raw.sinStock ?? raw.SinStock)),
     price: discount > 0 ? Math.round(listPrice * (1 - discount / 100) * 100) / 100 : listPrice,
-    image: text(raw.imgUrl ?? raw.ImgUrl ?? raw.imagenThumbURL ?? raw.imagenURL ?? raw.foto),
+    image: text(raw.imgUrl ?? raw.ImgUrl ?? raw.imagenThumbURL ?? raw.imagenURL ?? raw.foto)
+      || storageImages.get(id.replaceAll("/", "_").toLowerCase())
+      || "",
     offer: bool(raw.oferta ?? raw.Oferta ?? raw.Promo ?? raw.promo) || discount > 0,
   };
 }
@@ -93,6 +118,11 @@ for (const [route, title, description, heading] of staticRoutes) {
 
 let products = [];
 try {
+  const [thumbnails, originals] = await Promise.all([
+    listStorageImages("fotosProductosThumb/"),
+    listStorageImages("fotosProductos/"),
+  ]);
+  storageImages = new Map([...originals, ...thumbnails]);
   const response = await fetch(catalogUrl);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const data = await response.json();
