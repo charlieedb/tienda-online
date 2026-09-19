@@ -13,7 +13,6 @@ const normalize = (value) => text(value).toLocaleLowerCase("es").normalize("NFD"
 const slugify = (value) => normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "sin-categoria";
 const bool = (value) => value === true || ["1", "true", "si", "sí"].includes(text(value).toLowerCase());
 const productPath = (product) => `/productos/${slugify(product.name)}--${slugify(product.id)}`;
-const legacyProductPath = (product) => `/productos/${slugify(product.name)}`;
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 let storageImages = new Map();
 
@@ -163,24 +162,6 @@ for (let index = 0; index < productWriteQueue.length; index += 80) {
   await Promise.all(productWriteQueue.slice(index, index + 80).map(([route, html]) => writeRoute(route, html)));
 }
 
-// Las URLs de la tienda anterior usaban solamente el nombre. Se conservan como
-// puertas de entrada para que resultados históricos de Google no terminen en 404.
-const legacyRoutes = new Set();
-for (const product of products) {
-  const legacyRoute = legacyProductPath(product);
-  const canonicalRoute = productPath(product);
-  if (legacyRoute === canonicalRoute || legacyRoutes.has(legacyRoute)) continue;
-  legacyRoutes.add(legacyRoute);
-  const title = `${product.name} | Joma Group`;
-  const description = `Consultá ${product.name} en Joma Group, Corrientes Capital.`;
-  const redirectHtml = withBody(
-    withHead(baseHtml, { title, description, canonical: canonicalRoute, type: "product", image: product.image || undefined })
-      .replace("</head>", `<meta http-equiv="refresh" content="0;url=${escapeHtml(canonicalRoute)}" /><script>location.replace(${JSON.stringify(canonicalRoute)});</script></head>`),
-    `<main><h1>${escapeHtml(product.name)}</h1><p><a href="${escapeHtml(canonicalRoute)}">Ver producto en Joma Group</a></p></main>`,
-  );
-  await writeRoute(legacyRoute, redirectHtml);
-}
-
 const organization = { "@context": "https://schema.org", "@graph": [{ "@type": "Organization", "@id": `${siteUrl}/#organization`, name: "Joma Group", url: siteUrl, logo: `${siteUrl}/icon-512.png` }, { "@type": ["LocalBusiness", "WholesaleStore"], "@id": `${siteUrl}/#localbusiness`, name: "Joma Group", url: siteUrl, image: `${siteUrl}/icon-512.png`, telephone: "+54 379 439-0919", address: { "@type": "PostalAddress", streetAddress: "Av. Maipú 7249", addressLocality: "Corrientes", addressRegion: "Corrientes", postalCode: "W3400", addressCountry: "AR" }, areaServed: { "@type": "City", name: "Corrientes Capital" }, parentOrganization: { "@id": `${siteUrl}/#organization` } }] };
 await writeFile(path.join(dist, "index.html"), withHead(baseHtml, { title: "Joma Group | Mayorista y tienda online en Corrientes", description: "Mayorista y tienda online de alimentos, bebidas y productos de consumo diario en Corrientes Capital.", canonical: "/", jsonLd: organization }), "utf8");
 
@@ -200,4 +181,4 @@ const adminHtml = withBody(
   '<div aria-label="Acceso privado"></div>',
 );
 await writeRoute("/admin/pedidos", adminHtml);
-console.log(`SEO: ${products.length} productos, ${categoryMap.size} categorías, ${uniqueRoutes.length} URLs canónicas, ${legacyRoutes.size} rutas históricas y ${merchantProducts.length} productos en Merchant Center.`);
+console.log(`SEO: ${products.length} productos, ${categoryMap.size} categorías, ${uniqueRoutes.length} URLs canónicas y ${merchantProducts.length} productos en Merchant Center.`);
