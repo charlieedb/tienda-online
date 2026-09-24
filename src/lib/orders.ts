@@ -146,6 +146,7 @@ export type SearchEvent = {
 export type OrdersPage = {
   items: OrderRecord[];
   cursor: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
 };
 
 export type MyOrdersPage = {
@@ -339,19 +340,21 @@ export async function fetchOrdersPage(
   cursor?: QueryDocumentSnapshot<DocumentData> | null,
 ): Promise<OrdersPage> {
   const db = getDb();
-  if (!db) return { items: [], cursor: null };
+  if (!db) return { items: [], cursor: null, hasMore: false };
 
   const base = query(
     collection(db, "orders"),
     orderBy("audit.createdAt", "desc"),
     ...(cursor ? [startAfter(cursor)] : []),
-    limit(PAGE_SIZE),
+    limit(PAGE_SIZE + 1),
   );
 
   const snap = await getDocs(base);
+  const pageDocs = snap.docs.slice(0, PAGE_SIZE);
   return {
-    items: snap.docs.map((docSnap) => mapOrder(docSnap)),
-    cursor: snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
+    items: pageDocs.map((docSnap) => mapOrder(docSnap)),
+    cursor: pageDocs.length ? pageDocs[pageDocs.length - 1] : null,
+    hasMore: snap.docs.length > PAGE_SIZE,
   };
 }
 
@@ -408,12 +411,16 @@ export async function fetchMyOrdersPage(params: {
 }
 
 export function subscribeOrdersRealtime(
-  onItems: (items: OrderRecord[]) => void,
+  onItems: (
+    items: OrderRecord[],
+    cursor: QueryDocumentSnapshot<DocumentData> | null,
+    hasMore: boolean,
+  ) => void,
   onError?: () => void,
 ) {
   const db = getDb();
   if (!db) {
-    onItems([]);
+    onItems([], null, false);
     return () => {};
   }
 
@@ -426,7 +433,11 @@ export function subscribeOrdersRealtime(
   return onSnapshot(
     liveQuery,
     (snap) => {
-      onItems(snap.docs.map((docSnap) => mapOrder(docSnap)));
+      onItems(
+        snap.docs.map((docSnap) => mapOrder(docSnap)),
+        snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
+        snap.docs.length === REALTIME_LIMIT,
+      );
     },
     () => {
       onError?.();

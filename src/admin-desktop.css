@@ -281,6 +281,43 @@ body .admin-workspace .admin-list-column .admin-table-wrap {
   background: #fff;
 }
 
+.admin-orders-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px;
+  border: 1px solid #d6dfe7;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  color: #687887;
+  font-size: .82rem;
+}
+
+.admin-orders-pagination strong {
+  color: #3f6f5a;
+  font-size: .82rem;
+}
+
+.admin-orders-pagination .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .admin-orders-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-orders-pagination .btn {
+    width: 100%;
+  }
+}
+
 .admin-list-stats {
   margin: 12px;
   border: 1px solid #d6dfe7;

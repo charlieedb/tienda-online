@@ -14,6 +14,7 @@ import { AdminAdvertisingPanel } from "@/components/admin/AdminAdvertisingPanel"
 import { generateOrderRemitoPdf } from "@/lib/remitoPdf";
 import {
   buildMetrics,
+  fetchOrdersPage,
   fetchRecentSearchEvents,
   formatMoney,
   orderMoment,
@@ -23,6 +24,7 @@ import {
   requestOrderDispatchEmail,
   type OrderStatus,
   type OrderRecord,
+  type OrdersPage,
   type SearchEvent,
 } from "@/lib/orders";
 
@@ -143,6 +145,9 @@ export function AdminPedidosPage() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [searches, setSearches] = useState<SearchEvent[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [loadingOlderOrders, setLoadingOlderOrders] = useState(false);
+  const [ordersCursor, setOrdersCursor] = useState<OrdersPage["cursor"]>(null);
+  const [hasMoreOrders, setHasMoreOrders] = useState(false);
   const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
   const [savingStatus, setSavingStatus] = useState<OrderStatus | null>(null);
   const [emailingOrderId, setEmailingOrderId] = useState<string | null>(null);
@@ -161,6 +166,7 @@ export function AdminPedidosPage() {
   const [actionError, setActionError] = useState("");
   const [topMenuOpen, setTopMenuOpen] = useState(false);
   const topMenuRef = useRef<HTMLDivElement | null>(null);
+  const paginationInitializedRef = useRef(false);
   const [todayKey] = useState(() => new Date().toISOString().slice(0, 10));
   const [weekStartMs] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
 
@@ -202,12 +208,24 @@ export function AdminPedidosPage() {
     if (!adminProfile) return;
 
     let cancelled = false;
+    paginationInitializedRef.current = false;
+    setOrdersCursor(null);
+    setHasMoreOrders(false);
     setLoadingData(true);
     const unsub = subscribeOrdersRealtime(
-      (items) => {
+      (items, cursor, hasMore) => {
         if (cancelled) return;
+        if (!paginationInitializedRef.current) {
+          paginationInitializedRef.current = true;
+          setOrdersCursor(cursor);
+          setHasMoreOrders(hasMore);
+        }
         startTransition(() => {
-          setOrders(items);
+          setOrders((current) => {
+            const liveIds = new Set(items.map((order) => order.id));
+            const olderOrders = current.filter((order) => !liveIds.has(order.id));
+            return items.concat(olderOrders).sort((a, b) => orderMoment(b).localeCompare(orderMoment(a)));
+          });
         });
         setLoadingData(false);
       },
@@ -231,6 +249,28 @@ export function AdminPedidosPage() {
       }
     };
   }, [adminProfile]);
+
+  async function handleLoadOlderOrders() {
+    if (!ordersCursor || loadingOlderOrders || !hasMoreOrders) return;
+    setLoadingOlderOrders(true);
+    setActionError("");
+    try {
+      const page = await fetchOrdersPage(ordersCursor);
+      startTransition(() => {
+        setOrders((current) => {
+          const merged = new Map(current.map((order) => [order.id, order]));
+          page.items.forEach((order) => merged.set(order.id, order));
+          return Array.from(merged.values()).sort((a, b) => orderMoment(b).localeCompare(orderMoment(a)));
+        });
+      });
+      setOrdersCursor(page.cursor);
+      setHasMoreOrders(page.hasMore);
+    } catch (error) {
+      setActionError(String((error as Error)?.message || "No se pudieron cargar pedidos anteriores."));
+    } finally {
+      setLoadingOlderOrders(false);
+    }
+  }
 
   useEffect(() => {
     if (!topMenuOpen) return;
@@ -729,6 +769,22 @@ export function AdminPedidosPage() {
                   <button type="button" className="btn ghost" onClick={() => { setSearchText(""); setStatusFilter("all"); setDateFilter("today"); }}>Limpiar filtros</button>
                 </div>
               ) : null}
+            </div>
+
+            <div className="admin-orders-pagination" aria-live="polite">
+              <span>{orders.length} {orders.length === 1 ? "pedido cargado" : "pedidos cargados"}</span>
+              {hasMoreOrders ? (
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={loadingOlderOrders}
+                  onClick={() => void handleLoadOlderOrders()}
+                >
+                  {loadingOlderOrders ? <><ButtonSpinner /> Cargando…</> : "Cargar pedidos anteriores"}
+                </button>
+              ) : (
+                <strong>Historial completo cargado</strong>
+              )}
             </div>
 
             <section className="admin-list-stats" aria-label="Estadísticas de los pedidos filtrados">
