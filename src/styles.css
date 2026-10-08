@@ -14,7 +14,19 @@
   --green: #167653;
   --nav-h: 76px;
   --top-shell-h: 126px;
+  --ios-pwa-top-clearance: 0px;
   --gutter: clamp(14px, 4vw, 24px);
+}
+
+/* iOS 26 aplica un desenfoque del sistema en el borde superior de las PWA.
+   En modo standalone desplazamos los controles fuera de esa zona sin alterar Safari normal. */
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    :root {
+      --ios-pwa-top-clearance: 14px;
+      --top-shell-h: 140px;
+    }
+  }
 }
 
 * { box-sizing: border-box; }
@@ -197,7 +209,7 @@ img { display: block; max-width: 100%; }
 
 .store-app { min-height: 100dvh; overflow-x: clip; padding-bottom: calc(24px + env(safe-area-inset-bottom)); background: #f7f4ef; }
 .top-shell { position: fixed; z-index: 50; inset: 0 0 auto; background: #c81b16; box-shadow: 0 5px 12px rgba(83,18,15,.2); }
-.app-header { height: calc(66px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) var(--gutter) 0; display: grid; grid-template-columns: 96px minmax(0, 1fr) 96px; align-items: center; max-width: 760px; margin: auto; background: #c81b16; }
+.app-header { height: calc(66px + env(safe-area-inset-top) + var(--ios-pwa-top-clearance)); padding: calc(env(safe-area-inset-top) + var(--ios-pwa-top-clearance)) var(--gutter) 0; display: grid; grid-template-columns: 96px minmax(0, 1fr) 96px; align-items: center; max-width: 760px; margin: auto; background: #c81b16; }
 .brand-lockup { justify-self: center; width: 126px; height: 50px; display: grid; place-items: center; min-width: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
 .brand-lockup img { width: 108px; height: 46px; object-fit: contain; object-position: center; }
 .app-header__leading { justify-self: start; display: flex; align-items: center; gap: 6px; }
@@ -223,7 +235,7 @@ img { display: block; max-width: 100%; }
   .brand-lockup img { width: 92px; }
 }
 @media (min-width: 900px) {
-  .app-header { height: calc(72px + env(safe-area-inset-top)); max-width: 1080px; grid-template-columns: minmax(300px, 1fr) 160px minmax(300px, 1fr); }
+  .app-header { height: calc(72px + env(safe-area-inset-top) + var(--ios-pwa-top-clearance)); max-width: 1080px; grid-template-columns: minmax(300px, 1fr) 160px minmax(300px, 1fr); }
   .app-header__leading, .app-header__actions { gap: 10px; }
   .menu-button, .business-header-button, .header-cart, .header-whatsapp { width: auto; min-width: 124px; height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding: 0 14px; text-decoration: none; }
   .header-action-label { display: inline; color: white; font-size: 13px; font-weight: 750; line-height: 1; white-space: nowrap; }
@@ -1539,7 +1551,7 @@ body:has(input:focus, textarea:focus, select:focus) .mini-cart { opacity: 0; poi
 }
 
 @media (orientation: landscape) and (max-height: 560px) {
-  .app-header { height: calc(62px + env(safe-area-inset-top)); }
+  .app-header { height: calc(62px + env(safe-area-inset-top) + var(--ios-pwa-top-clearance)); }
   .hero-card { padding-block: 18px 16px; }
   .bottom-nav { --nav-h: 64px; }
 }
