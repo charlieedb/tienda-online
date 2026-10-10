@@ -64,6 +64,10 @@ export function MobileCatalogPage({
   const [pendingByProduct, setPendingByProduct] = useState<Record<string, PendingState>>({});
 
   const normalizedSearch = normalizeToken(deferredSearch);
+  const hasSelectedSubcategory = Boolean(categoryToken?.includes("::"));
+  const shouldShowProducts = Boolean(
+    offersOnly || normalizedSearch || !categoryToken || hasSelectedSubcategory,
+  );
 
   const activeProducts = useMemo(() => products.filter((product) => product.active), [products]);
   const selectedCategory = useMemo(
@@ -151,42 +155,46 @@ export function MobileCatalogPage({
           >
             Ofertas
           </FilterChip>
-          {categories.map((category) => (
-            <FilterChip
-              key={category.token}
-              active={!offersOnly && categoryToken?.split("::")[0] === category.token}
-              onClick={() => {
-                onCategoryTokenChange(category.token);
-                onOffersOnlyChange(false);
-              }}
-            >
-              {category.label}
-            </FilterChip>
-          ))}
         </div>
-        {selectedCategory?.subcategories.length ? (
-          <div className="store-chip-row store-chip-row--subcategories" aria-label={`Subcategorías de ${selectedCategory.label}`}>
-            <FilterChip
-              active={categoryToken === selectedCategory.token}
-              onClick={() => onCategoryTokenChange(selectedCategory.token)}
-            >
-              Ver todo
-            </FilterChip>
-            {selectedCategory.subcategories.map((subcategory) => (
-              <FilterChip
-                key={subcategory.token}
-                active={categoryToken === `${selectedCategory.token}::${subcategory.token}`}
-                onClick={() => onCategoryTokenChange(`${selectedCategory.token}::${subcategory.token}`)}
-              >
-                {subcategory.label}
-              </FilterChip>
-            ))}
-          </div>
-        ) : null}
+        <div className="store-mobile-category-menu" aria-label="Categorías de productos">
+          {categories.map((category) => {
+            const expanded = !offersOnly && selectedCategory?.token === category.token;
+            return (
+              <div key={category.token} className={`store-category-menu ${expanded ? "is-expanded" : ""}`}>
+                <button
+                  type="button"
+                  className={`store-mobile-category-menu__trigger ${expanded ? "is-active" : ""}`}
+                  aria-expanded={expanded}
+                  onClick={() => {
+                    onCategoryTokenChange(expanded ? null : category.token);
+                    onOffersOnlyChange(false);
+                  }}
+                >
+                  <span>{category.label}</span>
+                  <span className="store-category-menu__chevron" aria-hidden="true" />
+                </button>
+                {expanded && category.subcategories.length ? (
+                  <div className="store-mobile-category-menu__submenu" aria-label={`Subcategorías de ${category.label}`}>
+                    {category.subcategories.map((subcategory) => (
+                      <button
+                        key={subcategory.token}
+                        type="button"
+                        className={categoryToken === `${category.token}::${subcategory.token}` ? "is-active" : ""}
+                        onClick={() => onCategoryTokenChange(`${category.token}::${subcategory.token}`)}
+                      >
+                        {subcategory.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
 
         <div className="store-catalog__summary">
           <div>
-            <strong>{filteredProducts.length}</strong>
+            <strong>{shouldShowProducts ? filteredProducts.length : 0}</strong>
             <span>productos visibles</span>
           </div>
           <div>
@@ -201,7 +209,12 @@ export function MobileCatalogPage({
       </div>
 
       <div className="store-product-stack">
-        {filteredProducts.length === 0 ? (
+        {!shouldShowProducts && selectedCategory ? (
+          <div className="store-empty store-empty--subcategory-prompt">
+            <strong>{selectedCategory.label}</strong>
+            <span>Elegí una subcategoría para ver sus productos.</span>
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="store-empty">
             No encontramos productos con ese filtro. Probá con otra búsqueda o volvé a ver todo.
           </div>

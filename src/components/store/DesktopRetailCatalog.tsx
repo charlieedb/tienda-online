@@ -64,6 +64,10 @@ export function DesktopRetailCatalog({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const normalizedSearch = normalizeToken(deferredSearch);
+  const hasSelectedSubcategory = Boolean(categoryToken?.includes("::"));
+  const shouldShowProducts = Boolean(
+    offersOnly || normalizedSearch || !categoryToken || hasSelectedSubcategory,
+  );
 
   const activeProducts = useMemo(() => products.filter((product) => product.active), [products]);
   const selectedCategory = useMemo(
@@ -111,7 +115,7 @@ export function DesktopRetailCatalog({
     return () => observer.disconnect();
   }, [filteredProducts.length, visibleCount]);
 
-  const visibleProducts = filteredProducts.slice(0, visibleCount);
+  const visibleProducts = shouldShowProducts ? filteredProducts.slice(0, visibleCount) : [];
   const featuredProducts = visibleProducts.slice(0, 2);
   const gridProducts = visibleProducts.slice(2);
 
@@ -139,7 +143,7 @@ export function DesktopRetailCatalog({
         </div>
 
         <div className="store-surface store-desktop-hero__stats">
-          <Metric label="Productos visibles" value={String(filteredProducts.length)} />
+          <Metric label="Productos visibles" value={String(shouldShowProducts ? filteredProducts.length : 0)} />
           <Metric label="Ítems en carrito" value={String(totalItems)} />
           <Metric label="Total estimado" value={formatArs(totalAmount)} />
         </div>
@@ -179,37 +183,39 @@ export function DesktopRetailCatalog({
               >
                 Solo ofertas
               </SidebarFilter>
-              {categories.map((category) => (
-                <SidebarFilter
-                  key={category.token}
-                  active={!offersOnly && categoryToken?.split("::")[0] === category.token}
-                  onClick={() => {
-                    onCategoryTokenChange(category.token);
-                    onOffersOnlyChange(false);
-                  }}
-                >
-                  {category.label}
-                </SidebarFilter>
-              ))}
-              {selectedCategory?.subcategories.length ? (
-                <div className="store-desktop-sidebar__subcategories" aria-label={`Subcategorías de ${selectedCategory.label}`}>
-                  <SidebarFilter
-                    active={categoryToken === selectedCategory.token}
-                    onClick={() => onCategoryTokenChange(selectedCategory.token)}
-                  >
-                    Ver todo
-                  </SidebarFilter>
-                  {selectedCategory.subcategories.map((subcategory) => (
+              {categories.map((category) => {
+                const expanded = !offersOnly && selectedCategory?.token === category.token;
+                return (
+                  <div key={category.token} className={`store-category-menu ${expanded ? "is-expanded" : ""}`}>
                     <SidebarFilter
-                      key={subcategory.token}
-                      active={categoryToken === `${selectedCategory.token}::${subcategory.token}`}
-                      onClick={() => onCategoryTokenChange(`${selectedCategory.token}::${subcategory.token}`)}
+                      active={expanded}
+                      expanded={expanded}
+                      onClick={() => {
+                        onCategoryTokenChange(expanded ? null : category.token);
+                        onOffersOnlyChange(false);
+                      }}
                     >
-                      {subcategory.label}
+                      {category.label}
                     </SidebarFilter>
-                  ))}
-                </div>
-              ) : null}
+                    {expanded && category.subcategories.length ? (
+                      <div
+                        className="store-desktop-sidebar__subcategories"
+                        aria-label={`Subcategorías de ${category.label}`}
+                      >
+                        {category.subcategories.map((subcategory) => (
+                          <SidebarFilter
+                            key={subcategory.token}
+                            active={categoryToken === `${category.token}::${subcategory.token}`}
+                            onClick={() => onCategoryTokenChange(`${category.token}::${subcategory.token}`)}
+                          >
+                            {subcategory.label}
+                          </SidebarFilter>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -224,7 +230,12 @@ export function DesktopRetailCatalog({
         </aside>
 
         <div className="store-desktop-main">
-          {filteredProducts.length === 0 ? (
+          {!shouldShowProducts && selectedCategory ? (
+            <div className="store-empty store-empty--subcategory-prompt">
+              <strong>{selectedCategory.label}</strong>
+              <span>Elegí una subcategoría del menú para ver sus productos.</span>
+            </div>
+          ) : filteredProducts.length === 0 ? (
             <div className="store-empty">
               No encontramos productos con esos filtros. Probá volver al catálogo general.
             </div>
@@ -334,16 +345,24 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function SidebarFilter({
   active,
+  expanded,
   children,
   onClick,
 }: {
   active: boolean;
+  expanded?: boolean;
   children: React.ReactNode;
   onClick: () => void;
 }) {
   return (
-    <button type="button" className={`store-sidebar-filter ${active ? "is-active" : ""}`} onClick={onClick}>
-      {children}
+    <button
+      type="button"
+      className={`store-sidebar-filter ${active ? "is-active" : ""}`}
+      aria-expanded={expanded}
+      onClick={onClick}
+    >
+      <span>{children}</span>
+      {typeof expanded === "boolean" ? <span className="store-category-menu__chevron" aria-hidden="true" /> : null}
     </button>
   );
 }
