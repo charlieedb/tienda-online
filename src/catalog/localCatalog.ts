@@ -38,12 +38,15 @@ export const localCatalog: CatalogProvider = {
   },
   getOfferProducts: async (signal) => {
     const manifest = await localCatalog.getManifest(signal);
-    const groups = await Promise.all(manifest.categories.map((category) => localCatalog.getCategoryProducts(category.id, signal)));
+    const groups = await Promise.all(manifest.categories.map((category) => localCatalog.getCategoryProducts(category.id, undefined, signal)));
     return groups.flat().filter((item) => item.active && item.offer);
   },
-  getCategoryProducts: async (categoryId, signal) => {
+  getCategoryProducts: async (categoryId, subcategoryId, signal) => {
     if (!/^[a-z0-9-]+$/.test(categoryId)) return [];
-    return readWithFallback<Product[]>(`categories/${categoryId}.json`, signal);
+    const products = await readWithFallback<Product[]>(`categories/${categoryId}.json`, signal);
+    return subcategoryId
+      ? products.filter((product) => normalize(product.subcategory || product.brand || "Sin subcategoría").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") === subcategoryId)
+      : products;
   },
   searchProducts: async (query, signal) => {
     const terms = normalize(query).split(/\s+/).filter(Boolean);
@@ -51,13 +54,13 @@ export const localCatalog: CatalogProvider = {
     const index = await readWithFallback<Array<{ id: string; categoryId: string; text: string }>>("search-index.json", signal);
     const matches = index.filter((entry) => terms.every((term) => normalize(entry.text).includes(term)));
     const categoryIds = [...new Set(matches.map((entry) => entry.categoryId))];
-    const chunks = await Promise.all(categoryIds.map((id) => localCatalog.getCategoryProducts(id, signal)));
+    const chunks = await Promise.all(categoryIds.map((id) => localCatalog.getCategoryProducts(id, undefined, signal)));
     const byId = new Map(chunks.flat().map((product) => [product.id, product]));
     return matches.map((entry) => byId.get(entry.id)).filter((item): item is Product => Boolean(item));
   },
   getAllProducts: async (signal) => {
     const manifest = await localCatalog.getManifest(signal);
-    const groups = await Promise.all(manifest.categories.map((category) => localCatalog.getCategoryProducts(category.id, signal)));
+    const groups = await Promise.all(manifest.categories.map((category) => localCatalog.getCategoryProducts(category.id, undefined, signal)));
     return groups.flat();
   },
   getProduct: async (productId, signal) => {

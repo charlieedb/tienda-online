@@ -696,13 +696,23 @@ main.has-mini-cart { padding-bottom: 72px; }
 .stepper output { text-align: center; color: var(--brand-dark); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; }
 
 .category-grid { display: grid; gap: 8px; }
+.category-branch { min-width: 0; display: grid; gap: 6px; align-content: start; }
 .category-card { min-height: 68px; display: grid; grid-template-columns: minmax(0, 1fr) 34px; align-items: center; gap: 12px; padding: 11px 12px 11px 16px; text-align: left; color: var(--ink); border: 1px solid var(--line); border-radius: 15px; background: var(--paper); cursor: pointer; transition: border-color .18s ease, background-color .18s ease; }
 .category-card:hover { border-color: #dfb5b1; background: #fff9f7; }
+.category-card.is-active { border-color: #e7aaa5; background: #fff4f2; }
 .category-copy { min-width: 0; display: grid; gap: 3px; }
 .category-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 1.2; letter-spacing: -.02em; }
 .category-copy em { color: var(--muted); font-style: normal; font-size: 11px; line-height: 1.25; font-weight: 700; }
 .category-arrow { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 11px; color: var(--brand); background: #fff0ee; }
 .category-arrow svg { width: 15px; }
+.category-branch.is-expanded .category-arrow svg { transform: rotate(90deg); }
+.category-submenu { display: grid; gap: 5px; margin: 0 4px 5px 13px; padding: 2px 0 2px 11px; border-left: 1px solid #dfd5cc; }
+.category-submenu button { min-height: 44px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 8px 11px; border: 0; border-radius: 11px; background: #f7f2eb; color: #4e4943; font-size: 13px; font-weight: 800; text-align: left; cursor: pointer; }
+.category-submenu button small { min-width: 26px; padding: 3px 6px; border-radius: 999px; background: #e8e0d7; color: #706960; font-size: 10px; text-align: center; }
+.category-submenu button.is-active { background: var(--brand); color: #fff; }
+.category-submenu button.is-active small { background: rgba(255,255,255,.2); color: #fff; }
+.category-results { margin-top: 22px; }
+.category-choice-prompt { min-height: 110px; display: grid; place-items: center; padding: 20px; text-align: center; }
 .back-button { min-height: 44px; margin: 7px 0 9px -8px; display: flex; align-items: center; gap: 4px; border: 0; background: transparent; color: var(--muted); font-size: 12px; font-weight: 750; cursor: pointer; }
 .back-button svg { width: 18px; transform: rotate(180deg); }
 .category-back-button { width: max-content; margin: 10px 0 14px; padding: 6px 14px 6px 7px; gap: 8px; border: 1px solid #e92721; border-radius: 12px; background: #fff4f3; color: #c81b16; font-size: 13px; font-weight: 850; }
@@ -1427,6 +1437,13 @@ body:has(input:focus, textarea:focus, select:focus) .mini-cart { opacity: 0; poi
   .desktop-category-rail nav small { color: var(--muted); font-size: 9px; font-weight: 700; }
   .desktop-category-rail nav svg { width: 15px; color: var(--muted); }
   .desktop-category-rail nav button.is-active svg { color: var(--brand); }
+  .desktop-category-branch { display: grid; }
+  .desktop-category-branch.is-expanded > button svg { transform: rotate(90deg); }
+  .desktop-category-submenu { display: grid; gap: 2px; margin: 0 4px 5px 13px; padding: 2px 0 2px 8px; border-left: 1px solid #ded5cc; }
+  .desktop-category-rail nav .desktop-category-submenu button { min-height: 42px; padding: 6px 8px 6px 10px; border-radius: 9px; background: #f8f3ed; }
+  .desktop-category-rail nav .desktop-category-submenu button:hover { background: #f2e9e0; }
+  .desktop-category-rail nav .desktop-category-submenu button.is-active { background: var(--brand); color: #fff; }
+  .desktop-category-rail nav .desktop-category-submenu button.is-active small { color: rgba(255,255,255,.78); }
   .desktop-cart-rail .desktop-rail-panel {
     border-color: #b81713;
     background: #c81b16;

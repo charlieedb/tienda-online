@@ -33,6 +33,7 @@ export type Category = {
   color: string;
   image: string;
   count: number;
+  subcategories: Array<{ id: string; name: string; count: number }>;
 };
 
 export type CatalogManifest = {
@@ -45,7 +46,7 @@ export interface CatalogProvider {
   getManifest(signal?: AbortSignal): Promise<CatalogManifest>;
   getFeaturedProducts(signal?: AbortSignal): Promise<Product[]>;
   getOfferProducts(signal?: AbortSignal): Promise<Product[]>;
-  getCategoryProducts(categoryId: string, signal?: AbortSignal): Promise<Product[]>;
+  getCategoryProducts(categoryId: string, subcategoryId?: string, signal?: AbortSignal): Promise<Product[]>;
   searchProducts(query: string, signal?: AbortSignal): Promise<Product[]>;
   getProduct(productId: string, signal?: AbortSignal): Promise<Product | null>;
   getAllProducts(signal?: AbortSignal): Promise<Product[]>;

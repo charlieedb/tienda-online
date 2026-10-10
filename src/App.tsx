@@ -554,34 +554,58 @@ function ProductList({
 
 function CategoryGrid({
   categories,
+  selectedCategory,
+  selectedSubcategory,
   onSelect,
+  onSelectSubcategory,
 }: {
   categories: Category[];
+  selectedCategory: Category | null;
+  selectedSubcategory: string | null;
   onSelect: (category: Category) => void;
+  onSelectSubcategory: (category: Category, subcategoryId: string) => void;
 }) {
   return (
     <div className="category-grid">
-      {categories.map((category) => (
-        <button
-          type="button"
-          className="category-card"
-          onClick={() => onSelect(category)}
-          key={category.id}
-        >
-          <span className="category-copy">
-            <strong>{category.name}</strong>
-            <em>
-              {category.count}{" "}
-              {category.count === 1
-                ? "producto disponible"
-                : "productos disponibles"}
-            </em>
-          </span>
-          <span className="category-arrow">
-            <Icon name="arrow" />
-          </span>
-        </button>
-      ))}
+      {categories.map((category) => {
+        const expanded = selectedCategory?.id === category.id;
+        return (
+          <div className={`category-branch ${expanded ? "is-expanded" : ""}`} key={category.id}>
+            <button
+              type="button"
+              className={`category-card ${expanded ? "is-active" : ""}`}
+              aria-expanded={expanded}
+              onClick={() => onSelect(category)}
+            >
+              <span className="category-copy">
+                <strong>{category.name}</strong>
+                <em>
+                  {category.count}{" "}
+                  {category.count === 1 ? "producto disponible" : "productos disponibles"}
+                </em>
+              </span>
+              <span className="category-arrow">
+                <Icon name="arrow" />
+              </span>
+            </button>
+            {expanded ? (
+              <div className="category-submenu" aria-label={`Subcategorías de ${category.name}`}>
+                {(category.subcategories ?? []).map((subcategory) => (
+                  <button
+                    type="button"
+                    className={selectedSubcategory === subcategory.id ? "is-active" : ""}
+                    onClick={() => onSelectSubcategory(category, subcategory.id)}
+                    key={subcategory.id}
+                  >
+                    <span>{subcategory.name}</span>
+                    <small>{subcategory.count}</small>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -589,15 +613,19 @@ function CategoryGrid({
 function DesktopCategoryRail({
   categories,
   selectedCategory,
+  selectedSubcategory,
   tab,
   onShowAll,
   onSelect,
+  onSelectSubcategory,
 }: {
   categories: Category[];
   selectedCategory: Category | null;
+  selectedSubcategory: string | null;
   tab: Tab;
   onShowAll: () => void;
   onSelect: (category: Category) => void;
+  onSelectSubcategory: (category: Category, subcategoryId: string) => void;
 }) {
   return (
     <aside
@@ -625,22 +653,39 @@ function DesktopCategoryRail({
             </span>
             <Icon name="arrow" />
           </button>
-          {categories.map((category) => (
-            <button
-              type="button"
-              className={
-                selectedCategory?.id === category.id ? "is-active" : ""
-              }
-              onClick={() => onSelect(category)}
-              key={category.id}
-            >
-              <span>
-                <strong>{category.name}</strong>
-                <small>{category.count} disponibles</small>
-              </span>
-              <Icon name="arrow" />
-            </button>
-          ))}
+          {categories.map((category) => {
+            const expanded = selectedCategory?.id === category.id;
+            return (
+              <div className={`desktop-category-branch ${expanded ? "is-expanded" : ""}`} key={category.id}>
+                <button
+                  type="button"
+                  className={expanded ? "is-active" : ""}
+                  aria-expanded={expanded}
+                  onClick={() => onSelect(category)}
+                >
+                  <span>
+                    <strong>{category.name}</strong>
+                    <small>{category.count} disponibles</small>
+                  </span>
+                  <Icon name="arrow" />
+                </button>
+                {expanded ? (
+                  <div className="desktop-category-submenu" aria-label={`Subcategorías de ${category.name}`}>
+                    {(category.subcategories ?? []).map((subcategory) => (
+                      <button
+                        type="button"
+                        className={selectedSubcategory === subcategory.id ? "is-active" : ""}
+                        onClick={() => onSelectSubcategory(category, subcategory.id)}
+                        key={subcategory.id}
+                      >
+                        <span><strong>{subcategory.name}</strong><small>{subcategory.count} productos</small></span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </nav>
       </div>
     </aside>
@@ -830,6 +875,7 @@ function StoreApp({
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null,
   );
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [categoryProducts, setCategoryProducts] = useState<Product[]>([]);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [categoryError, setCategoryError] = useState("");
@@ -843,6 +889,9 @@ function StoreApp({
   const searchPending = normalizedSearchQuery.length >= 2
     && (searchLoading || settledSearchQuery !== normalizedSearchQuery);
   const regularFeatured = useMemo(() => featured.filter((product) => !sponsoredProducts.some((sponsored) => sponsored.id === product.id)), [featured, sponsoredProducts]);
+  const selectedSubcategoryMeta = selectedCategory?.subcategories?.find(
+    (subcategory) => subcategory.id === selectedSubcategory,
+  ) ?? null;
 
   useEffect(() => {
     if (!user) {
@@ -1026,6 +1075,7 @@ function StoreApp({
     const initialCategory = manifest.categories.find((category) => category.id === initialCategoryId);
     if (!initialCategory) return;
     setSelectedCategory(initialCategory);
+    setSelectedSubcategory(null);
     setTab("categories");
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [initialCategoryId, manifest]);
@@ -1066,24 +1116,26 @@ function StoreApp({
   }, [catalog]);
 
   useEffect(() => {
-    const nextScreen = `${tab}:${selectedCategory?.id ?? ""}:${infoPage}`;
+    const nextScreen = `${tab}:${selectedCategory?.id ?? ""}:${selectedSubcategory ?? ""}:${infoPage}`;
     if (activeScreen.current === nextScreen) return;
     activeScreen.current = nextScreen;
     if (!pendingStoreRefresh.current) return;
     pendingStoreRefresh.current = false;
     setCatalogRevision((current) => current + 1);
-  }, [infoPage, selectedCategory?.id, tab]);
+  }, [infoPage, selectedCategory?.id, selectedSubcategory, tab]);
 
   useEffect(() => {
-    if (!selectedCategory) {
+    if (!selectedCategory || !selectedSubcategory) {
       setCategoryProducts([]);
+      setCategoryLoading(false);
+      setCategoryError("");
       return;
     }
     const controller = new AbortController();
     setCategoryLoading(true);
     setCategoryError("");
     catalog
-      .getCategoryProducts(selectedCategory.id, controller.signal)
+      .getCategoryProducts(selectedCategory.id, selectedSubcategory, controller.signal)
       .then(setCategoryProducts)
       .catch((error) => {
         if (!controller.signal.aborted)
@@ -1095,7 +1147,7 @@ function StoreApp({
         if (!controller.signal.aborted) setCategoryLoading(false);
       });
     return () => controller.abort();
-  }, [catalog, selectedCategory, catalogRevision]);
+  }, [catalog, selectedCategory, selectedSubcategory, catalogRevision]);
 
   useEffect(() => {
     if (tab !== "search") return;
@@ -1166,6 +1218,7 @@ function StoreApp({
   const restoreCategoryGridScroll = () => {
     pendingCategoryScroll.current = categoryGridScroll.current;
     setSelectedCategory(null);
+    setSelectedSubcategory(null);
   };
 
   useEffect(() => {
@@ -1231,6 +1284,7 @@ function StoreApp({
         } else {
           setMenuOpen(false);
           setSelectedCategory(null);
+          setSelectedSubcategory(null);
           setTab("home");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }
@@ -1248,6 +1302,7 @@ function StoreApp({
   const goTo = (next: Tab) => {
     setMenuOpen(false);
     setSelectedCategory(null);
+    setSelectedSubcategory(null);
     setTab(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -1259,6 +1314,7 @@ function StoreApp({
     );
     setMenuOpen(false);
     setSelectedCategory(null);
+    setSelectedSubcategory(null);
     setInfoPage(page);
     setTab("info");
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -1275,6 +1331,10 @@ function StoreApp({
     }
   };
   const openCategory = (category: Category) => {
+    if (selectedCategory?.id === category.id) {
+      restoreCategoryGridScroll();
+      return;
+    }
     if (!selectedCategory && tab === "categories")
       categoryGridScroll.current = window.scrollY;
     if (!selectedCategory) {
@@ -1297,6 +1357,13 @@ function StoreApp({
       );
     }
     setSelectedCategory(category);
+    setSelectedSubcategory(null);
+    setTab("categories");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const openSubcategory = (category: Category, subcategoryId: string) => {
+    setSelectedCategory(category);
+    setSelectedSubcategory(subcategoryId);
     setTab("categories");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -1318,6 +1385,7 @@ function StoreApp({
         color: "#d92822",
         image: "/joma-express-icon.png",
         count: 0,
+        subcategories: [],
       },
     );
   const openCarouselDestination = (slide: StoreCarouselSlide) => {
@@ -1333,6 +1401,7 @@ function StoreApp({
     if (slide.targetType === "search") {
       setQuery(slide.targetValue);
       setSelectedCategory(null);
+      setSelectedSubcategory(null);
       setTab("search");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -1591,9 +1660,11 @@ function StoreApp({
         <DesktopCategoryRail
           categories={manifest?.categories ?? []}
           selectedCategory={selectedCategory}
+          selectedSubcategory={selectedSubcategory}
           tab={tab}
           onShowAll={() => goTo("categories")}
           onSelect={openCategory}
+          onSelectSubcategory={openSubcategory}
         />
         <main id="main-content" className={itemCount ? "has-mini-cart" : ""}>
           <AnimatePresence mode="popLayout" initial={false}>
@@ -1660,47 +1731,15 @@ function StoreApp({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
               >
-                {selectedCategory ? (
-                  <section>
-                    <div className="section-heading category-title">
-                      <div>
-                        <span>{selectedCategory.description}</span>
-                        <h1>{selectedCategory.name}</h1>
-                      </div>
-                      <b>{selectedCategory.count}</b>
-                    </div>
-                    {categoryLoading ? (
-                      <ProductSkeletons />
-                    ) : categoryError ? (
-                      <ErrorState
-                        message={categoryError}
-                        retry={() => {
-                          const current = selectedCategory;
-                          setSelectedCategory(null);
-                          requestAnimationFrame(() =>
-                            setSelectedCategory(current),
-                          );
-                        }}
-                      />
-                    ) : categoryProducts.length ? (
-                      <ProductList products={categoryProducts} />
-                    ) : (
-                      <div className="empty-inline">
-                        No hay productos en esta categoría.
-                      </div>
-                    )}
-                  </section>
-                ) : (
-                  <section>
+                <section>
+                  {!selectedCategory ? (
                     <div className="page-intro">
                       <span>Explorá sin apuro</span>
                       <h1>Categorías</h1>
-                      <p>
-                        Elegí una sección y descargamos únicamente esos
-                        productos.
-                      </p>
+                      <p>Elegí una categoría y después una subcategoría para ver sus productos.</p>
                     </div>
-                    {initialLoading ? (
+                  ) : null}
+                  {initialLoading ? (
                       <div className="category-grid">
                         {[1, 2, 3].map((n) => (
                           <div
@@ -1714,11 +1753,44 @@ function StoreApp({
                     ) : (
                       <CategoryGrid
                         categories={manifest?.categories ?? []}
+                        selectedCategory={selectedCategory}
+                        selectedSubcategory={selectedSubcategory}
                         onSelect={openCategory}
+                        onSelectSubcategory={openSubcategory}
                       />
                     )}
-                  </section>
-                )}
+                  {selectedCategory ? (
+                    <div className="category-results">
+                      <div className="section-heading category-title">
+                        <div>
+                          <span>{selectedCategory.name}</span>
+                          <h1>{selectedSubcategoryMeta?.name ?? "Elegí una subcategoría"}</h1>
+                        </div>
+                        <b>{selectedSubcategoryMeta?.count ?? 0}</b>
+                      </div>
+                      {!selectedSubcategory ? (
+                        <div className="empty-inline category-choice-prompt">
+                          Elegí una subcategoría del menú para mostrar los productos.
+                        </div>
+                      ) : categoryLoading ? (
+                        <ProductSkeletons />
+                      ) : categoryError ? (
+                        <ErrorState
+                          message={categoryError}
+                          retry={() => {
+                            const current = selectedSubcategory;
+                            setSelectedSubcategory(null);
+                            requestAnimationFrame(() => setSelectedSubcategory(current));
+                          }}
+                        />
+                      ) : categoryProducts.length ? (
+                        <ProductList products={categoryProducts} />
+                      ) : (
+                        <div className="empty-inline">No hay productos en esta subcategoría.</div>
+                      )}
+                    </div>
+                  ) : null}
+                </section>
               </motion.div>
             ) : null}
 

@@ -164,14 +164,30 @@ export function createRemoteCatalog(): CatalogProvider {
       const list = groups.get(product.categoryId) ?? [];
       list.push(product); groups.set(product.categoryId, list);
     }
-    const categories = [...groups.entries()].map(([id, items]) => ({
-      id,
-      name: id === "combos" ? "Combos" : items[0]?.category === "AA" ? "Exclusivos" : items[0]?.category || "Sin categoría",
-      description: `${items.filter((item) => item.active).length} disponibles`,
-      color: "#d92822",
-      image: items.find((item) => item.imageUrl)?.imageUrl || "/joma-express-icon.png",
-      count: items.filter((item) => item.active).length,
-    })).sort((a, b) => a.name.localeCompare(b.name, "es"));
+    const categories = [...groups.entries()].map(([id, items]) => {
+      const subcategoryGroups = new Map<string, Product[]>();
+      for (const item of items) {
+        const subcategoryId = slug(item.subcategory || "Sin subcategoría");
+        const list = subcategoryGroups.get(subcategoryId) ?? [];
+        list.push(item);
+        subcategoryGroups.set(subcategoryId, list);
+      }
+      return {
+        id,
+        name: id === "combos" ? "Combos" : items[0]?.category === "AA" ? "Exclusivos" : items[0]?.category || "Sin categoría",
+        description: `${items.filter((item) => item.active).length} disponibles`,
+        color: "#d92822",
+        image: items.find((item) => item.imageUrl)?.imageUrl || "/joma-express-icon.png",
+        count: items.filter((item) => item.active).length,
+        subcategories: [...subcategoryGroups.entries()]
+          .map(([subcategoryId, subcategoryItems]) => ({
+            id: subcategoryId,
+            name: subcategoryItems[0]?.subcategory || "Sin subcategoría",
+            count: subcategoryItems.length,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name, "es")),
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name, "es"));
     return { version: catalogVersion, featuredCount: featured.length, categories };
   };
 
@@ -182,7 +198,9 @@ export function createRemoteCatalog(): CatalogProvider {
       return selectFeatured(products, config.ids, config.configured);
     },
     getOfferProducts: async () => (await loadProducts()).filter((item) => item.active && item.offer).sort(sortProducts),
-    getCategoryProducts: async (categoryId) => (await loadProducts()).filter((item) => item.active && item.categoryId === categoryId).sort(sortProducts),
+    getCategoryProducts: async (categoryId, subcategoryId) => (await loadProducts())
+      .filter((item) => item.active && item.categoryId === categoryId && (!subcategoryId || slug(item.subcategory || "Sin subcategoría") === subcategoryId))
+      .sort(sortProducts),
     searchProducts: async (query) => {
       const terms = normalize(query).split(/\s+/).filter(Boolean);
       const speedSearch = isSpeedPrioritySearch(query);
