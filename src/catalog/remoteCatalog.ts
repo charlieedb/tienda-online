@@ -5,6 +5,7 @@ import {
   isSpeedPrioritySearch,
   prioritizeSpeedProducts,
 } from "@/lib/productSearchPriority";
+import { resolveProductTaxonomy } from "@/lib/productTaxonomy";
 
 const VERSION_URL = "/api/catalog-version";
 const PRODUCTS_URL = "/api/catalog-products";
@@ -42,7 +43,7 @@ function selectFeatured(products: Product[], ids: string[], configured: boolean)
 function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay): Product {
   const code = text(raw["Código"] ?? raw.Codigo ?? raw.codigo);
   const name = text(raw.Nombre ?? raw.nombre) || "Producto sin nombre";
-  const category = text(raw.Linea ?? raw.linea ?? raw.Categoria ?? raw.categoria) || "Sin categoría";
+  const { category, subcategory } = resolveProductTaxonomy(raw);
   const packQty = Math.max(1, Math.trunc(number(raw.Presentacion ?? raw.presentacion) || 1));
   const overlay = prices[code.toUpperCase()] ?? {};
   const unitPrice = number(overlay.precioUnidad ?? raw.Precio ?? raw.precio ?? raw.PrecioMostrador);
@@ -67,15 +68,15 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const parsedStock = stockValue === null || stockValue === undefined || stockValue === "" ? undefined : Number(stockValue);
   const stockReal = parsedStock !== undefined && Number.isFinite(parsedStock) ? parsedStock : undefined;
   const hiddenFromStore = /^R/i.test(code);
-  const onlineManual = typeof raw.publicarOnlineManual === "boolean" ? raw.publicarOnlineManual : null;
-  const activeByStock = stockReal !== undefined ? stockReal > 0 : !bool(raw.sinStock ?? raw.SinStock);
+  const activeByStock = stockReal !== undefined && stockReal > 0;
 
   return {
     id: code || `${slug(name)}-${index}`,
     name,
-    brand: category.toUpperCase() === "AA" ? "Exclusivos" : category,
+    brand: subcategory.toUpperCase() === "AA" ? "Exclusivos" : subcategory,
     gtin: text(raw.codigoBarra ?? raw.ean ?? raw.EAN) || undefined,
     category,
+    subcategory,
     categoryId: isCombo ? "combos" : slug(category),
     imageUrl: stableImageUrl(
       raw.imgUrl ??
@@ -88,8 +89,8 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     unit: { label: "1 unidad", price: unitFinalPrice, listPrice: offerDiscount > 0 ? unitPrice : undefined, discountPct: offerDiscount || undefined },
     pack: packQty > 1 ? { qty: packQty, label: `Caja x${packQty}`, price: packPrice, listPrice: packDiscount > 0 ? packListPrice : undefined, discountPct: packDiscount || undefined } : undefined,
     sortPrice: unitPrice,
-    keywords: [code, name, category, text(raw.codigoBarra)].filter(Boolean),
-    active: !hiddenFromStore && (onlineManual ?? (raw.publicarOnline !== false && activeByStock)),
+    keywords: [code, name, category, subcategory, text(raw.codigoBarra)].filter(Boolean),
+    active: !hiddenFromStore && activeByStock,
     stockReal,
     offer,
     offerDiscount: offerDiscount || packDiscount || undefined,

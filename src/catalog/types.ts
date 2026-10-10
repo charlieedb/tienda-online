@@ -4,6 +4,7 @@ export type Product = {
   brand?: string;
   gtin?: string;
   category?: string;
+  subcategory?: string;
   categoryId: string;
   imageUrl?: string;
   imageFallbackUrl?: string;

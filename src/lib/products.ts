@@ -11,6 +11,7 @@ export type Product = {
   name: string;
   brand?: string;
   category?: string;
+  subcategory?: string;
   imageUrl?: string;
   unit: { label: string; price: number; listPrice?: number; discountPct?: number };
   pack?: { qty: number; label: string; price: number; listPrice?: number; discountPct?: number };

@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { resolveProductTaxonomy } from "@/lib/productTaxonomy";
 
 type SourceRow = {
   Precio?: number;
@@ -15,6 +16,7 @@ type SourceRow = {
   publicarOnline?: boolean;
   publicarOnlineManual?: boolean | null;
   Linea?: string | null;
+  Categoria?: string | null;
   Nombre?: string | null;
   "Código"?: string | null;
   _nCodigo?: string | null;
@@ -35,6 +37,7 @@ type Product = {
   name: string;
   brand?: string;
   category?: string;
+  subcategory?: string;
   imageUrl?: string;
   unit: { label: string; price: number; listPrice?: number; discountPct?: number };
   pack?: { qty: number; label: string; price: number; listPrice?: number; discountPct?: number };
@@ -110,8 +113,10 @@ function mapRowToProduct(row: SourceRow): Product | null {
       }
     : undefined;
 
-  const category = String(row.Linea ?? "").trim() || undefined;
-  const brand = category;
+  const taxonomy = resolveProductTaxonomy(row as Record<string, unknown>);
+  const category = taxonomy.category;
+  const subcategory = taxonomy.subcategory;
+  const brand = subcategory;
   const keywordsBase = [
     row._nNombre ? String(row._nNombre) : nombre,
     row._nCodigo ? String(row._nCodigo) : codigo,
@@ -128,9 +133,7 @@ function mapRowToProduct(row: SourceRow): Product | null {
   ]).filter(Boolean);
 
   const stockReal = toNumber(row.stockReal);
-  const manual = typeof row.publicarOnlineManual === "boolean" ? row.publicarOnlineManual : null;
-  const tieneStockOnline = stockReal === null ? row.sinStock !== true : stockReal > 0;
-  const active = manual ?? (row.publicarOnline !== false && tieneStockOnline);
+  const active = stockReal !== null && stockReal > 0;
 
   const bucket =
     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ||
@@ -153,6 +156,7 @@ function mapRowToProduct(row: SourceRow): Product | null {
     name: nombre,
     brand,
     category,
+    subcategory,
     imageUrl,
     unit: {
       label: "unidad",

@@ -1052,6 +1052,17 @@ body {
   display: none;
 }
 
+.store-chip-row--subcategories {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(31, 41, 55, 0.08);
+}
+
+.store-chip-row--subcategories .store-chip {
+  min-height: 40px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
 .store-chip,
 .store-sidebar-filter {
   min-height: 42px;
@@ -1394,6 +1405,20 @@ body {
   display: grid;
   gap: 0.6rem;
   margin-top: 1rem;
+}
+
+.store-desktop-sidebar__subcategories {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.15rem 0 0.35rem 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid rgba(31, 41, 55, 0.12);
+}
+
+.store-desktop-sidebar__subcategories .store-sidebar-filter {
+  min-height: 38px;
+  padding-block: 0.55rem;
+  font-size: 0.82rem;
 }
 
 .store-desktop-sidebar__cart strong {

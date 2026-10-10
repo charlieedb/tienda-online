@@ -66,17 +66,22 @@ export function DesktopRetailCatalog({
   const normalizedSearch = normalizeToken(deferredSearch);
 
   const activeProducts = useMemo(() => products.filter((product) => product.active), [products]);
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.token === categoryToken?.split("::")[0]),
+    [categories, categoryToken],
+  );
 
   const filteredProducts = useMemo(() => {
     return activeProducts.filter((product) => {
       if (offersOnly && !product.offer) return false;
       if (categoryToken) {
-        const token = normalizeToken(product.category || product.brand || "");
-        if (token !== categoryToken) return false;
+        const [categoryPart, subcategoryPart] = categoryToken.split("::");
+        if (normalizeToken(product.category || "") !== categoryPart) return false;
+        if (subcategoryPart && normalizeToken(product.subcategory || product.brand || "") !== subcategoryPart) return false;
       }
       if (!normalizedSearch) return true;
       const haystack = normalizeToken(
-        [product.name, product.id, product.brand, product.category, ...(product.keywords || [])]
+        [product.name, product.id, product.brand, product.category, product.subcategory, ...(product.keywords || [])]
           .filter(Boolean)
           .join(" "),
       );
@@ -177,7 +182,7 @@ export function DesktopRetailCatalog({
               {categories.map((category) => (
                 <SidebarFilter
                   key={category.token}
-                  active={!offersOnly && categoryToken === category.token}
+                  active={!offersOnly && categoryToken?.split("::")[0] === category.token}
                   onClick={() => {
                     onCategoryTokenChange(category.token);
                     onOffersOnlyChange(false);
@@ -186,6 +191,25 @@ export function DesktopRetailCatalog({
                   {category.label}
                 </SidebarFilter>
               ))}
+              {selectedCategory?.subcategories.length ? (
+                <div className="store-desktop-sidebar__subcategories" aria-label={`Subcategorías de ${selectedCategory.label}`}>
+                  <SidebarFilter
+                    active={categoryToken === selectedCategory.token}
+                    onClick={() => onCategoryTokenChange(selectedCategory.token)}
+                  >
+                    Ver todo
+                  </SidebarFilter>
+                  {selectedCategory.subcategories.map((subcategory) => (
+                    <SidebarFilter
+                      key={subcategory.token}
+                      active={categoryToken === `${selectedCategory.token}::${subcategory.token}`}
+                      onClick={() => onCategoryTokenChange(`${selectedCategory.token}::${subcategory.token}`)}
+                    >
+                      {subcategory.label}
+                    </SidebarFilter>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
 

@@ -162,18 +162,30 @@ export function StoreApp({ forcedDesktop = false, initialStage = "landing" }: Pr
       if (cancelled) return;
       setCatalogProducts(catalog);
 
-      const categoryMap = new Map<string, string>();
+      const categoryMap = new Map<string, { label: string; subcategories: Map<string, string> }>();
       for (const product of catalog) {
         const base = String(product.category ?? product.brand ?? "").trim();
         if (!base) continue;
         const token = canonicalizeCategoryToken(base);
-        if (!token || categoryMap.has(token)) continue;
-        categoryMap.set(token, base);
+        if (!token) continue;
+        const entry = categoryMap.get(token) ?? { label: base, subcategories: new Map<string, string>() };
+        const subcategory = String(product.subcategory ?? product.brand ?? "").trim();
+        const subcategoryToken = canonicalizeCategoryToken(subcategory);
+        if (subcategoryToken && !entry.subcategories.has(subcategoryToken)) {
+          entry.subcategories.set(subcategoryToken, subcategory);
+        }
+        categoryMap.set(token, entry);
       }
 
       const nextCategories = Array.from(categoryMap.entries())
-        .sort((a, b) => a[1].localeCompare(b[1], "es", { sensitivity: "base" }))
-        .map(([token, label]) => ({ token, label }));
+        .sort((a, b) => a[1].label.localeCompare(b[1].label, "es", { sensitivity: "base" }))
+        .map(([token, entry]) => ({
+          token,
+          label: entry.label,
+          subcategories: Array.from(entry.subcategories.entries())
+            .sort((a, b) => a[1].localeCompare(b[1], "es", { sensitivity: "base" }))
+            .map(([subcategoryToken, label]) => ({ token: subcategoryToken, label })),
+        }));
 
       setCategories(nextCategories);
     })();
