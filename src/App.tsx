@@ -925,6 +925,7 @@ function StoreApp({
   );
   const categoryGridScroll = useRef(0);
   const pendingCategoryScroll = useRef<number | null>(null);
+  const pendingSubcategoryTop = useRef(false);
   const initialCategoryApplied = useRef(false);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
   const pullStart = useRef<{ x: number; y: number } | null>(null);
@@ -1243,6 +1244,15 @@ function StoreApp({
   }, [selectedSubcategory, tab]);
 
   useEffect(() => {
+    if (!selectedSubcategory || !pendingSubcategoryTop.current) return;
+    pendingSubcategoryTop.current = false;
+    const frame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedSubcategory]);
+
+  useEffect(() => {
     const handlePopState = () => {
       setQuery("");
       if (selectedSubcategory) restoreCategoryBrowser();
@@ -1307,11 +1317,14 @@ function StoreApp({
   }, [selectedCategory, selectedSubcategory, tab]);
 
   const goTo = (next: Tab) => {
+    categoryGridScroll.current = 0;
+    pendingCategoryScroll.current = null;
+    pendingSubcategoryTop.current = false;
     setMenuOpen(false);
     setSelectedCategory(null);
     setSelectedSubcategory(null);
     setTab(next);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
   };
   const openInfo = (page: InfoPage) => {
     window.history.pushState(
@@ -1348,6 +1361,7 @@ function StoreApp({
   };
   const openSubcategory = (category: Category, subcategoryId: string) => {
     categoryGridScroll.current = window.scrollY;
+    pendingSubcategoryTop.current = true;
     window.history.pushState(
       {
         ...window.history.state,
@@ -1360,7 +1374,6 @@ function StoreApp({
     setSelectedCategory(category);
     setSelectedSubcategory(subcategoryId);
     setTab("categories");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const navigateBack = () => {
     setQuery("");
