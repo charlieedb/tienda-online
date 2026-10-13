@@ -1215,16 +1215,20 @@ function StoreApp({
     };
   }, [catalog, query]);
 
-  const restoreCategoryGridScroll = () => {
-    pendingCategoryScroll.current = categoryGridScroll.current;
+  const collapseCategory = () => {
     setSelectedCategory(null);
+    setSelectedSubcategory(null);
+  };
+
+  const restoreCategoryBrowser = () => {
+    pendingCategoryScroll.current = categoryGridScroll.current;
     setSelectedSubcategory(null);
   };
 
   useEffect(() => {
     if (
       tab !== "categories" ||
-      selectedCategory ||
+      selectedSubcategory ||
       pendingCategoryScroll.current === null
     )
       return;
@@ -1236,21 +1240,22 @@ function StoreApp({
       );
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [selectedCategory, tab]);
+  }, [selectedSubcategory, tab]);
 
   useEffect(() => {
     const handlePopState = () => {
       setQuery("");
-      if (selectedCategory) restoreCategoryGridScroll();
+      if (selectedSubcategory) restoreCategoryBrowser();
       else if (tab !== "home") {
         setMenuOpen(false);
+        collapseCategory();
         setTab("home");
         window.scrollTo({ top: 0, behavior: "auto" });
       }
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [selectedCategory, tab]);
+  }, [selectedSubcategory, tab]);
 
   useEffect(() => {
     if (tab === "home") return;
@@ -1277,10 +1282,12 @@ function StoreApp({
       const dy = touch.clientY - start.y;
       if (dx < -80 && Math.abs(dx) > Math.abs(dy) * 1.5) {
         setQuery("");
-        if (selectedCategory) {
-          if (window.history.state?.jomaView === "category")
+        if (selectedSubcategory) {
+          if (window.history.state?.jomaView === "subcategory")
             window.history.back();
-          else restoreCategoryGridScroll();
+          else restoreCategoryBrowser();
+        } else if (selectedCategory) {
+          collapseCategory();
         } else {
           setMenuOpen(false);
           setSelectedCategory(null);
@@ -1297,7 +1304,7 @@ function StoreApp({
       app?.removeEventListener("touchstart", handleTouchStart);
       app?.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [selectedCategory, tab]);
+  }, [selectedCategory, selectedSubcategory, tab]);
 
   const goTo = (next: Tab) => {
     setMenuOpen(false);
@@ -1332,36 +1339,24 @@ function StoreApp({
   };
   const openCategory = (category: Category) => {
     if (selectedCategory?.id === category.id) {
-      restoreCategoryGridScroll();
+      collapseCategory();
       return;
-    }
-    if (!selectedCategory && tab === "categories")
-      categoryGridScroll.current = window.scrollY;
-    if (!selectedCategory) {
-      window.history.pushState(
-        {
-          ...window.history.state,
-          jomaView: "category",
-          categoryId: category.id,
-        },
-        "",
-      );
-    } else {
-      window.history.replaceState(
-        {
-          ...window.history.state,
-          jomaView: "category",
-          categoryId: category.id,
-        },
-        "",
-      );
     }
     setSelectedCategory(category);
     setSelectedSubcategory(null);
     setTab("categories");
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const openSubcategory = (category: Category, subcategoryId: string) => {
+    categoryGridScroll.current = window.scrollY;
+    window.history.pushState(
+      {
+        ...window.history.state,
+        jomaView: "subcategory",
+        categoryId: category.id,
+        subcategoryId,
+      },
+      "",
+    );
     setSelectedCategory(category);
     setSelectedSubcategory(subcategoryId);
     setTab("categories");
@@ -1369,9 +1364,9 @@ function StoreApp({
   };
   const navigateBack = () => {
     setQuery("");
-    if (selectedCategory) {
-      if (window.history.state?.jomaView === "category") window.history.back();
-      else restoreCategoryGridScroll();
+    if (selectedSubcategory) {
+      if (window.history.state?.jomaView === "subcategory") window.history.back();
+      else restoreCategoryBrowser();
       return;
     }
     goTo("home");
@@ -1471,8 +1466,8 @@ function StoreApp({
               className="search-back-button"
               onClick={navigateBack}
               aria-label={
-                selectedCategory
-                  ? "Volver a todas las categorías"
+                selectedSubcategory
+                  ? "Volver a categorías y subcategorías"
                   : "Volver al inicio"
               }
             >
@@ -1726,20 +1721,19 @@ function StoreApp({
             {tab === "categories" ? (
               <motion.div
                 className="view"
-                key={`categories-${selectedCategory?.id ?? "grid"}`}
+                key="categories"
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
               >
                 <section>
-                  {!selectedCategory ? (
+                  <div className={`category-mobile-browser ${selectedSubcategory ? "is-product-open" : ""}`}>
                     <div className="page-intro">
                       <span>Explorá sin apuro</span>
                       <h1>Categorías</h1>
                       <p>Elegí una categoría y después una subcategoría para ver sus productos.</p>
                     </div>
-                  ) : null}
-                  {initialLoading ? (
+                    {initialLoading ? (
                       <div className="category-grid">
                         {[1, 2, 3].map((n) => (
                           <div
@@ -1759,20 +1753,18 @@ function StoreApp({
                         onSelectSubcategory={openSubcategory}
                       />
                     )}
-                  {selectedCategory ? (
-                    <div className="category-results">
+                  </div>
+                  <div className={`category-product-view ${selectedSubcategory ? "is-open" : ""}`}>
+                    {selectedSubcategory && selectedCategory ? (
+                      <>
                       <div className="section-heading category-title">
                         <div>
                           <span>{selectedCategory.name}</span>
-                          <h1>{selectedSubcategoryMeta?.name ?? "Elegí una subcategoría"}</h1>
+                          <h1>{selectedSubcategoryMeta?.name}</h1>
                         </div>
                         <b>{selectedSubcategoryMeta?.count ?? 0}</b>
                       </div>
-                      {!selectedSubcategory ? (
-                        <div className="empty-inline category-choice-prompt">
-                          Elegí una subcategoría del menú para mostrar los productos.
-                        </div>
-                      ) : categoryLoading ? (
+                      {categoryLoading ? (
                         <ProductSkeletons />
                       ) : categoryError ? (
                         <ErrorState
@@ -1788,8 +1780,15 @@ function StoreApp({
                       ) : (
                         <div className="empty-inline">No hay productos en esta subcategoría.</div>
                       )}
-                    </div>
-                  ) : null}
+                      </>
+                    ) : (
+                      <div className="desktop-category-placeholder">
+                        <span>Catálogo</span>
+                        <h1>Elegí una subcategoría</h1>
+                        <p>Abrí una categoría del panel y seleccioná una subcategoría para ver sus productos aquí.</p>
+                      </div>
+                    )}
+                  </div>
                 </section>
               </motion.div>
             ) : null}
