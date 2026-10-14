@@ -569,6 +569,10 @@ export function PublicRoutePage({
         "Explorá el catálogo mayorista y minorista de Joma Group en Corrientes Capital.",
         path,
       );
+    else if (productId)
+      // La ficha ya llega prerenderizada con sus metadatos SEO. Un fallo
+      // transitorio al refrescar el catálogo no debe convertirla en noindex.
+      return;
     else
       setDocumentMetadata(
         "Página no encontrada | Joma Group",
@@ -576,7 +580,7 @@ export function PublicRoutePage({
         path,
         true,
       );
-  }, [category, knownStaticPage, path, state.loading, state.product]);
+  }, [category, knownStaticPage, path, productId, state.loading, state.product]);
 
   if (knownStaticPage) return <StaticPage path={path} />;
   if (state.loading)
