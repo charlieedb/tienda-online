@@ -8,7 +8,7 @@
     },
     {
       "source": "/productos/:slug",
-      "destination": "/api/legacy-product"
+      "destination": "/productos/:slug.html"
     }
   ],
   "redirects": [

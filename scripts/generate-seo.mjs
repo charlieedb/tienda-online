@@ -42,6 +42,21 @@ const productPath = (product) => `/productos/${slugify(product.name)}--${slugify
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 let storageImages = new Map();
 
+async function fetchWithRetry(url, attempts = 4) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return response;
+      lastError = new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
+  }
+  throw lastError instanceof Error ? lastError : new Error("No se pudo completar la descarga.");
+}
+
 async function listStorageImages(prefix) {
   let pageToken = "";
   const images = new Map();
@@ -50,8 +65,7 @@ async function listStorageImages(prefix) {
     url.searchParams.set("prefix", prefix);
     url.searchParams.set("maxResults", "1000");
     if (pageToken) url.searchParams.set("pageToken", pageToken);
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const response = await fetchWithRetry(url);
     const data = await response.json();
     for (const item of data.items ?? []) {
       const filename = text(item.name).split("/").at(-1) || "";
@@ -149,13 +163,16 @@ for (const [route, title, description, heading] of staticRoutes) {
 
 let products = [];
 try {
-  const [thumbnails, originals] = await Promise.all([
-    listStorageImages("fotosProductosThumb/"),
-    listStorageImages("fotosProductos/"),
-  ]);
-  storageImages = new Map([...originals, ...thumbnails]);
-  const response = await fetch(catalogUrl);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  try {
+    const [thumbnails, originals] = await Promise.all([
+      listStorageImages("fotosProductosThumb/"),
+      listStorageImages("fotosProductos/"),
+    ]);
+    storageImages = new Map([...originals, ...thumbnails]);
+  } catch (error) {
+    console.warn(`SEO: no se pudo listar todas las imágenes (${error instanceof Error ? error.message : error}); se continúa con el catálogo.`);
+  }
+  const response = await fetchWithRetry(catalogUrl);
   const data = await response.json();
   products = (Array.isArray(data) ? data : data.items ?? []).map(normalizeProduct).filter((product) => product.publishable);
 } catch (error) {
