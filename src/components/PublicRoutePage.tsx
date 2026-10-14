@@ -604,6 +604,34 @@ export function PublicRoutePage({
         </motion.div>
       </PublicShell>
     );
+  if (productId && !state.product) {
+    const slug = decodeURIComponent(path.split("/").filter(Boolean).at(-1) || "");
+    const name = slug
+      .split("--")[0]
+      .split("-")
+      .filter(Boolean)
+      .map((word) => `${word.charAt(0).toLocaleUpperCase("es")}${word.slice(1)}`)
+      .join(" ");
+    const image = document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content;
+    return (
+      <PublicShell showBack>
+        <article className="public-product">
+          <div className="public-product-intro">
+            <span className="public-product-category">Bebidas · Energizantes</span>
+            <h1>{name || "Producto disponible en Joma Group"}</h1>
+            <p>
+              Comprá {name || "este producto"} online en Joma Group, Corrientes
+              Capital. Consultá el precio y agregalo a tu pedido desde la tienda.
+            </p>
+          </div>
+          {image ? <img src={image} alt={name} width="500" height="500" /> : null}
+          <a className="public-primary-link" href={`/?view=search&q=${encodeURIComponent(name)}`}>
+            Ver precio y comprar
+          </a>
+        </article>
+      </PublicShell>
+    );
+  }
   if (state.error || (productId && !state.product))
     return (
       <PublicShell showBack={Boolean(productId)}>
