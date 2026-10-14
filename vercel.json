@@ -5,10 +5,6 @@
     {
       "source": "/producto/:productId",
       "destination": "/"
-    },
-    {
-      "source": "/productos/:slug",
-      "destination": "/api/legacy-product"
     }
   ],
   "redirects": [
