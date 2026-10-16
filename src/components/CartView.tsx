@@ -19,18 +19,19 @@ import { calculateDiscount, validateDiscountCode } from "@/lib/discountCodes";
 const money = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 const PROFILE_KEY = "joma.profile.v1";
 
-type CheckoutForm = { nombre: string; telefono: string; direccion: string; nota: string };
+type CheckoutForm = { nombre: string; telefono: string; provincia: string; localidad: string; direccion: string; nota: string };
 type PaymentMethod = "cash" | "transfer";
-const EMPTY_FORM: CheckoutForm = { nombre: "", telefono: "", direccion: "", nota: "" };
+const EMPTY_FORM: CheckoutForm = { nombre: "", telefono: "", provincia: "", localidad: "", direccion: "", nota: "" };
+const ARGENTINA_PROVINCES = [
+  "Buenos Aires", "Catamarca", "Chaco", "Chubut", "Ciudad Autónoma de Buenos Aires", "Córdoba", "Corrientes",
+  "Entre Ríos", "Formosa", "Jujuy", "La Pampa", "La Rioja", "Mendoza", "Misiones", "Neuquén", "Río Negro",
+  "Salta", "San Juan", "San Luis", "Santa Cruz", "Santa Fe", "Santiago del Estero", "Tierra del Fuego", "Tucumán",
+];
 
 function createRequestId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `order_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-}
-
-function addressText(address?: { direccion?: string; localidad?: string; provincia?: string } | null) {
-  return [address?.direccion, address?.localidad, address?.provincia].map((value) => String(value ?? "").trim()).filter(Boolean).join(", ");
 }
 
 function readLocalProfile(uid: string): CheckoutForm {
@@ -39,7 +40,9 @@ function readLocalProfile(uid: string): CheckoutForm {
     return {
       nombre: String(raw.name ?? ""),
       telefono: String(raw.phone ?? ""),
-      direccion: [raw.address, raw.city].map((value) => String(value ?? "").trim()).filter(Boolean).join(", "),
+      provincia: String(raw.province ?? ""),
+      localidad: String(raw.city ?? ""),
+      direccion: String(raw.address ?? ""),
       nota: String(raw.notes ?? ""),
     };
   } catch { return EMPTY_FORM; }
@@ -220,7 +223,9 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       setForm((current) => ({
         nombre: current.nombre || local.nombre || [profile?.nombre, profile?.apellido].filter(Boolean).join(" ") || user.displayName || "",
         telefono: current.telefono || local.telefono || profile?.telefono || "",
-        direccion: current.direccion || local.direccion || addressText(profile?.direcciones?.[0]),
+        provincia: current.provincia || local.provincia || profile?.direcciones?.[0]?.provincia || "",
+        localidad: current.localidad || local.localidad || profile?.direcciones?.[0]?.localidad || "",
+        direccion: current.direccion || local.direccion || profile?.direcciones?.[0]?.direccion || "",
         nota: current.nota || local.nota || profile?.notes || "",
       }));
       setDeliveryLocation((current) => current ?? localLocation ?? profile?.direcciones?.[0]?.ubicacion ?? null);
@@ -255,8 +260,14 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       focusCheckoutField("checkout-payment-cash");
       return;
     }
+    if (form.provincia !== "Corrientes" || form.localidad !== "Corrientes Capital") {
+      setError("Por el momento, los envíos están disponibles únicamente en Corrientes Capital.");
+      focusCheckoutField(form.provincia !== "Corrientes" ? "checkout-province" : "checkout-city");
+      return;
+    }
     const customer = {
-      nombre: form.nombre.trim(), telefono: form.telefono.trim(), direccion: form.direccion.trim(), nota: form.nota.trim(), ubicacion: deliveryLocation,
+      nombre: form.nombre.trim(), telefono: form.telefono.trim(), provincia: form.provincia, localidad: form.localidad,
+      direccion: form.direccion.trim(), nota: form.nota.trim(), ubicacion: deliveryLocation,
     };
     if (!customer.nombre || !customer.telefono || !customer.direccion) {
       setError("Completá nombre, teléfono y dirección para confirmar la compra.");
@@ -268,12 +279,15 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       if (!user) throw new Error("Necesitás iniciar sesión para confirmar la compra.");
       const savedProfile = getCachedUserProfile(user.uid) ?? await refreshUserProfile(user.uid);
       const savedName = [savedProfile?.nombre, savedProfile?.apellido].filter(Boolean).join(" ").trim();
-      const savedAddress = addressText(savedProfile?.direcciones?.[0]);
+      const savedAddress = String(savedProfile?.direcciones?.[0]?.direccion || "").trim();
+      const savedProvince = String(savedProfile?.direcciones?.[0]?.provincia || "").trim();
+      const savedCity = String(savedProfile?.direcciones?.[0]?.localidad || "").trim();
       const savedLocation = savedProfile?.direcciones?.[0]?.ubicacion ?? null;
       const locationChanged = savedLocation?.lat !== customer.ubicacion?.lat || savedLocation?.lng !== customer.ubicacion?.lng;
       const profileChanged = !savedProfile || savedName !== customer.nombre ||
         String(savedProfile.telefono || "").trim() !== customer.telefono ||
-        savedAddress !== customer.direccion || String(savedProfile.notes || "").trim() !== customer.nota || locationChanged;
+        savedProvince !== customer.provincia || savedCity !== customer.localidad || savedAddress !== customer.direccion ||
+        String(savedProfile.notes || "").trim() !== customer.nota || locationChanged;
       if (profileChanged) {
         void upsertUserProfile({
           uid: user.uid, email: user.email,
@@ -281,7 +295,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
           dni: savedProfile?.dni || "", displayName: savedProfile?.displayName || user.displayName,
           preventistaReferido: savedProfile?.preventistaReferido || "",
           nombre: customer.nombre, apellido: "", telefono: customer.telefono, notes: customer.nota,
-          direcciones: [{ id: "principal", provincia: "", localidad: "", direccion: customer.direccion, ubicacion: customer.ubicacion }],
+          direcciones: [{ id: "principal", provincia: customer.provincia, localidad: customer.localidad, direccion: customer.direccion, ubicacion: customer.ubicacion }],
         }).catch((profileError) => {
           console.error("No se pudo actualizar el perfil después del checkout", profileError);
         });
@@ -319,7 +333,7 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
         setSentWarning("El pedido y el stock quedaron confirmados, pero el aviso de Telegram no pudo enviarse.");
       });
       try {
-        localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, address: customer.direccion, city: "", notes: customer.nota, lat: customer.ubicacion?.lat, lng: customer.ubicacion?.lng }));
+        localStorage.setItem(`${PROFILE_KEY}.${user.uid}`, JSON.stringify({ name: customer.nombre, phone: customer.telefono, province: customer.provincia, city: customer.localidad, address: customer.direccion, notes: customer.nota, lat: customer.ubicacion?.lat, lng: customer.ubicacion?.lng }));
       } catch { /* el pedido ya fue enviado */ }
       clear(); setAppliedCode(null); setCheckoutOpen(false); setSentWarning(""); setSent(true); setForm(EMPTY_FORM); setDeliveryLocation(null); setDeliveryDate(""); setDeliveryTimeRange(""); setPaymentMethod(""); orderRequestId.current = createRequestId();
     } catch (nextError) {
@@ -371,6 +385,10 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
     <AnimatePresence>{checkoutOpen && !mapOpen ? <><motion.button type="button" className="checkout-backdrop" aria-label="Cerrar confirmación" onClick={() => !submitting && setCheckoutOpen(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}/><motion.section className="checkout-sheet" role="dialog" aria-modal="true" aria-labelledby="checkout-title" initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ duration: .26, ease: [0.22, 1, 0.36, 1] }}><div className="checkout-head"><div><span>Último paso</span><h2 id="checkout-title">Confirmar compra</h2></div><button type="button" onClick={() => setCheckoutOpen(false)} disabled={submitting} aria-label="Cerrar"><Icon name="close"/></button></div><div className="checkout-body">
       {profileLoading ? <div className="checkout-notice"><span className="tiny-spinner"/> Completando tus datos guardados…</div> : null}
       {error ? <div className="checkout-error" role="alert">{error}</div> : null}
+      <div className="checkout-coverage-notice" role="note" aria-label="Zona de entrega">
+        <strong>Envíos únicamente en Corrientes Capital</strong>
+        <span>Por el momento no realizamos entregas en otras localidades ni provincias.</span>
+      </div>
       <fieldset className="checkout-delivery" disabled={submitting || deliveryLoading}>
         <h3>¿Cuándo querés recibir tu compra?</h3>
         <p>Elegí desde mañana. Los domingos no realizamos entregas.</p>
@@ -393,10 +411,21 @@ export function CartView({ onContinue, onRequireAuth }: { onContinue: () => void
       </section>
       <label><span>Nombre y apellido</span><input id="checkout-name" value={form.nombre} onChange={(event) => setForm((current) => ({ ...current, nombre: event.target.value }))} autoComplete="name" placeholder="Tu nombre"/></label>
       <label><span>Teléfono</span><input id="checkout-phone" value={form.telefono} onChange={(event) => setForm((current) => ({ ...current, telefono: event.target.value }))} autoComplete="tel" inputMode="tel" placeholder="WhatsApp o teléfono"/></label>
-      <label><span>Dirección de entrega</span><input id="checkout-address" value={form.direccion} onChange={(event) => { setForm((current) => ({ ...current, direccion: event.target.value })); setDeliveryLocation(null); }} autoComplete="street-address" placeholder="Calle, número y localidad"/></label>
+      <div className="checkout-coverage-fields">
+        <label><span>Provincia</span><select id="checkout-province" value={form.provincia} onChange={(event) => setForm((current) => ({ ...current, provincia: event.target.value, localidad: event.target.value === "Corrientes" ? current.localidad : "" }))} disabled={submitting} required>
+          <option value="">Seleccioná tu provincia</option>
+          {ARGENTINA_PROVINCES.map((province) => <option value={province} disabled={province !== "Corrientes"} key={province}>{province}{province === "Corrientes" ? "" : " — Muy pronto"}</option>)}
+        </select></label>
+        <label><span>Localidad</span><select id="checkout-city" value={form.localidad} onChange={(event) => setForm((current) => ({ ...current, localidad: event.target.value }))} disabled={submitting || form.provincia !== "Corrientes"} required>
+          <option value="">Seleccioná tu localidad</option>
+          <option value="Corrientes Capital">Corrientes Capital</option>
+          <option value="other" disabled>Otras localidades — Muy pronto</option>
+        </select></label>
+      </div>
+      <label><span>Dirección de entrega</span><input id="checkout-address" value={form.direccion} onChange={(event) => { setForm((current) => ({ ...current, direccion: event.target.value })); setDeliveryLocation(null); }} autoComplete="street-address" placeholder="Calle y número"/></label>
       <button type="button" className={`checkout-location-button ${deliveryLocation ? "is-marked" : ""}`} onClick={() => setMapOpen(true)} disabled={submitting}><span aria-hidden="true">📍</span><span>{deliveryLocation ? "Ubicación guardada" : "Marcar punto de entrega"}</span>{deliveryLocation ? <small>{deliveryLocation.lat.toFixed(5)}, {deliveryLocation.lng.toFixed(5)}</small> : null}</button>
       <label><span>Nota <em>Opcional</em></span><textarea value={form.nota} onChange={(event) => setForm((current) => ({ ...current, nota: event.target.value }))} rows={3} placeholder="Aclaraciones para el pedido"/></label>
     </div><div className="checkout-actions"><button type="button" className="checkout-cancel" onClick={() => setCheckoutOpen(false)} disabled={submitting}>Cancelar</button><button type="button" className={`checkout-submit ${submitting ? "is-submitting" : ""}`} onClick={submit} disabled={submitting || profileLoading || deliveryLoading} aria-label={submitting ? `Enviando pedido, ${submitProgress}% completado` : "Enviar pedido"} aria-busy={submitting}>{submitting ? <><span className="checkout-submit-progress" style={{ transform: `scaleX(${submitProgress / 100})` }} aria-hidden="true"/><span className="checkout-submit-label">Enviando pedido...</span></> : "Enviar pedido"}</button></div></motion.section></> : null}</AnimatePresence>
-    <MapPickerModal open={mapOpen} initial={deliveryLocation} center={deliveryLocation} initialQuery={form.direccion} onClose={() => setMapOpen(false)} onPick={setDeliveryLocation}/>
+    <MapPickerModal open={mapOpen} initial={deliveryLocation} center={deliveryLocation} initialQuery={[form.direccion, form.localidad, form.provincia].filter(Boolean).join(", ")} onClose={() => setMapOpen(false)} onPick={setDeliveryLocation}/>
   </>;
 }

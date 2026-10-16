@@ -29,6 +29,8 @@ export type TelegramOrderPayload = {
   cliente: {
     nombre: string;
     telefono: string;
+    provincia?: string;
+    localidad?: string;
     direccion: string;
     nota?: string;
     preventistaReferido?: string;
@@ -155,7 +157,10 @@ function buildLegacyLine(item: TelegramOrderItem) {
 
 export function buildTelegramOrderMessage(payload: TelegramOrderPayload) {
   const cliente = cleanText(payload.cliente?.nombre);
-  const direccion = cleanText(payload.cliente?.direccion);
+  const direccion = [payload.cliente?.direccion, payload.cliente?.localidad, payload.cliente?.provincia]
+    .map(cleanText)
+    .filter(Boolean)
+    .join(", ");
   const telefono = cleanText(payload.cliente?.telefono);
   const nota = cleanText(payload.cliente?.nota);
   const preventistaReferido = cleanText(payload.cliente?.preventistaReferido);

@@ -13,6 +13,8 @@ import { getCampaignAttribution } from "@/lib/analytics";
 type CheckoutCustomer = {
   nombre: string;
   telefono: string;
+  provincia: string;
+  localidad: string;
   direccion: string;
   nota?: string;
   preventistaReferido?: string;
@@ -186,6 +188,8 @@ export async function submitCheckoutOrder(params: {
       email: params.user?.email || null,
       nombre: params.customer.nombre.trim(),
       telefono: params.customer.telefono.trim(),
+      provincia: params.customer.provincia.trim(),
+      localidad: params.customer.localidad.trim(),
       direccion: params.customer.direccion.trim(),
       nota: String(params.customer.nota || "").trim(),
       preventistaReferido: String(params.customer.preventistaReferido || "").trim(),
@@ -270,6 +274,8 @@ export async function submitCheckoutOrder(params: {
     cliente: {
       nombre: payload.cliente.nombre,
       telefono: payload.cliente.telefono,
+      provincia: payload.cliente.provincia,
+      localidad: payload.cliente.localidad,
       direccion: payload.cliente.direccion,
       nota: payload.cliente.nota,
       preventistaReferido: payload.cliente.preventistaReferido,
