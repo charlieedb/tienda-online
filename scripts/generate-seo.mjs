@@ -141,6 +141,9 @@ async function writeRoute(route, html) {
 }
 
 const staticRoutes = [
+  ["/speed-unlimited-corrientes", "Speed Unlimited en Corrientes | Comprar online | Joma Group", "Comprá Speed Unlimited 250 ml, 473 ml, Tropical y Zero online en Corrientes Capital, por unidad o por caja.", "Speed Unlimited en Corrientes", `<p>Encontrá energizantes Speed Unlimited con compra online y entrega programada en Corrientes Capital. Tenemos presentaciones de 250 ml y 473 ml, además de variantes Tropical y Zero, sujetas a stock.</p><h2>Comprar Speed online</h2><ul><li><a href="/productos/speed-unlimited-250ml--1">Speed Unlimited 250 ml</a></li><li><a href="/productos/speed-unlimited-473ml--2">Speed Unlimited 473 ml</a></li><li><a href="/productos/speed-tropical-x-473ml--2-3">Speed Tropical 473 ml</a></li><li><a href="/productos/speed-unlimited-zero-250ml--1-1">Speed Unlimited Zero 250 ml</a></li><li><a href="/productos/speed-unlimited-zero-473ml--2-2">Speed Unlimited Zero 473 ml</a></li></ul><p>Podés comprar por unidad o elegir la presentación por caja disponible en cada ficha.</p>`],
+  ["/bebidas-en-corrientes", "Bebidas en Corrientes | Tienda online y mayorista | Joma Group", "Comprá bebidas online en Corrientes Capital: energizantes, vinos, cervezas, gaseosas, aguas, aperitivos y más.", "Bebidas en Corrientes", `<p>Comprá bebidas online en Corrientes Capital, tanto por unidad como por caja. Nuestro catálogo incluye energizantes, vinos, cervezas, gaseosas, aguas, jugos, aperitivos y bebidas espirituosas.</p><p>Consultá precios y stock actualizados, prepará tu pedido desde la web y elegí una fecha disponible de entrega dentro de Corrientes Capital.</p><p><a href="/?view=categories&amp;category=bebidas">Ver bebidas disponibles</a></p>`],
+  ["/vinos-en-corrientes", "Vinos en Corrientes | Comprar online | Joma Group", "Comprá vinos online en Corrientes Capital: tintos, blancos, rosados, espumantes y distintas bodegas, por unidad o caja.", "Vinos en Corrientes", `<p>Encontrá vinos para comprar online en Corrientes Capital. Disponemos de vinos tintos, blancos y rosados, además de espumantes y etiquetas de distintas bodegas, según el stock vigente.</p><p>Podés consultar precios actualizados y elegir opciones por unidad o por caja para tu casa, comercio, evento o regalo.</p><p><a href="/?view=search&amp;q=vinos">Ver vinos disponibles</a></p>`],
   ["/categorias", "Productos por categoría | Joma Group", "Explorá el catálogo mayorista y minorista de Joma Group en Corrientes Capital.", "Productos por categoría"],
   ["/ofertas", "Ofertas en Corrientes | Joma Group", "Consultá ofertas vigentes en Joma Group, Corrientes Capital.", "Ofertas vigentes"],
   ["/envios-corrientes", "Envíos en Corrientes Capital | Joma Group", "Comprá online con entrega programada en Corrientes Capital.", "Envíos en Corrientes Capital"],
@@ -155,8 +158,8 @@ const staticRoutes = [
 
 const sitemapRoutes = ["/"];
 const productWriteQueue = [];
-for (const [route, title, description, heading] of staticRoutes) {
-  const body = `<main><nav aria-label="Migas de pan"><a href="/">Inicio</a> / ${escapeHtml(heading)}</nav><article><h1>${escapeHtml(heading)}</h1><p>${escapeHtml(description)}</p></article></main>`;
+for (const [route, title, description, heading, content] of staticRoutes) {
+  const body = `<main><nav aria-label="Migas de pan"><a href="/">Inicio</a> / ${escapeHtml(heading)}</nav><article><h1>${escapeHtml(heading)}</h1>${content || `<p>${escapeHtml(description)}</p>`}</article></main>`;
   await writeRoute(route, withBody(withHead(baseHtml, { title, description, canonical: route }), body));
   sitemapRoutes.push(route);
 }
@@ -199,7 +202,8 @@ for (const [categoryId, items] of categoryMap) {
 
 for (const product of products) {
   const route = productPath(product);
-  const title = `${product.name} | Joma Group`;
+  const isSpeed = normalize(product.name).includes("speed");
+  const title = isSpeed ? `${product.name} en Corrientes | Joma Group` : `${product.name} | Joma Group`;
   const description = `Comprá ${product.name}${product.packQty > 1 ? " por unidad o por caja" : ""} en Joma Group, Corrientes Capital.`;
   const jsonLd = { "@context": "https://schema.org", "@type": "Product", name: product.name, sku: product.id, gtin13: /^\d{13}$/.test(product.gtin) ? product.gtin : undefined, image: product.image ? [product.image] : undefined, description, brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined, offers: { "@type": "Offer", url: `${siteUrl}${route}`, priceCurrency: "ARS", price: product.price, availability: product.active ? "https://schema.org/InStock" : "https://schema.org/OutOfStock", itemCondition: "https://schema.org/NewCondition", seller: { "@type": "Organization", name: "Joma Group" } } };
   const body = `<main><nav aria-label="Migas de pan"><a href="/">Inicio</a> / <a href="/categorias">Productos</a> / <a href="/categorias/${escapeHtml(product.categoryId)}">${escapeHtml(product.category)}</a> / ${escapeHtml(product.name)}</nav><article><h1>${escapeHtml(product.name)}</h1>${product.image ? `<img src="${escapeHtml(product.image)}" alt="${escapeHtml(product.name)}" width="500" height="500" />` : ""}<p>${escapeHtml(description)}</p><dl><dt>Código</dt><dd>${escapeHtml(product.id)}</dd><dt>Categoría</dt><dd>${escapeHtml(product.category)}</dd><dt>Presentación</dt><dd>${product.packQty > 1 ? `Unidad o caja por ${product.packQty}` : "Unidad"}</dd></dl><p><strong>${escapeHtml(money.format(product.price))}</strong></p><p>${product.active ? "Disponible" : "Temporalmente sin stock"}</p></article></main>`;

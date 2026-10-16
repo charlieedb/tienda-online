@@ -43,6 +43,70 @@ const staticPages: Record<
   string,
   { title: string; description: string; heading: string; body: React.ReactNode }
 > = {
+  "/speed-unlimited-corrientes": {
+    title: "Speed Unlimited en Corrientes | Comprar online | Joma Group",
+    description:
+      "Comprá Speed Unlimited 250 ml, 473 ml, Tropical y Zero online en Corrientes Capital, por unidad o por caja.",
+    heading: "Speed Unlimited en Corrientes",
+    body: (
+      <>
+        <p>
+          Encontrá energizantes Speed Unlimited con compra online y entrega
+          programada en Corrientes Capital. Tenemos presentaciones de 250 ml y
+          473 ml, además de variantes Tropical y Zero, sujetas a stock.
+        </p>
+        <h2>Comprar Speed online</h2>
+        <ul>
+          <li><a href="/productos/speed-unlimited-250ml--1">Speed Unlimited 250 ml</a></li>
+          <li><a href="/productos/speed-unlimited-473ml--2">Speed Unlimited 473 ml</a></li>
+          <li><a href="/productos/speed-tropical-x-473ml--2-3">Speed Tropical 473 ml</a></li>
+          <li><a href="/productos/speed-unlimited-zero-250ml--1-1">Speed Unlimited Zero 250 ml</a></li>
+          <li><a href="/productos/speed-unlimited-zero-473ml--2-2">Speed Unlimited Zero 473 ml</a></li>
+        </ul>
+        <p>Podés comprar por unidad o elegir la presentación por caja disponible en cada ficha.</p>
+      </>
+    ),
+  },
+  "/bebidas-en-corrientes": {
+    title: "Bebidas en Corrientes | Tienda online y mayorista | Joma Group",
+    description:
+      "Comprá bebidas online en Corrientes Capital: energizantes, vinos, cervezas, gaseosas, aguas, aperitivos y más.",
+    heading: "Bebidas en Corrientes",
+    body: (
+      <>
+        <p>
+          Comprá bebidas online en Corrientes Capital, tanto por unidad como por
+          caja. Nuestro catálogo incluye energizantes, vinos, cervezas,
+          gaseosas, aguas, jugos, aperitivos y bebidas espirituosas.
+        </p>
+        <p>
+          Consultá precios y stock actualizados, prepará tu pedido desde la web
+          y elegí una fecha disponible de entrega dentro de Corrientes Capital.
+        </p>
+        <p><a className="public-primary-link" href="/?view=categories&category=bebidas">Ver bebidas disponibles</a></p>
+      </>
+    ),
+  },
+  "/vinos-en-corrientes": {
+    title: "Vinos en Corrientes | Comprar online | Joma Group",
+    description:
+      "Comprá vinos online en Corrientes Capital: tintos, blancos, rosados, espumantes y distintas bodegas, por unidad o caja.",
+    heading: "Vinos en Corrientes",
+    body: (
+      <>
+        <p>
+          Encontrá vinos para comprar online en Corrientes Capital. Disponemos
+          de vinos tintos, blancos y rosados, además de espumantes y etiquetas
+          de distintas bodegas, según el stock vigente.
+        </p>
+        <p>
+          Podés consultar precios actualizados y elegir opciones por unidad o
+          por caja para tu casa, comercio, evento o regalo.
+        </p>
+        <p><a className="public-primary-link" href="/?view=search&q=vinos">Ver vinos disponibles</a></p>
+      </>
+    ),
+  },
   "/envios-corrientes": {
     title: "Envíos en Corrientes Capital | Joma Group",
     description:
@@ -547,7 +611,7 @@ export function PublicRoutePage({
     if (knownStaticPage || state.loading) return;
     if (state.product)
       setDocumentMetadata(
-        `${state.product.name} | Joma Group`,
+        `${state.product.name}${state.product.name.toLocaleLowerCase("es").includes("speed") ? " en Corrientes" : ""} | Joma Group`,
         `Comprá ${state.product.name} por unidad${state.product.pack ? " o por caja" : ""} en Joma Group, Corrientes Capital.`,
         productPath(state.product),
       );
