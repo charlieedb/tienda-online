@@ -43,6 +43,31 @@ const staticPages: Record<
   string,
   { title: string; description: string; heading: string; body: React.ReactNode }
 > = {
+  "/alfajores-marley-corrientes": {
+    title: "Alfajores Marley en Corrientes | Bajoneros y Tribajón | Joma Group",
+    description:
+      "Comprá alfajores Marley Bajoneros y Tribajón online en Corrientes Capital. Opciones blancas por unidad o por caja, sujetas a stock.",
+    heading: "Alfajores Marley en Corrientes",
+    body: (
+      <>
+        <p>
+          Encontrá alfajores Marley, conocidos como el Original Bajonero, con
+          compra online y entrega programada en Corrientes Capital. Tenemos
+          variedades simples y Tribajón, también buscado como Marley tribajon,
+          sujetas al stock disponible.
+        </p>
+        <h2>Comprar Marley Bajonero y Tribajón</h2>
+        <ul>
+          <li><a href="/productos/alfajor-marley-simple-blanco-80gr--11-1">Alfajor Marley Simple Blanco 80 g</a></li>
+          <li><a href="/productos/alfajor-marley-triple-blanco-100gr--12-1">Alfajor Marley Tribajón Triple Blanco 100 g</a></li>
+        </ul>
+        <p>
+          Consultá el precio actualizado y elegí compra por unidad o por caja
+          desde la ficha de cada alfajor.
+        </p>
+      </>
+    ),
+  },
   "/speed-unlimited-corrientes": {
     title: "Speed Unlimited en Corrientes | Comprar online | Joma Group",
     description:
@@ -611,8 +636,8 @@ export function PublicRoutePage({
     if (knownStaticPage || state.loading) return;
     if (state.product)
       setDocumentMetadata(
-        `${state.product.name}${state.product.name.toLocaleLowerCase("es").includes("speed") ? " en Corrientes" : ""} | Joma Group`,
-        `Comprá ${state.product.name} por unidad${state.product.pack ? " o por caja" : ""} en Joma Group, Corrientes Capital.`,
+        `${state.product.name}${/(speed|marley)/i.test(state.product.name) ? " en Corrientes" : ""} | Joma Group`,
+        `Comprá ${state.product.name}${/marley/i.test(state.product.name) ? ", el alfajor Bajonero" : ""} por unidad${state.product.pack ? " o por caja" : ""} en Joma Group, Corrientes Capital.`,
         productPath(state.product),
       );
     else if (category)
