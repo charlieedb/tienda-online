@@ -152,38 +152,37 @@ const staticPages: Record<
     ),
   },
   "/locales": {
-    title: "Locales de Joma Group y Jónico en Corrientes",
+    title: "Locales de JOMA GROUP y JOMA EXPRESS en Corrientes",
     description:
-      "Información de Joma Group y Jónico Supermercado Mayorista y Minorista en Corrientes Capital.",
+      "Información de JOMA GROUP y JOMA EXPRESS en Corrientes Capital.",
     heading: "Nuestros locales en Corrientes",
     body: (
       <>
-        <h2>Joma Group</h2>
+        <h2>JOMA GROUP</h2>
         <p>
           Distribuidora, mayorista y tienda online con atención en Av. Maipú
           7249, Corrientes Capital.
         </p>
-        <h2>Jónico</h2>
+        <h2>JOMA EXPRESS</h2>
         <p>
-          Jónico Supermercado Mayorista y Minorista es una empresa vinculada,
-          con operación y presencia propias junto a Joma Group.
+          Supermercado Mayorista y Minorista, con operación y presencia
+          propias junto a JOMA GROUP.
         </p>
       </>
     ),
   },
   "/jonico": {
-    title: "Jónico Supermercado Mayorista y Minorista | Corrientes",
+    title: "JOMA EXPRESS | Supermercado mayorista y minorista en Corrientes",
     description:
-      "Conocé Jónico, supermercado mayorista y minorista vinculado a Joma Group en Corrientes Capital.",
-    heading: "Jónico Supermercado Mayorista y Minorista",
+      "Conocé JOMA EXPRESS, supermercado mayorista y minorista vinculado a JOMA GROUP en Corrientes Capital.",
+    heading: "JOMA EXPRESS",
     body: (
       <>
         <p>
-          Jónico es nuestro supermercado mayorista y minorista vinculado en
-          Corrientes Capital. Cuenta con identidad y atención propias, junto a
-          las instalaciones de Joma Group.
+          Supermercado Mayorista y Minorista en Corrientes Capital. Cuenta con
+          identidad y atención propias, junto a las instalaciones de JOMA GROUP.
         </p>
-        <p>La tienda online de este sitio es operada por Joma Group.</p>
+        <p>La tienda online de este sitio es operada por JOMA GROUP.</p>
       </>
     ),
   },

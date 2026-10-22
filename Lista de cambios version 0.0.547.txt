@@ -1,0 +1,4 @@
+JOMA Express — Beta 0.0.547
+
+1. La barra inferior de la tienda en computadoras ahora muestra accesos directos a Envíos, Dónde estamos, Quiénes somos, Contacto y Privacidad.
+2. Los nombres de los enlaces informativos son más claros y fáciles de encontrar.

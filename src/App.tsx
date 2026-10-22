@@ -450,15 +450,15 @@ function StoreInfoPage({
       title: "Nuestros locales en Corrientes",
       body: (
         <>
-          <h2>Joma Group</h2>
+          <h2>JOMA GROUP</h2>
           <p>
             Distribuidora, mayorista y tienda online con atención en Av. Maipú
             7249, Corrientes Capital.
           </p>
-          <h2>Jónico</h2>
+          <h2>JOMA EXPRESS</h2>
           <p>
-            Jónico Supermercado Mayorista y Minorista es una empresa vinculada,
-            con operación y presencia propias junto a Joma Group.
+            Supermercado Mayorista y Minorista, con operación y presencia
+            propias junto a JOMA GROUP.
           </p>
         </>
       ),
@@ -1928,7 +1928,7 @@ function StoreApp({
       </div>
 
       {tab === "home" ? <StoreInfoFooter onSelect={openInfo} /> : null}
-      {tab !== "business" ? <StoreCreditBar /> : null}
+      {tab !== "business" ? <StoreCreditBar onSelect={openInfo} /> : null}
 
       {itemCount && tab !== "cart" ? (
         <button

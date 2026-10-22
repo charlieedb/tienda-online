@@ -10,7 +10,7 @@ export const BUSINESS = {
   postalCode: "W3400",
   streetAddress: "Av. Maipú 7249",
   telephone: "+54 379 439-0919",
-  jonicoName: "Jónico Supermercado Mayorista y Minorista",
+  jonicoName: "JOMA EXPRESS Supermercado Mayorista y Minorista",
 } as const;
 
 export function slugify(value: string) {

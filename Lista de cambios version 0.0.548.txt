@@ -1,0 +1,3 @@
+JOMA Express — Beta 0.0.548
+
+1. La sección Dónde estamos ahora muestra correctamente los nombres JOMA GROUP y JOMA EXPRESS.

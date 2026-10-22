@@ -7,28 +7,34 @@ export type StoreInfoPageKey = "envios" | "locales" | "nosotros" | "contacto" | 
 
 const INFO_LINKS: Array<{ page: StoreInfoPageKey; label: string }> = [
   { page: "envios", label: "Envíos" },
-  { page: "locales", label: "Locales" },
-  { page: "nosotros", label: "Nosotros" },
+  { page: "locales", label: "Dónde estamos" },
+  { page: "nosotros", label: "Quiénes somos" },
   { page: "contacto", label: "Contacto" },
   { page: "privacidad", label: "Privacidad" },
 ];
+
+function StoreInfoLinks({ onSelect }: { onSelect?: (page: StoreInfoPageKey) => void }) {
+  return <>
+    {INFO_LINKS.map(({ page, label }) => <a href={`/?info=${page}`} onClick={(event) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      if (onSelect) onSelect(page);
+      else navigateInStore(`/?info=${page}`);
+    }} key={page}>{label}</a>)}
+    <PrivacyPreferencesButton />
+  </>;
+}
 
 export function StoreInfoFooter({ onSelect }: { onSelect?: (page: StoreInfoPageKey) => void }) {
   return <footer className="store-info-footer">
     <div><strong>Joma Group</strong><p>Mayorista y tienda online con entregas programadas en Corrientes Capital.</p></div>
     <nav aria-label="Información de Joma Group">
-      {INFO_LINKS.map(({ page, label }) => <a href={`/?info=${page}`} onClick={(event) => {
-        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        event.preventDefault();
-        if (onSelect) onSelect(page);
-        else navigateInStore(`/?info=${page}`);
-      }} key={page}>{label}</a>)}
-      <PrivacyPreferencesButton />
+      <StoreInfoLinks onSelect={onSelect} />
     </nav>
   </footer>;
 }
 
-export function StoreCreditBar() {
+export function StoreCreditBar({ onSelect }: { onSelect?: (page: StoreInfoPageKey) => void }) {
   const reduceMotion = useReducedMotion();
   const shellRef = useRef<HTMLElement>(null);
   const isVisible = useInView(shellRef, { once: true, amount: .7 });
@@ -39,8 +45,13 @@ export function StoreCreditBar() {
       animate={{ x: reduceMotion || isVisible ? 0 : "100%" }}
       transition={{ duration: reduceMotion ? 0 : .75, ease: [0.22, 1, 0.36, 1] }}
     >
-      <span>Create by</span>
-      <a href="https://www.instagram.com/charlieedb" target="_blank" rel="noreferrer">/charlieedb</a>
+      <nav className="store-credit-links" aria-label="Información de Joma Group">
+        <StoreInfoLinks onSelect={onSelect} />
+      </nav>
+      <div className="store-credit-author">
+        <span>Create by</span>
+        <a href="https://www.instagram.com/charlieedb" target="_blank" rel="noreferrer">/charlieedb</a>
+      </div>
     </motion.div>
   </footer>;
 }
