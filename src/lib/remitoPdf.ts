@@ -4,6 +4,7 @@ import { doc, runTransaction } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import { getDb } from "@/lib/firebase";
 import type { OrderRecord } from "@/lib/orders";
+import { getActiveCatalog } from "@/lib/products";
 
 type JsPdfModule = typeof import("jspdf");
 type AutoTableModule = typeof import("jspdf-autotable");
@@ -90,6 +91,10 @@ export async function generateOrderRemitoPdf(params: {
   const docPdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const remitoNumber = params.remitoNumber?.trim() || (await generarNumeroRemito());
   const logoDataUrl = await loadLogoDataUrl();
+  const catalog = await getActiveCatalog();
+  const unidadesPorCajaByCodigo = new Map(
+    catalog.map((product) => [String(product.id || "").trim().toUpperCase(), Math.max(1, Number(product.pack?.qty || 1))]),
+  );
 
   const MARGIN_X = 15;
   const HEADER_Y = 10;
@@ -117,7 +122,11 @@ export async function generateOrderRemitoPdf(params: {
     const presentacion = String(item.presentacion || "").trim();
     const descripcion = presentacion ? `${item.nombre} - ${presentacion}` : item.nombre || "";
     const unidades = item.cantidadUnidades || (item.cantidadCajas && item.unidadesPorCaja ? item.cantidadCajas * item.unidadesPorCaja : 0);
-    const unidadesPorCaja = Number(item.unidadesPorCaja || item.promoCaja?.unidadesPorCaja || 0);
+    const codigo = String(item.codigo || "").trim().toUpperCase();
+    const unidadesPorCaja = Math.max(
+      1,
+      Number(unidadesPorCajaByCodigo.get(codigo) || item.unidadesPorCaja || item.promoCaja?.unidadesPorCaja || 1),
+    );
     const unidadesPromo = Math.min(unidades, Math.max(0, Number(item.promoCaja?.unidadesConPromo || 0)));
     const unidadesSueltas = Math.min(unidades - unidadesPromo, Math.max(0, Number(item.promoCaja?.unidadesPrecioLista || 0)));
     const precioPromoCaja = Number(item.promoCaja?.precioUnitarioPromo || 0);

@@ -1,0 +1,4 @@
+JOMA Express — Beta 0.0.552
+
+1. Los remitos ahora calculan las cajas equivalentes según la presentación vigente de cada producto.
+2. Al reimprimir pedidos anteriores también se corrige la relación entre cajas y unidades.
