@@ -1,0 +1,4 @@
+JOMA Express — Beta 0.0.553
+
+1. La reimpresión de remitos ahora obtiene la presentación desde el catálogo productivo vigente.
+2. Se corrigió el cálculo de cajas equivalentes para productos como Speed Tropical x6.

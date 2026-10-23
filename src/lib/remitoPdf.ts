@@ -4,13 +4,36 @@ import { doc, runTransaction } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import { getDb } from "@/lib/firebase";
 import type { OrderRecord } from "@/lib/orders";
-import { getActiveCatalog } from "@/lib/products";
 
 type JsPdfModule = typeof import("jspdf");
 type AutoTableModule = typeof import("jspdf-autotable");
 
 const LOGO_SRC = "/logo-joma.png";
 let logoDataUrlPromise: Promise<string | null> | null = null;
+let productPresentationsPromise: Promise<Map<string, number>> | null = null;
+
+async function loadProductPresentations() {
+  if (productPresentationsPromise) return productPresentationsPromise;
+  productPresentationsPromise = (async () => {
+    try {
+      const response = await fetch("/api/catalog-products", { cache: "no-store" });
+      if (!response.ok) throw new Error(`Catálogo HTTP ${response.status}`);
+      const rows = await response.json() as Array<Record<string, unknown>>;
+      const presentations = new Map<string, number>();
+      for (const row of Array.isArray(rows) ? rows : []) {
+        const code = String(row["Código"] ?? row.Codigo ?? row.codigo ?? "").trim().toUpperCase();
+        const presentation = Math.max(1, Math.trunc(Number(row.Presentacion ?? row.presentacion) || 1));
+        if (code) presentations.set(code, presentation);
+      }
+      return presentations;
+    } catch (error) {
+      productPresentationsPromise = null;
+      console.warn("No se pudieron cargar las presentaciones del catálogo para el remito:", error);
+      return new Map<string, number>();
+    }
+  })();
+  return productPresentationsPromise;
+}
 
 function fmtMoneyAR(value: number) {
   return new Intl.NumberFormat("es-AR", {
@@ -91,10 +114,7 @@ export async function generateOrderRemitoPdf(params: {
   const docPdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const remitoNumber = params.remitoNumber?.trim() || (await generarNumeroRemito());
   const logoDataUrl = await loadLogoDataUrl();
-  const catalog = await getActiveCatalog();
-  const unidadesPorCajaByCodigo = new Map(
-    catalog.map((product) => [String(product.id || "").trim().toUpperCase(), Math.max(1, Number(product.pack?.qty || 1))]),
-  );
+  const unidadesPorCajaByCodigo = await loadProductPresentations();
 
   const MARGIN_X = 15;
   const HEADER_Y = 10;
