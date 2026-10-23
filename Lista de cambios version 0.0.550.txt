@@ -1,0 +1,4 @@
+JOMA Express — Beta 0.0.550
+
+1. El remito que se descarga desde el panel administrativo vuelve a incluir una copia ORIGINAL y otra DUPLICADO para impresión y reparto.
+2. El remito enviado por correo al cliente conserva una única copia.
