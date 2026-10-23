@@ -1,0 +1,4 @@
+JOMA Express — Beta 0.0.555
+
+1. El total del remito vuelve a mostrarse grande y con mayor espacio para facilitar su lectura.
+2. La leyenda del cupón se ubica debajo del recuadro del total sin reducir el espacio del listado.

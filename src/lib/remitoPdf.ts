@@ -299,15 +299,15 @@ export async function generateOrderRemitoPdf(params: {
 
     if (mostrarTotal) {
       docPdf.setFont("helvetica", "bold");
+      docPdf.setFontSize(15);
+      docPdf.text(`Total: ${fmtMoneyAR(params.order.totals.total)}`, MARGIN_X + HEADER_W - 3, footBoxY + 8.5, { align: "right" });
       if (leyendaCupon) {
         docPdf.setFontSize(8.5);
-        docPdf.text(leyendaCupon, MARGIN_X + HEADER_W - 3, footBoxY + 4.5, { align: "right" });
+        docPdf.text(leyendaCupon, MARGIN_X + HEADER_W - 3, footBoxY + footBoxH + 6, { align: "right" });
       }
-      docPdf.setFontSize(11);
-      docPdf.text(`Total: ${fmtMoneyAR(params.order.totals.total)}`, MARGIN_X + HEADER_W - 3, footBoxY + (leyendaCupon ? 10 : 8), { align: "right" });
     }
 
-    const leyendaY = footBoxY + footBoxH + 12;
+    const leyendaY = footBoxY + footBoxH + (mostrarTotal && leyendaCupon ? 15 : 12);
     const texto1 = "Transferencias al Alias: ";
     const texto2 = "JOMA.EXPRESS";
 
