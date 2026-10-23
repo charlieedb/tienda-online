@@ -1,0 +1,4 @@
+JOMA Express — Beta 0.0.554
+
+1. La descripción del remito ahora muestra únicamente el nombre del producto.
+2. Cuando se utiliza un cupón, el porcentaje de descuento aparece junto al total sin exponer el código.

@@ -130,6 +130,14 @@ export async function generateOrderRemitoPdf(params: {
   const notas = [params.order.cliente.nota, params.order.dispatch.observaciones]
     .map((value) => String(value || "").trim())
     .filter(Boolean);
+  const porcentajesCupon = Array.from(new Set(
+    params.order.items
+      .map((item) => Math.round(Number(item.descuentoCodigoPct || 0) * 100) / 100)
+      .filter((value) => value > 0),
+  ));
+  const leyendaCupon = porcentajesCupon.length
+    ? `Cupón de Desc. utilizado - ${porcentajesCupon.map((value) => `${value}%`).join(" / ")}`
+    : "";
 
   const cajasFormato = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 });
   const productos = params.order.items.flatMap((item) => {
@@ -139,8 +147,7 @@ export async function generateOrderRemitoPdf(params: {
       descuentoPct > 0
         ? precioUnitarioBase * (1 - descuentoPct / 100)
         : Number(item.precioFinal || 0) || precioUnitarioBase;
-    const presentacion = String(item.presentacion || "").trim();
-    const descripcion = presentacion ? `${item.nombre} - ${presentacion}` : item.nombre || "";
+    const descripcion = item.nombre || "";
     const unidades = item.cantidadUnidades || (item.cantidadCajas && item.unidadesPorCaja ? item.cantidadCajas * item.unidadesPorCaja : 0);
     const codigo = String(item.codigo || "").trim().toUpperCase();
     const unidadesPorCaja = Math.max(
@@ -152,15 +159,11 @@ export async function generateOrderRemitoPdf(params: {
     const precioPromoCaja = Number(item.promoCaja?.precioUnitarioPromo || 0);
 
     if (item.pricingGroup === "offer" || item.pricingGroup === "regular") {
-      const esOferta = item.pricingGroup === "offer";
       const descuento = Number(item.descuentoPct || 0);
-      const detalle = esOferta
-        ? `${item.nombre} - Con oferta`
-        : `${item.nombre} - Precio normal${Number(item.descuentoCodigoPct || 0) > 0 ? " (Cupón)" : ""}`;
       return [[
         cajasFormato.format(unidadesPorCaja > 0 ? unidades / unidadesPorCaja : item.cantidadCajas || 0),
         unidades,
-        detalle,
+        item.nombre || "",
         fmtMoneyAR(precioUnitarioBase),
         `${Math.round(descuento * 100) / 100}%`,
         fmtMoneyAR(item.precioFinal),
@@ -175,7 +178,7 @@ export async function generateOrderRemitoPdf(params: {
       const filas: Array<Array<string | number>> = [[
         cajasFormato.format(unidadesPorCaja > 0 ? unidadesPromo / unidadesPorCaja : 0),
         unidadesPromo,
-        `${item.nombre} - Promo por caja x${unidadesPorCaja || 1}`,
+        item.nombre || "",
         fmtMoneyAR(precioUnitarioBase),
         `${Math.round(descuentoPromo * 100) / 100}%`,
         fmtMoneyAR(precioPromoCaja),
@@ -187,7 +190,7 @@ export async function generateOrderRemitoPdf(params: {
         filas.push([
           cajasFormato.format(unidadesPorCaja > 0 ? unidadesSueltas / unidadesPorCaja : 0),
           unidadesSueltas,
-          `${item.nombre} - Unidades sueltas${descuentoCupon > 0 ? " (Cupón)" : ""}`,
+          item.nombre || "",
           fmtMoneyAR(precioUnitarioBase),
           `${Math.round(descuentoCupon * 100) / 100}%`,
           fmtMoneyAR(precioFinalSuelto),
@@ -296,8 +299,12 @@ export async function generateOrderRemitoPdf(params: {
 
     if (mostrarTotal) {
       docPdf.setFont("helvetica", "bold");
+      if (leyendaCupon) {
+        docPdf.setFontSize(8.5);
+        docPdf.text(leyendaCupon, MARGIN_X + HEADER_W - 3, footBoxY + 4.5, { align: "right" });
+      }
       docPdf.setFontSize(11);
-      docPdf.text(`Total: ${fmtMoneyAR(params.order.totals.total)}`, MARGIN_X + HEADER_W - 55, footBoxY + 8);
+      docPdf.text(`Total: ${fmtMoneyAR(params.order.totals.total)}`, MARGIN_X + HEADER_W - 3, footBoxY + (leyendaCupon ? 10 : 8), { align: "right" });
     }
 
     const leyendaY = footBoxY + footBoxH + 12;
