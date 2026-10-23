@@ -272,26 +272,21 @@ export async function generateOrderRemitoPdf(params: {
     }
 
     const leyendaY = footBoxY + footBoxH + 12;
-    const texto1 = "Transferencia a Mercado Pago. Alias: ";
-    const texto2 = "JONICO.SRL";
-    const texto3 = "  ";
-    const texto4 = "*NO TRANSFERIR A OTRA CUENTA";
-
-    let cursorX =
-      pageWidth / 2 - docPdf.getTextWidth(texto1 + texto2 + texto3 + texto4) / 2;
+    const texto1 = "Transferencias al Alias: ";
+    const texto2 = "JOMA.EXPRESS";
 
     docPdf.setFontSize(9.5);
     docPdf.setFont("helvetica", "normal");
+    const anchoTexto1 = docPdf.getTextWidth(texto1);
+    docPdf.setFont("helvetica", "bold");
+    const anchoTexto2 = docPdf.getTextWidth(texto2);
+    let cursorX = pageWidth / 2 - (anchoTexto1 + anchoTexto2) / 2;
+
+    docPdf.setFont("helvetica", "normal");
     docPdf.text(texto1, cursorX, leyendaY);
-    cursorX += docPdf.getTextWidth(texto1);
+    cursorX += anchoTexto1;
     docPdf.setFont("helvetica", "bold");
     docPdf.text(texto2, cursorX, leyendaY);
-    cursorX += docPdf.getTextWidth(texto2);
-    docPdf.setFont("helvetica", "normal");
-    docPdf.text(texto3, cursorX, leyendaY);
-    cursorX += docPdf.getTextWidth(texto3);
-    docPdf.setFont("helvetica", "bold");
-    docPdf.text(texto4, cursorX, leyendaY);
 
     const firmaY = leyendaY + 20;
     const lineaLargo = 70;

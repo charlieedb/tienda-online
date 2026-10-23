@@ -1,0 +1,3 @@
+JOMA Express — Beta 0.0.551
+
+1. Los remitos impresos y los enviados por correo ahora informan el alias de transferencia JOMA.EXPRESS.
