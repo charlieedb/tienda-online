@@ -1,0 +1,3 @@
+Versión 0.0.557
+
+1. Actualizamos la definición de la tienda para reflejar correctamente la experiencia de compra actual para consumidores y comercios.
