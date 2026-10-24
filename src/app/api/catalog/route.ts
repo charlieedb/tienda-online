@@ -133,7 +133,9 @@ function mapRowToProduct(row: SourceRow): Product | null {
   ]).filter(Boolean);
 
   const stockReal = toNumber(row.stockReal);
-  const active = stockReal !== null && stockReal > 0;
+  const active = typeof row.publicarOnlineManual === "boolean"
+    ? row.publicarOnlineManual
+    : stockReal !== null && stockReal > 0;
 
   const bucket =
     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ||
