@@ -103,6 +103,17 @@ function LogoutIcon() {
   );
 }
 
+function GoogleIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="admin-google-icon">
+      <path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.8 3-4.3 3-7.4Z" />
+      <path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1a5.8 5.8 0 0 1-5.5-4H3.2v2.6A10 10 0 0 0 12 22Z" />
+      <path fill="#FBBC05" d="M6.5 14.1a6 6 0 0 1 0-4.2V7.3H3.2a10 10 0 0 0 0 9.4l3.3-2.6Z" />
+      <path fill="#EA4335" d="M12 5.9c1.5 0 2.8.5 3.8 1.5l2.9-2.8A9.7 9.7 0 0 0 12 2a10 10 0 0 0-8.8 5.3l3.3 2.6a5.8 5.8 0 0 1 5.5-4Z" />
+    </svg>
+  );
+}
+
 function ButtonSpinner() {
   return (
     <span
@@ -138,8 +149,7 @@ function OrdersSkeleton() {
 }
 
 export function AdminPedidosPage() {
-  const { user, loading, signInUsernameSession, resetAdminPassword, signOut } = useAuth();
-  const [adminSessionActive, setAdminSessionActive] = useState(false);
+  const { user, loading, signInGoogle, signOut } = useAuth();
   const [adminProfile, setAdminProfile] = useState<AdminProfile | null>(null);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [orders, setOrders] = useState<OrderRecord[]>([]);
@@ -153,8 +163,7 @@ export function AdminPedidosPage() {
   const [emailingOrderId, setEmailingOrderId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [authError, setAuthError] = useState("");
-  const [authAction, setAuthAction] = useState<"login" | "reset" | null>(null);
-  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
+  const [authAction, setAuthAction] = useState<"login" | null>(null);
   const [adminView, setAdminView] = useState<"orders" | "customers" | "users" | "notifications" | "configuration" | "coupons" | "carousel" | "advertising" | "reports">("orders");
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "week">("all");
@@ -171,15 +180,10 @@ export function AdminPedidosPage() {
   const [weekStartMs] = useState(() => Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    setAdminSessionActive(window.sessionStorage.getItem("adminPedidosSession") === "1");
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
 
     async function check() {
-      if (!user || !adminSessionActive) {
+      if (!user) {
         if (!cancelled) {
           setAdminProfile(null);
           setCheckingAdmin(false);
@@ -202,7 +206,7 @@ export function AdminPedidosPage() {
     return () => {
       cancelled = true;
     };
-  }, [user, adminSessionActive]);
+  }, [user]);
 
   useEffect(() => {
     if (!adminProfile) return;
@@ -356,10 +360,6 @@ export function AdminPedidosPage() {
     : null;
 
   async function handleAdminSignOut() {
-    if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem("adminPedidosSession");
-    }
-    setAdminSessionActive(false);
     await signOut();
   }
 
@@ -368,31 +368,9 @@ export function AdminPedidosPage() {
     setAuthError("");
     setAuthAction("login");
     try {
-      await signInUsernameSession(loginForm.username.trim(), loginForm.password);
-      if (typeof window !== "undefined") {
-        window.sessionStorage.setItem("adminPedidosSession", "1");
-      }
-      setAdminSessionActive(true);
+      await signInGoogle();
     } catch (error) {
       setAuthError(String((error as Error)?.message || error || "No se pudo iniciar sesión."));
-    } finally {
-      setAuthAction(null);
-    }
-  }
-
-  async function handlePasswordReset() {
-    if (authAction) return;
-    setAuthError("");
-    if (!loginForm.username.trim()) {
-      setAuthError("Ingresá tu usuario para recuperar la contraseña.");
-      return;
-    }
-    setAuthAction("reset");
-    try {
-      await resetAdminPassword(loginForm.username.trim());
-      setAuthError("Te enviamos un correo para restablecer la contraseña.");
-    } catch (error) {
-      setAuthError(String((error as Error)?.message || "No se pudo enviar el correo."));
     } finally {
       setAuthAction(null);
     }
@@ -514,57 +492,26 @@ export function AdminPedidosPage() {
     return <AdminLoadingScreen label="Verificando acceso seguro" />;
   }
 
-  if (!user || !adminSessionActive) {
+  if (!user) {
     return (
       <main className="admin-shell">
         <section className="admin-card admin-login-card overflow-hidden">
           <div className="admin-card__head">
             <div>
-              <div className="admin-kicker">Panel privado</div>
               <h1 className="admin-title">Centro de control de pedidos</h1>
               <p className="admin-subtitle">
-                Ingresá con tu usuario interno del administrador de tienda.
+                Accedé con una cuenta de Google autorizada para administrar la tienda.
               </p>
             </div>
           </div>
           <div className="admin-card__body space-y-4">
-            <div className="admin-login-fields">
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-black/65">Usuario o email</span>
-                <input
-                  className="admin-input"
-                  type="text"
-                  value={loginForm.username}
-                  onChange={(event) => setLoginForm((prev) => ({ ...prev, username: event.target.value }))}
-                  placeholder="Ej: carlos o nombre@email.com"
-                  autoComplete="username"
-                />
-              </label>
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-black/65">Contraseña</span>
-                <input
-                  className="admin-input"
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))}
-                  placeholder="******"
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") void handleLogin();
-                  }}
-                />
-              </label>
-            </div>
             {authError ? <div className="admin-error">{authError}</div> : null}
-            <div className="flex justify-end">
-              <div className="admin-login-actions">
-                <button type="button" className="admin-forgot-password" onClick={() => void handlePasswordReset()} disabled={Boolean(authAction)}>
-                  {authAction === "reset" ? <><ButtonSpinner /> Enviando enlace...</> : "Olvidé mi contraseña"}
-                </button>
-                <button type="button" className="btn primary min-w-40" onClick={() => void handleLogin()} disabled={Boolean(authAction)}>
-                  {authAction === "login" ? <><ButtonSpinner /> Verificando...</> : "Ingresar al panel"}
-                </button>
-              </div>
+            <div className="admin-login-actions">
+              <button type="button" className="admin-google-button" onClick={() => void handleLogin()} disabled={Boolean(authAction)}>
+                {authAction === "login" ? <><ButtonSpinner /> Abriendo Google...</> : <><GoogleIcon /> Acceder con Google</>}
+              </button>
             </div>
+            <p className="admin-login-note">El acceso se concede únicamente si el correo elegido está en la lista del panel.</p>
           </div>
         </section>
       </main>
@@ -577,10 +524,9 @@ export function AdminPedidosPage() {
         <section className="admin-card admin-login-card overflow-hidden">
           <div className="admin-card__head">
             <div>
-              <div className="admin-kicker">Acceso denegado</div>
-              <h1 className="admin-title">Tu usuario no está habilitado</h1>
+              <h1 className="admin-title">Tu correo no está habilitado</h1>
               <p className="admin-subtitle">
-                Este panel solo admite admins cargados manualmente en la allowlist `adminUsers`.
+                La cuenta {user.email || "seleccionada"} no figura en la lista de accesos autorizados.
               </p>
             </div>
           </div>
@@ -616,7 +562,7 @@ export function AdminPedidosPage() {
             <nav id="admin-main-menu" className="admin-main-menu" aria-label="Menú del administrador">
               <button type="button" className={adminView === "orders" ? "is-active" : ""} onClick={() => { setAdminView("orders"); setTopMenuOpen(false); }}>Pedidos</button>
               <button type="button" className={adminView === "customers" ? "is-active" : ""} onClick={() => { setAdminView("customers"); setTopMenuOpen(false); }}>Clientes</button>
-              <button type="button" className={adminView === "users" ? "is-active" : ""} onClick={() => { setAdminView("users"); setTopMenuOpen(false); }}>Usuarios</button>
+              <button type="button" className={adminView === "users" ? "is-active" : ""} onClick={() => { setAdminView("users"); setTopMenuOpen(false); }}>Accesos</button>
               <button type="button" className={adminView === "notifications" ? "is-active" : ""} onClick={() => { setAdminView("notifications"); setTopMenuOpen(false); }}>Notificaciones</button>
               <button type="button" className={adminView === "configuration" ? "is-active" : ""} onClick={() => { setAdminView("configuration"); setTopMenuOpen(false); }}>Configuración</button>
               <button type="button" className={adminView === "coupons" ? "is-active" : ""} onClick={() => { setAdminView("coupons"); setTopMenuOpen(false); }}>Cupones</button>
@@ -650,7 +596,7 @@ export function AdminPedidosPage() {
         <nav className="admin-sidebar__nav">
           <button type="button" className={adminView === "customers" ? "is-active" : ""} onClick={() => setAdminView("customers")}><span aria-hidden="true">●</span><div><strong>Clientes</strong><small>Consumidores y comercios</small></div></button>
           <button type="button" className={adminView === "orders" ? "is-active" : ""} onClick={() => setAdminView("orders")}><span aria-hidden="true">▦</span><div><strong>Pedidos</strong><small>Gestión y estados</small></div></button>
-          <button type="button" className={adminView === "users" ? "is-active" : ""} onClick={() => setAdminView("users")}><span aria-hidden="true">◎</span><div><strong>Usuarios</strong><small>Accesos internos</small></div></button>
+          <button type="button" className={adminView === "users" ? "is-active" : ""} onClick={() => setAdminView("users")}><span aria-hidden="true">◎</span><div><strong>Accesos</strong><small>Correos autorizados</small></div></button>
           <button type="button" className={adminView === "notifications" ? "is-active" : ""} onClick={() => setAdminView("notifications")}><span aria-hidden="true">◉</span><div><strong>Notificaciones</strong><small>Campañas e historial</small></div></button>
           <button type="button" className={adminView === "configuration" ? "is-active" : ""} onClick={() => setAdminView("configuration")}><span aria-hidden="true">⚙</span><div><strong>Configuración</strong><small>Compra, entrega y destacados</small></div></button>
           <button type="button" className={adminView === "coupons" ? "is-active" : ""} onClick={() => setAdminView("coupons")}><span aria-hidden="true">◇</span><div><strong>Cupones</strong><small>Descuentos y destinatarios</small></div></button>

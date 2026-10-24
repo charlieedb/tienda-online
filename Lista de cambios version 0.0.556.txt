@@ -1,0 +1,5 @@
+Versión 0.0.556
+
+1. El panel administrador ahora permite acceder directamente con una cuenta de Google.
+2. El acceso queda limitado a una lista configurable de correos autorizados.
+3. La sección Accesos permite agregar o quitar cuentas sin administrar contraseñas.
