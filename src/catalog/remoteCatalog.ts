@@ -69,6 +69,9 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const stockReal = parsedStock !== undefined && Number.isFinite(parsedStock) ? parsedStock : undefined;
   const hiddenFromStore = /^R/i.test(code);
   const activeByStock = stockReal !== undefined && stockReal > 0;
+  const manualOnline = typeof raw.publicarOnlineManual === "boolean"
+    ? raw.publicarOnlineManual
+    : null;
 
   return {
     id: code || `${slug(name)}-${index}`,
@@ -90,7 +93,7 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     pack: packQty > 1 ? { qty: packQty, label: `Caja x${packQty}`, price: packPrice, listPrice: packDiscount > 0 ? packListPrice : undefined, discountPct: packDiscount || undefined } : undefined,
     sortPrice: unitPrice,
     keywords: [code, name, category, subcategory, text(raw.codigoBarra)].filter(Boolean),
-    active: !hiddenFromStore && activeByStock,
+    active: !hiddenFromStore && (manualOnline ?? activeByStock),
     stockReal,
     offer,
     offerDiscount: offerDiscount || packDiscount || undefined,
