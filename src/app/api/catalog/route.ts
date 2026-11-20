@@ -94,6 +94,14 @@ function toInt(value: unknown): number | null {
   return i;
 }
 
+function positiveNumber(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = toNumber(value);
+    if (parsed !== null && parsed > 0) return parsed;
+  }
+  return 0;
+}
+
 function storageSafeCode(code: string) {
   return code.replaceAll("/", "_");
 }
@@ -104,7 +112,7 @@ function mapRowToProduct(row: SourceRow): Product | null {
   if (!codigo || !nombre) return null;
 
   const packQty = toInt(row.Presentacion);
-  const unitPrice = toNumber(row.Precio) ?? 0;
+  const unitPrice = positiveNumber(row.PrecioMostrador, row.Precio);
   const onlineOffers = (row.ofertasOnline?.length ? row.ofertasOnline : row.ofertaOnline ? [row.ofertaOnline] : [])
     .filter((item) => item?.active !== false);
   const online = onlineOffers[0];

@@ -1,0 +1,4 @@
+JOMA Express — Beta 0.0.563
+
+1. La tienda ahora usa el Precio mostrador de cada producto cuando está disponible y mantiene el Precio de lista como respaldo.
+2. Las ofertas online conservan su precio promocional y comparan el descuento contra el Precio mostrador correspondiente.

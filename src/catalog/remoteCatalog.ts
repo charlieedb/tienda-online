@@ -18,6 +18,13 @@ type PriceOverlay = Record<string, { precioUnidad?: number; precioCaja?: number;
 
 function text(value: unknown) { return String(value ?? "").trim(); }
 function number(value: unknown) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : 0; }
+function positiveNumber(...values: unknown[]) {
+  for (const value of values) {
+    const parsed = number(value);
+    if (parsed > 0) return parsed;
+  }
+  return 0;
+}
 function normalize(value: string) { return value.toLocaleLowerCase("es").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); }
 function slug(value: string) { return normalize(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "sin-categoria"; }
 function bool(value: unknown) { return value === true || ["1", "true", "si", "sí"].includes(text(value).toLowerCase()); }
@@ -46,7 +53,15 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const { category, subcategory } = resolveProductTaxonomy(raw);
   const packQty = Math.max(1, Math.trunc(number(raw.Presentacion ?? raw.presentacion) || 1));
   const overlay = prices[code.toUpperCase()] ?? {};
-  const unitPrice = number(overlay.precioUnidad ?? raw.Precio ?? raw.precio ?? raw.PrecioMostrador);
+  const publicUnitPrice = positiveNumber(
+    raw.PrecioMostrador,
+    raw.precioMostrador,
+    raw["Precio Mostrador"],
+    raw["precio mostrador"],
+    raw.Precio,
+    raw.precio,
+  );
+  const unitPrice = positiveNumber(overlay.precioUnidad, publicUnitPrice);
   const onlineSources = Array.isArray(raw.ofertasOnline) && raw.ofertasOnline.length
     ? raw.ofertasOnline.filter((item): item is RawProduct => Boolean(item && typeof item === "object"))
     : raw.ofertaOnline && typeof raw.ofertaOnline === "object" ? [raw.ofertaOnline as RawProduct] : [];
@@ -56,7 +71,7 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const onlineType = onlineActive && ["unit", "quantity", "pack"].includes(text(online.type)) ? text(online.type) : "";
   const onlineFinal = number(online?.finalPrice);
   const promoPackUnit = onlineType === "pack" ? onlineFinal : 0;
-  const explicitPackPrice = number(overlay.precioCaja ?? raw.PrecioCaja ?? raw.precioCaja ?? raw.Precio_Caja);
+  const explicitPackPrice = positiveNumber(overlay.precioCaja);
   const packListPrice = explicitPackPrice || unitPrice * packQty;
   const offerDiscount = onlineType === "unit" && unitPrice > 0 && onlineFinal > 0
     ? discountBetween(unitPrice, onlineFinal)
