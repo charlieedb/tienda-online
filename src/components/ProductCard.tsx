@@ -133,6 +133,20 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   const option = offerExhausted && catalogOption.listPrice && catalogOption.listPrice > catalogOption.price
     ? { ...catalogOption, price: catalogOption.listPrice, listPrice: undefined, discountPct: undefined }
     : catalogOption;
+  const selectedUnits = (item?.qty || 0) * (variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1);
+  const activeQuantityTier = !offerExhausted
+    ? (product.offerTiers || [])
+      .filter((tier) => selectedUnits >= tier.minQuantity && tier.finalPrice > 0)
+      .sort((a, b) => b.minQuantity - a.minQuantity)[0]
+    : undefined;
+  const visibleOption = activeQuantityTier
+    ? {
+        ...option,
+        price: activeQuantityTier.finalPrice * (variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1),
+        listPrice: Math.max(option.price, Number(option.listPrice) || 0),
+        discountPct: option.price > 0 ? (1 - activeQuantityTier.finalPrice / (option.price / (variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1))) * 100 : undefined,
+      }
+    : option;
   const disabledOfferPrice = offerExhausted
     ? product.offerCondition === "quantity" && product.offerUnitPrice
       ? product.offerUnitPrice * (variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1)
@@ -141,10 +155,10 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
         : undefined
     : undefined;
   const packUnitPriceFinal = variant === "pack" && product.pack
-    ? option.price / Math.max(1, product.pack.qty)
+    ? visibleOption.price / Math.max(1, product.pack.qty)
     : null;
   const packHasPromo = variant === "pack" && Boolean(
-    option.discountPct || (option.listPrice && option.listPrice > option.price),
+    visibleOption.discountPct || (visibleOption.listPrice && visibleOption.listPrice > visibleOption.price),
   );
   const remainingStock = getRemainingStock(items, product.id, product.stockReal);
   const unitsNeeded = variant === "pack" ? Math.max(1, product.pack?.qty || 1) : 1;
@@ -165,8 +179,8 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
   }, [sponsorContext?.campaignId, product.id]);
 
   useEffect(() => {
-    onPriceChange?.(option.price);
-  }, [onPriceChange, option.price]);
+    onPriceChange?.(visibleOption.price);
+  }, [onPriceChange, visibleOption.price]);
 
   const add = () => {
     addItem({ id: itemId, productId: product.id, name: product.name, brand: product.brand, category: product.category, variant, label: option.label, price: option.price, listPrice: option.listPrice, discountPct: option.discountPct, unitPriceFinal: variant === "pack" ? option.price / Math.max(1, product.pack?.qty || 1) : option.price, unitsPerPack: variant === "pack" ? product.pack?.qty : 1, stockLimit: product.stockReal, promoPackQty: product.pack?.qty, promoPackUnitPrice: product.packPromoUnitPrice, offerMinQty: product.offerMinQty, offerUnitPrice: product.offerUnitPrice, offerAllowCoupons: product.offerAllowCoupons, offerMaxUnits: product.offerMaxUnits, offerTiers: product.offerTiers }, 1);
@@ -184,13 +198,14 @@ function ProductCardInner({ product, eager = false, linkImageToDetail = true, de
         <h3>{product.name}</h3>
         <p>{option.label}</p>
       </div>
-      <div className={`product-price ${option.listPrice && option.listPrice > option.price ? "has-offer" : ""}`}>
-        {option.listPrice && option.listPrice > option.price ? <span>{money.format(option.listPrice)}</span> : null}
-        <strong>{money.format(option.price)}</strong>
+      <div className={`product-price ${visibleOption.listPrice && visibleOption.listPrice > visibleOption.price ? "has-offer" : ""}`} aria-live="polite" aria-atomic="true">
+        {visibleOption.listPrice && visibleOption.listPrice > visibleOption.price ? <span>{money.format(visibleOption.listPrice)}</span> : null}
+        <motion.strong key={visibleOption.price} initial={reduceMotion ? false : { opacity: .55, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .18 }}>{money.format(visibleOption.price)}</motion.strong>
         {disabledOfferPrice ? <small className="disabled-offer-price">Oferta <s>{money.format(disabledOfferPrice)}</s></small> : null}
+        {activeQuantityTier ? <small className="unit-price-final is-promo">Precio promo desde {activeQuantityTier.minQuantity} unid.</small> : null}
         {packUnitPriceFinal !== null
           ? <small className={`unit-price-final ${packHasPromo ? "is-promo" : ""}`}>Pr. Unit. Final: <b>{money.format(packUnitPriceFinal)}</b></small>
-          : option.discountPct ? <small>Ahorrás {Math.round(option.discountPct)}%</small> : null}
+          : !activeQuantityTier && visibleOption.discountPct ? <small>Ahorrás {Math.round(visibleOption.discountPct)}%</small> : null}
       </div></> : null}
       {!detailCompact && product.offer && configuredOfferUnits > 0 ? (
         <div className={`product-offer-limit ${offerExhausted ? "is-exhausted" : ""}`} role="note">
