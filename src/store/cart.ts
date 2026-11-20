@@ -36,6 +36,7 @@ export type CartItem = {
   offerAllowCoupons?: boolean;
   offerMaxUnits?: number;
   offerUsedUnits?: number;
+  offerTiers?: Array<{ minQuantity: number; finalPrice: number; maxUnits?: number; allowCoupons?: boolean }>;
   qty: number;
 };
 
@@ -47,12 +48,15 @@ export function getCartItemPricing(item: CartItem) {
   const listItemPrice = Math.max(itemPrice, Number(item.listPrice) || 0);
   const regularUnitPrice = listItemPrice / unitsPerItem;
   const listTotal = listItemPrice * qty;
-  const configuredOfferUnits = Math.max(0, Math.trunc(Number(item.offerMaxUnits) || 0));
+  const activeTier = (Array.isArray(item.offerTiers) ? item.offerTiers : [])
+    .filter((tier) => totalUnits >= Math.max(2, Math.trunc(Number(tier.minQuantity) || 0)) && Number(tier.finalPrice) > 0)
+    .sort((a, b) => b.minQuantity - a.minQuantity)[0];
+  const configuredOfferUnits = Math.max(0, Math.trunc(Number(activeTier?.maxUnits ?? item.offerMaxUnits) || 0));
   const usedOfferUnits = Math.max(0, Math.trunc(Number(item.offerUsedUnits) || 0));
   const maxOfferUnits = configuredOfferUnits > 0 ? Math.max(0, configuredOfferUnits - usedOfferUnits) : 0;
   const capOfferUnits = (units: number) => configuredOfferUnits > 0 ? Math.min(units, maxOfferUnits) : units;
-  const offerMinQty = Math.max(2, Math.trunc(Number(item.offerMinQty) || 0));
-  const offerUnitPrice = Number(item.offerUnitPrice);
+  const offerMinQty = Math.max(2, Math.trunc(Number(activeTier?.minQuantity ?? item.offerMinQty) || 0));
+  const offerUnitPrice = Number(activeTier?.finalPrice ?? item.offerUnitPrice);
   if (Number.isFinite(offerUnitPrice) && offerUnitPrice > 0 && totalUnits >= offerMinQty) {
     const promoUnits = capOfferUnits(totalUnits);
     const regularUnits = totalUnits - promoUnits;

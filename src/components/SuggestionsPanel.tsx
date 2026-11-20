@@ -319,7 +319,7 @@ export function SuggestionsPanel({
               }
             : undefined
         }
-        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice, offerMinQty, offerUnitPrice, offerAllowCoupons, offerMaxUnits }) => {
+        onConfirm={({ product, variant, qty, label, price, unitPriceFinal, unitsPerPack, promoPackQty, promoPackUnitPrice, offerMinQty, offerUnitPrice, offerAllowCoupons, offerMaxUnits, offerTiers }) => {
           const newId = `${product.id}:${variant}`;
           if (selectedMode === "edit" && selectedExistingId) {
             if (selectedExistingId === newId) {
@@ -342,6 +342,7 @@ export function SuggestionsPanel({
                   offerUnitPrice,
                   offerAllowCoupons,
                   offerMaxUnits,
+                  offerTiers,
                   stockLimit: product.stockReal,
                 },
                 qty,
@@ -364,6 +365,7 @@ export function SuggestionsPanel({
                 offerUnitPrice,
                 offerAllowCoupons,
                 offerMaxUnits,
+                offerTiers,
                 stockLimit: product.stockReal,
               },
               qty,

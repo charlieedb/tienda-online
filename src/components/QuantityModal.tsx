@@ -31,6 +31,7 @@ type Props = {
     offerUnitPrice?: number;
     offerAllowCoupons?: boolean;
     offerMaxUnits?: number;
+    offerTiers?: Product["offerTiers"];
   }) => void;
 };
 
@@ -95,6 +96,10 @@ export function QuantityModal({
 
   const modalTotal = useMemo(() => {
     if (!product || !variantInfo) return 0;
+    const tier = (product.offerTiers || [])
+      .filter((entry) => qty >= entry.minQuantity && entry.finalPrice > 0)
+      .sort((a, b) => b.minQuantity - a.minQuantity)[0];
+    if (variant === "unit" && tier) return tier.finalPrice * qty;
     if (variant === "unit" && product.offerCondition === "quantity" && product.offerUnitPrice && product.offerMinQty) {
       return qty >= product.offerMinQty ? product.offerUnitPrice * qty : product.unit.price * qty;
     }
@@ -300,6 +305,7 @@ export function QuantityModal({
                         offerUnitPrice: product.offerUnitPrice,
                         offerAllowCoupons: product.offerAllowCoupons,
                         offerMaxUnits: product.offerMaxUnits,
+                        offerTiers: product.offerTiers,
                       });
                     }}
                     disabled={isOut}

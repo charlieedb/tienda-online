@@ -26,6 +26,7 @@ export type Product = {
   offerUnitPrice?: number;
   offerMaxUnits?: number;
   offerAllowCoupons?: boolean;
+  offerTiers?: Array<{ minQuantity: number; finalPrice: number; maxUnits?: number; allowCoupons?: boolean }>;
 };
 
 const LS_KEY = `listita.catalog.${APP_VERSION}`;

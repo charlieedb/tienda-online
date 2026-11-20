@@ -47,7 +47,11 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
   const packQty = Math.max(1, Math.trunc(number(raw.Presentacion ?? raw.presentacion) || 1));
   const overlay = prices[code.toUpperCase()] ?? {};
   const unitPrice = number(overlay.precioUnidad ?? raw.Precio ?? raw.precio ?? raw.PrecioMostrador);
-  const online = raw.ofertaOnline && typeof raw.ofertaOnline === "object" ? raw.ofertaOnline as RawProduct : null;
+  const onlineSources = Array.isArray(raw.ofertasOnline) && raw.ofertasOnline.length
+    ? raw.ofertasOnline.filter((item): item is RawProduct => Boolean(item && typeof item === "object"))
+    : raw.ofertaOnline && typeof raw.ofertaOnline === "object" ? [raw.ofertaOnline as RawProduct] : [];
+  const onlineOffers = onlineSources.filter((item) => item.active !== false);
+  const online = onlineOffers[0] ?? null;
   const onlineActive = online && online.active !== false;
   const onlineType = onlineActive && ["unit", "quantity", "pack"].includes(text(online.type)) ? text(online.type) : "";
   const onlineFinal = number(online?.finalPrice);
@@ -103,6 +107,15 @@ function normalizeProduct(raw: RawProduct, index: number, prices: PriceOverlay):
     offerUnitPrice: onlineType === "quantity" ? onlineFinal : undefined,
     offerMaxUnits: Math.max(0, Math.trunc(number(online?.maxUnits))) || undefined,
     offerAllowCoupons: online?.allowCoupons === true,
+    offerTiers: onlineOffers
+      .filter((item) => text(item.type) === "quantity" && number(item.finalPrice) > 0)
+      .map((item) => ({
+        minQuantity: Math.max(2, Math.trunc(number(item.minQuantity) || 2)),
+        finalPrice: number(item.finalPrice),
+        maxUnits: Math.max(0, Math.trunc(number(item.maxUnits))) || undefined,
+        allowCoupons: item.allowCoupons === true,
+      }))
+      .sort((a, b) => a.minQuantity - b.minQuantity),
   };
 }
 

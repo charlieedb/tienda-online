@@ -145,6 +145,7 @@ function CartContent({
                             offerUnitPrice: i.offerUnitPrice,
                             offerAllowCoupons: i.offerAllowCoupons,
                             offerMaxUnits: i.offerMaxUnits,
+                            offerTiers: i.offerTiers,
                             offerUsedUnits: i.offerUsedUnits,
                           },
                           1,

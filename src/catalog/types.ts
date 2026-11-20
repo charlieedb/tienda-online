@@ -22,6 +22,7 @@ export type Product = {
   offerUnitPrice?: number;
   offerMaxUnits?: number;
   offerAllowCoupons?: boolean;
+  offerTiers?: Array<{ minQuantity: number; finalPrice: number; maxUnits?: number; allowCoupons?: boolean }>;
   featured?: boolean;
   featuredOrder?: number;
 };

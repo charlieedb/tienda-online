@@ -30,6 +30,14 @@ type SourceRow = {
     maxUnits?: number;
     allowCoupons?: boolean;
   };
+  ofertasOnline?: Array<{
+    active?: boolean;
+    type?: "unit" | "quantity" | "pack";
+    finalPrice?: number;
+    minQuantity?: number;
+    maxUnits?: number;
+    allowCoupons?: boolean;
+  }>;
 };
 
 type Product = {
@@ -52,6 +60,7 @@ type Product = {
   offerUnitPrice?: number;
   offerMaxUnits?: number;
   offerAllowCoupons?: boolean;
+  offerTiers?: Array<{ minQuantity: number; finalPrice: number; maxUnits?: number; allowCoupons?: boolean }>;
 };
 
 function normalizeForSearch(value: string) {
@@ -96,7 +105,9 @@ function mapRowToProduct(row: SourceRow): Product | null {
 
   const packQty = toInt(row.Presentacion);
   const unitPrice = toNumber(row.Precio) ?? 0;
-  const online = row.ofertaOnline?.active !== false ? row.ofertaOnline : undefined;
+  const onlineOffers = (row.ofertasOnline?.length ? row.ofertasOnline : row.ofertaOnline ? [row.ofertaOnline] : [])
+    .filter((item) => item?.active !== false);
+  const online = onlineOffers[0];
   const onlineType = online && ["unit", "quantity", "pack"].includes(String(online.type)) ? online.type : undefined;
   const onlineFinalPrice = toNumber(online?.finalPrice);
   const packPromoUnitPrice = onlineType === "pack" ? onlineFinalPrice : null;
@@ -178,6 +189,15 @@ function mapRowToProduct(row: SourceRow): Product | null {
     offerUnitPrice: onlineType === "quantity" ? onlineFinalPrice ?? undefined : undefined,
     offerMaxUnits: Math.max(0, toInt(online?.maxUnits) || 0) || undefined,
     offerAllowCoupons: online?.allowCoupons === true,
+    offerTiers: onlineOffers
+      .filter((item) => item.type === "quantity" && (toNumber(item.finalPrice) ?? 0) > 0)
+      .map((item) => ({
+        minQuantity: Math.max(2, toInt(item.minQuantity) || 2),
+        finalPrice: toNumber(item.finalPrice) || 0,
+        maxUnits: Math.max(0, toInt(item.maxUnits) || 0) || undefined,
+        allowCoupons: item.allowCoupons === true,
+      }))
+      .sort((a, b) => a.minQuantity - b.minQuantity),
   };
 }
 
