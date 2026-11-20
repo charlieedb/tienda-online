@@ -773,11 +773,19 @@ function DesktopCartRail({ onOpenCart }: { onOpenCart: () => void }) {
               const eligibleSubtotal = Number(appliedCode?.eligibleSubtotalByItem?.[item.id] || 0);
               const itemDiscount = eligibleSubtotal * Number(appliedCode?.percentage || 0) / 100;
               const itemTotal = Math.max(0, pricing.total - itemDiscount);
+              const unitsPerItem = item.variant === "pack" ? Math.max(1, Number(item.unitsPerPack) || 1) : 1;
+              const listUnitPrice = Math.max(Number(item.price) || 0, Number(item.listPrice) || 0) / unitsPerItem;
+              const promoUnitPrice = pricing.promoUnits > 0 ? pricing.promoSubtotal / pricing.promoUnits : 0;
+              const hasPromoUnitPrice = promoUnitPrice > 0 && promoUnitPrice < listUnitPrice;
               return (
                 <article key={item.id} className={itemDiscount > 0 ? "has-coupon" : ""}>
                   <div>
                     <strong>{item.name}</strong>
                     <span>{item.label}</span>
+                    <div className={`desktop-cart-unit-prices ${hasPromoUnitPrice ? "has-promo" : ""}`}>
+                      <span>Lista: <b>{money.format(listUnitPrice)} c/u</b></span>
+                      {hasPromoUnitPrice ? <span>Promo: <b>{money.format(promoUnitPrice)} c/u</b></span> : null}
+                    </div>
                   </div>
                   <div className="desktop-cart-line-price">
                     {itemDiscount > 0 ? <del>{money.format(pricing.total)}</del> : null}

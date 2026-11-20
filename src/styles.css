@@ -1534,6 +1534,12 @@ body:has(input:focus, textarea:focus, select:focus) .mini-cart { opacity: 0; poi
   .desktop-cart-items article > div:first-child { min-width: 0; display: grid; gap: 3px; }
   .desktop-cart-items article strong { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 11px; line-height: 1.3; }
   .desktop-cart-items article span { color: var(--muted); font-size: 9px; }
+  .desktop-cart-unit-prices { display: flex; flex-wrap: wrap; gap: 3px 8px; margin-top: 2px; }
+  .desktop-cart-unit-prices span { color: #6f6862; font-size: 10px; line-height: 1.3; }
+  .desktop-cart-unit-prices b { color: #3e3834; font-size: 10px; font-variant-numeric: tabular-nums; }
+  .desktop-cart-unit-prices.has-promo span:first-child b { color: #817873; font-weight: 650; text-decoration: line-through; text-decoration-thickness: 1px; }
+  .desktop-cart-unit-prices.has-promo span:last-child,
+  .desktop-cart-unit-prices.has-promo span:last-child b { color: #0f6b45; font-weight: 850; }
   .desktop-cart-items article > b { font-size: 11px; font-variant-numeric: tabular-nums; }
   .desktop-cart-items article.has-coupon { background: #f0faf4; }
   .desktop-cart-line-price { display: grid; justify-items: end; align-content: start; gap: 1px; }
